@@ -5,6 +5,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { GlobalOverview } from '@/components/dashboard/GlobalOverview';
 import { ProjectOverview } from '@/components/dashboard/ProjectOverview';
 import { OutcomeDetail } from '@/components/dashboard/OutcomeDetail';
+import { OutputDetail } from '@/components/dashboard/OutputDetail';
+import { ActivityDetail } from '@/components/dashboard/ActivityDetail';
 
 function App() {
   return (
@@ -16,8 +18,8 @@ function App() {
             <Route path="/dashboard" element={<GlobalOverview />} />
             <Route path="/project/:projectId" element={<ProjectOverview />} />
             <Route path="/project/:projectId/outcome/:outcomeId" element={<OutcomeDetail />} />
-            <Route path="/project/:projectId/outcome/:outcomeId" element={<OutcomeDetail />} />
-            <Route path="/project/:projectId/activity/:activityId" element={<div>Activity Detail View</div>} />
+            <Route path="/project/:projectId/outcome/:outcomeId/output/:outputId" element={<OutputDetail />} />
+            <Route path="/project/:projectId/outcome/:outcomeId/activity/:activityId" element={<ActivityDetail />} />
             <Route path="/project/:projectId/reports" element={<div>Reports View</div>} />
             <Route path="/country/:countryId" element={<div>Country View</div>} />
             <Route path="/users" element={<div>Users Management</div>} />
