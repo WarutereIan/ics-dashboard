@@ -1,4 +1,4 @@
-import { User, Project, Outcome, Activity, KPI } from '@/types/dashboard';
+import { User, Project, Outcome, Activity, KPI, VisualizationData } from '@/types/dashboard';
 
 export const mockUser: User = {
   id: '1',
@@ -1155,8 +1155,8 @@ export const comprehensiveActivitiesData = {
   }
 };
 
-// Enhanced mock data with visualization-specific data
-export const visualizationData = {
+// Enhanced mock data with visualization support
+export const visualizationData: { [key: string]: VisualizationData } = {
   // Output 1.1: % children with improved knowledge - Radial Gauge with color coding
   '1.1': {
     type: 'radialGauge',
@@ -1383,8 +1383,8 @@ export const visualizationData = {
 };
 
 // Helper function to get visualization data for a specific output
-export const getVisualizationData = (outputId: string) => {
-  return visualizationData[outputId as keyof typeof visualizationData];
+export const getVisualizationData = (outputId: string): VisualizationData | null => {
+  return visualizationData[outputId as keyof typeof visualizationData] || null;
 };
 
 // Enhanced data generation with visualization support

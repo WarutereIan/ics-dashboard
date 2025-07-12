@@ -56,7 +56,6 @@ const VisualizationRenderer = ({ outputId }: { outputId: string }) => {
       return (
         <StackedBarChart
           data={vizData.data}
-          stacks={vizData.stacks}
           height={200}
         />
       );
@@ -160,7 +159,7 @@ const VisualizationRenderer = ({ outputId }: { outputId: string }) => {
     default:
       return (
         <div className="text-center text-muted-foreground">
-          Visualization type not supported: {vizData.type}
+          Visualization type not supported
         </div>
       );
   }
