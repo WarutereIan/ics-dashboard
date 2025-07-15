@@ -16,14 +16,14 @@ import {
 } from '@/components/ui/popover';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { cn } from '@/lib/utils';
+import { getAllProjects } from '@/lib/icsData';
 
 export function ProjectSwitcher() {
-  const { currentProject, projects, setCurrentProject, user } = useDashboard();
+  const { currentProject, setCurrentProject, user, projects } = useDashboard();
   const [open, setOpen] = React.useState(false);
 
-  const accessibleProjects = projects.filter(project => 
-    user.accessibleProjects.includes(project.id)
-  );
+  // Use unified API for permission-aware project list
+  const accessibleProjects = getAllProjects(user);
 
   if (accessibleProjects.length <= 1) {
     return null;
@@ -53,7 +53,9 @@ export function ProjectSwitcher() {
                   key={project.id}
                   value={project.name}
                   onSelect={() => {
-                    setCurrentProject(project);
+                    // Find the full project object from DashboardContext.projects
+                    const fullProject = projects.find(p => p.id === project.id);
+                    if (fullProject) setCurrentProject(fullProject);
                     setOpen(false);
                   }}
                 >
@@ -65,7 +67,6 @@ export function ProjectSwitcher() {
                   />
                   <div>
                     <div className="font-medium">{project.name}</div>
-                    <div className="text-sm text-muted-foreground">{project.country}</div>
                   </div>
                 </CommandItem>
               ))}

@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState } from 'react';
 import { User, Project } from '@/types/dashboard';
 import { mockUser, mockProjects } from '@/lib/mockData';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardContextType {
   user: User;
+  setUser: (user: User) => void;
   currentProject: Project | null;
   projects: Project[];
   setCurrentProject: (project: Project | null) => void;
@@ -14,16 +16,30 @@ interface DashboardContextType {
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
-  const [user] = useState<User>(mockUser);
+  const storedUser = localStorage.getItem('ics-dashboard-user');
+  const [user, setUser] = useState<User | undefined>(
+    storedUser ? JSON.parse(storedUser) : mockUser
+  );
   const [currentProject, setCurrentProject] = useState<Project | null>(
     mockProjects.find(p => p.id === 'mameb') || null
   );
   const [projects] = useState<Project[]>(mockProjects);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Redirect to login if user is undefined (after logout)
+  React.useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
+
+  if (!user) return null;
 
   return (
     <DashboardContext.Provider value={{
       user,
+      setUser,
       currentProject,
       projects,
       setCurrentProject,

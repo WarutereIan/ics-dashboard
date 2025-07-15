@@ -11,9 +11,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useDashboard } from '@/contexts/DashboardContext';
+import { useNavigate } from 'react-router-dom';
 
 export function UserMenu() {
-  const { user } = useDashboard();
+  const { user, setUser } = useDashboard();
+  const navigate = useNavigate();
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -27,6 +29,13 @@ export function UserMenu() {
       'branch-admin': 'Branch Administrator'
     };
     return roleMap[role] || role;
+  };
+
+  const handleLogout = () => {
+    // Clear session/local storage and redirect to login
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate('/login');
   };
 
   return (
@@ -61,9 +70,8 @@ export function UserMenu() {
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" /> Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

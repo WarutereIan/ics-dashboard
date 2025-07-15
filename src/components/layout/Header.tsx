@@ -26,7 +26,7 @@ export function Header() {
         </div>
         
         <div className="flex items-center gap-4">
-          <ProjectSwitcher />
+          
           
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />

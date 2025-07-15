@@ -1,4 +1,4 @@
-import { User, Project, Outcome, Activity, KPI, VisualizationData } from '@/types/dashboard';
+import { User, Project, Outcome, Activity, KPI } from '@/types/dashboard';
 
 export const mockUser: User = {
   id: '1',
@@ -41,18 +41,7 @@ export const mockProjects: Project[] = [
 export const mockOutcomes: Outcome[] = [
   {
     id: 'outcome-1',
-    projectId: 'mameb',
-    title: 'Children\'s Rights and Empowerment',
-    description: '3000 children have knowledge on their rights, and skills to make informed decisions and meaningfully engage with other actors for their own education success, safety and wellbeing by 2027',
-    target: 3000,
-    current: 1350,
-    unit: 'children',
-    progress: 45,
-    status: 'on-track'
-  },
-  {
-    id: 'outcome-2',
-    projectId: 'mameb',
+    projectId: 'vacis',
     title: 'Enhanced Parent-Teacher-Learner Collaboration',
     description: 'Enhanced collaboration between parents, teachers and learners resulting in improved learning and protection outcomes',
     target: 100,
@@ -62,8 +51,8 @@ export const mockOutcomes: Outcome[] = [
     status: 'on-track'
   },
   {
-    id: 'outcome-3',
-    projectId: 'mameb',
+    id: 'outcome-2',
+    projectId: 'vacis',
     title: 'Community and Religious Leaders Engagement',
     description: '100 community and religious leaders model and promote the right to learning and protection and take action to coordinate efforts towards the realization of child rights at all levels',
     target: 100,
@@ -73,8 +62,8 @@ export const mockOutcomes: Outcome[] = [
     status: 'on-track'
   },
   {
-    id: 'outcome-4',
-    projectId: 'mameb',
+    id: 'outcome-3',
+    projectId: 'vacis',
     title: 'School Capacity and Resources',
     description: 'Schools have the right capacity, resources, and policies and are implementing actions in collaboration with education stakeholders towards better safety and learning outcomes for children',
     target: 5,
@@ -84,8 +73,8 @@ export const mockOutcomes: Outcome[] = [
     status: 'on-track'
   },
   {
-    id: 'outcome-5',
-    projectId: 'mameb',
+    id: 'outcome-4',
+    projectId: 'vacis',
     title: 'Government and CSO Collaboration',
     description: 'Collaborate with Government and CSOs in conducting stakeholders\' engagement meetings to raise awareness on children rights and the importance for their protection and well-being',
     target: 12,
@@ -1155,259 +1144,6 @@ export const comprehensiveActivitiesData = {
   }
 };
 
-// Enhanced mock data with visualization support
-export const visualizationData: { [key: string]: VisualizationData } = {
-  // Output 1.1: % children with improved knowledge - Radial Gauge with color coding
-  '1.1': {
-    type: 'radialGauge',
-    value: 65,
-    target: 80,
-    unit: '%',
-    useColorCoding: true,
-    data: [
-      { month: 'Jan', value: 45 },
-      { month: 'Feb', value: 48 },
-      { month: 'Mar', value: 52 },
-      { month: 'Apr', value: 58 },
-      { month: 'May', value: 62 },
-      { month: 'Jun', value: 65 }
-    ]
-  },
-  // Output 1.2: % children using safe platforms - Donut Chart with interactive segments
-  '1.2': {
-    type: 'pieChart',
-    data: [
-      { name: 'Using Safe Platforms', value: 45, color: '#10B981' },
-      { name: 'Not Using Safe Platforms', value: 55, color: '#EF4444' }
-    ],
-    innerRadius: 40,
-    interactive: true
-  },
-  // Output 1.3: # mentors trained - Stacked Bar Chart with branch comparison
-  '1.3': {
-    type: 'stackedBarChart',
-    data: [
-      { school: 'School A', trained: 1, pending: 0 },
-      { school: 'School B', trained: 1, pending: 0 },
-      { school: 'School C', trained: 1, pending: 0 },
-      { school: 'School D', trained: 1, pending: 0 },
-      { school: 'School E', trained: 0, pending: 1 }
-    ],
-    stacks: [
-      { dataKey: 'trained', fill: '#10B981', name: 'Trained' },
-      { dataKey: 'pending', fill: '#F59E0B', name: 'Pending' }
-    ]
-  },
-  // Output 1.4: # children in life skills education - Timeline Area Chart
-  '1.4': {
-    type: 'areaChart',
-    data: [
-      { date: '2023-01', value: 150, cumulative: 150 },
-      { date: '2023-02', value: 180, cumulative: 330 },
-      { date: '2023-03', value: 220, cumulative: 550 },
-      { date: '2023-04', value: 195, cumulative: 745 },
-      { date: '2023-05', value: 240, cumulative: 985 },
-      { date: '2023-06', value: 210, cumulative: 1195 },
-      { date: '2023-07', value: 155, cumulative: 1350 }
-    ],
-    showCumulative: true,
-    milestones: [
-      { x: '2023-03', label: 'Q1 Target' },
-      { x: '2023-06', label: 'Mid-year Review' }
-    ]
-  },
-  // Output 1.5: # clubs created/strengthened - Progress Bar with target comparison
-  '1.5': {
-    type: 'progressBar',
-    current: 7,
-    target: 10,
-    unit: 'clubs',
-    breakdown: [
-      { name: 'New Clubs', value: 4 },
-      { name: 'Strengthened', value: 3 }
-    ]
-  },
-  // Output 1.6: # children in club activities - Multi-line Chart with branch comparison
-  '1.6': {
-    type: 'lineChart',
-    data: [
-      { date: '2023-01', schoolA: 45, schoolB: 38, schoolC: 42, schoolD: 35, schoolE: 28 },
-      { date: '2023-02', schoolA: 52, schoolB: 45, schoolC: 48, schoolD: 42, schoolE: 33 },
-      { date: '2023-03', schoolA: 58, schoolB: 52, schoolC: 55, schoolD: 48, schoolE: 39 },
-      { date: '2023-04', schoolA: 65, schoolB: 58, schoolC: 62, schoolD: 55, schoolE: 45 },
-      { date: '2023-05', schoolA: 72, schoolB: 65, schoolC: 68, schoolD: 62, schoolE: 52 },
-      { date: '2023-06', schoolA: 78, schoolB: 72, schoolC: 75, schoolD: 68, schoolE: 58 }
-    ],
-    lines: [
-      { dataKey: 'schoolA', color: '#3B82F6', name: 'School A' },
-      { dataKey: 'schoolB', color: '#10B981', name: 'School B' },
-      { dataKey: 'schoolC', color: '#F59E0B', name: 'School C' },
-      { dataKey: 'schoolD', color: '#EF4444', name: 'School D' },
-      { dataKey: 'schoolE', color: '#8B5CF6', name: 'School E' }
-    ]
-  },
-  // Output 1.7: # learners sensitized - Column Chart with monthly breakdown
-  '1.7': {
-    type: 'barChart',
-    data: [
-      { month: 'Jan', value: 280 },
-      { month: 'Feb', value: 320 },
-      { month: 'Mar', value: 350 },
-      { month: 'Apr', value: 380 },
-      { month: 'May', value: 420 },
-      { month: 'Jun', value: 350 }
-    ],
-    bars: [{ dataKey: 'value', fill: '#3B82F6', name: 'Learners Sensitized' }]
-  },
-  // Output 1.8: % utilizing reporting mechanisms - Pie + Trend Combo
-  '1.8': {
-    type: 'pieAndTrend',
-    pieData: [
-      { name: 'Using Reporting Mechanisms', value: 42, color: '#10B981' },
-      { name: 'Not Using', value: 58, color: '#EF4444' }
-    ],
-    trendData: [
-      { date: '2023-01', value: 25 },
-      { date: '2023-02', value: 28 },
-      { date: '2023-03', value: 32 },
-      { date: '2023-04', value: 36 },
-      { date: '2023-05', value: 39 },
-      { date: '2023-06', value: 42 }
-    ]
-  },
-  // Output 1.9: # incidents reported - Heatmap Calendar
-  '1.9': {
-    type: 'heatmapCalendar',
-    data: [
-      { date: '2023-01-05', value: 2 },
-      { date: '2023-01-12', value: 1 },
-      { date: '2023-01-18', value: 3 },
-      { date: '2023-02-03', value: 1 },
-      { date: '2023-02-15', value: 2 },
-      { date: '2023-02-28', value: 1 },
-      { date: '2023-03-08', value: 2 },
-      { date: '2023-03-22', value: 4 },
-      { date: '2023-04-05', value: 1 },
-      { date: '2023-04-19', value: 2 },
-      { date: '2023-05-12', value: 3 },
-      { date: '2023-06-02', value: 1 }
-    ]
-  },
-  // Output 2.1: # parents trained - Bullet Chart with target bands
-  '2.1': {
-    type: 'bulletChart',
-    current: 145,
-    target: 200,
-    unit: 'parents',
-    qualitativeRanges: { poor: 100, satisfactory: 150, good: 200 },
-    comparative: 120
-  },
-  // Output 2.2: % with improved knowledge - Radial Gauge comparative to baseline
-  '2.2': {
-    type: 'radialGauge',
-    value: 72,
-    target: 85,
-    unit: '%',
-    useColorCoding: true,
-    baseline: 45,
-    improvement: 27
-  },
-  // Output 3.1: % reporting positive influence - Likert Scale Chart
-  '3.1': {
-    type: 'likertScale',
-    data: [
-      {
-        question: 'Community leaders provide positive guidance',
-        responses: {
-          stronglyDisagree: 5,
-          disagree: 8,
-          neutral: 15,
-          agree: 35,
-          stronglyAgree: 25
-        }
-      },
-      {
-        question: 'Religious leaders support positive parenting',
-        responses: {
-          stronglyDisagree: 3,
-          disagree: 6,
-          neutral: 12,
-          agree: 38,
-          stronglyAgree: 28
-        }
-      },
-      {
-        question: 'Leaders help resolve family conflicts',
-        responses: {
-          stronglyDisagree: 8,
-          disagree: 12,
-          neutral: 18,
-          agree: 30,
-          stronglyAgree: 20
-        }
-      }
-    ]
-  },
-  // Output 4.1: # patrons trained - Progress Bar with certification status
-  '4.1': {
-    type: 'progressBar',
-    current: 28,
-    target: 50,
-    unit: 'teachers',
-    breakdown: [
-      { name: 'Certified', value: 20 },
-      { name: 'In Training', value: 8 },
-      { name: 'Pending', value: 22 }
-    ]
-  },
-  // Output 5.1: # stakeholder meetings - Timeline Chart with milestone markers
-  '5.1': {
-    type: 'lineChart',
-    data: [
-      { date: '2023-01', value: 1, cumulative: 1 },
-      { date: '2023-02', value: 1, cumulative: 2 },
-      { date: '2023-03', value: 2, cumulative: 4 },
-      { date: '2023-04', value: 1, cumulative: 5 },
-      { date: '2023-05', value: 1, cumulative: 6 },
-      { date: '2023-06', value: 0, cumulative: 6 }
-    ],
-    lines: [
-      { dataKey: 'value', color: '#3B82F6', name: 'Monthly Meetings' },
-      { dataKey: 'cumulative', color: '#10B981', name: 'Cumulative' }
-    ],
-    milestones: [
-      { x: '2023-03', label: 'Quarterly Review' },
-      { x: '2023-06', label: 'Mid-year Assessment' }
-    ]
-  }
-};
-
-// Helper function to get visualization data for a specific output
-export const getVisualizationData = (outputId: string): VisualizationData | null => {
-  return visualizationData[outputId as keyof typeof visualizationData] || null;
-};
-
-// Enhanced data generation with visualization support
-export const generateVisualizationData = (outputId: string, current: number, target: number) => {
-  const vizData = getVisualizationData(outputId);
-  
-  if (!vizData) {
-    return generateProgressData(current, target);
-  }
-  
-  // Handle different data structures based on type
-  if ('data' in vizData && vizData.data) {
-    return vizData.data;
-  }
-  
-  if ('trendData' in vizData && vizData.trendData) {
-    return vizData.trendData;
-  }
-  
-  // Fallback to generated progress data
-  return generateProgressData(current, target);
-};
-
 // Helper function to generate mock progress data
 export const generateProgressData = (current: number, target: number) => {
   const months = ['2023-01', '2023-02', '2023-03', '2023-04', '2023-05', '2023-06', '2023-07'];
@@ -1446,3 +1182,47 @@ export const getStatusColor = (status: string) => {
       return 'bg-gray-100 text-gray-800';
   }
 };
+
+export const mockUsers: User[] = [
+  {
+    id: '1',
+    name: 'Sarah Johnson',
+    email: 'sarah.johnson@ics.org',
+    role: 'global-admin',
+    accessibleProjects: ['mameb', 'vacis'],
+    accessibleBranches: ['mameb-nairobi', 'mameb-mombasa'],
+    accessibleCountries: ['kenya', 'tanzania'],
+    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2'
+  },
+  {
+    id: '2',
+    name: 'James Kimani',
+    email: 'james.kimani@ics.org',
+    role: 'country-admin',
+    accessibleProjects: ['mameb'],
+    accessibleBranches: ['mameb-nairobi', 'mameb-mombasa'],
+    accessibleCountries: ['kenya'],
+    avatar: 'https://randomuser.me/api/portraits/men/32.jpg'
+  },
+  {
+    id: '3',
+    name: 'Mary Wanjiku',
+    email: 'mary.wanjiku@ics.org',
+    role: 'project-admin',
+    accessibleProjects: ['mameb'], // Only MaMeb project
+    accessibleBranches: ['mameb-nairobi'],
+    accessibleCountries: ['kenya'],
+    avatar: 'https://randomuser.me/api/portraits/women/44.jpg'
+  },
+  {
+    id: '4',
+    name: 'Peter Ochieng',
+    email: 'peter.ochieng@ics.org',
+    role: 'branch-admin',
+    accessibleProjects: ['mameb'], // Only MaMeb project
+    accessibleBranches: ['mameb-nairobi'],
+    accessibleCountries: ['kenya'],
+    avatar: 'https://randomuser.me/api/portraits/men/45.jpg'
+  },
+ 
+];

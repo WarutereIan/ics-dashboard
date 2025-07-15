@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'global-admin' | 'country-admin' | 'project-admin' | 'branch-admin';
+  role: 'global-admin' | 'country-admin' | 'project-admin' | 'branch-admin' | 'viewer';
   accessibleProjects: string[];
   accessibleBranches: string[];
   accessibleCountries: string[];
@@ -34,6 +34,15 @@ export interface Outcome {
   status: 'on-track' | 'at-risk' | 'behind' | 'completed';
 }
 
+export interface SubActivity {
+  id: string;
+  title: string;
+  description?: string;
+  progress: number;
+  status: 'not-started' | 'in-progress' | 'completed' | 'on-hold';
+  dueDate?: string;
+}
+
 export interface Activity {
   id: string;
   outcomeId: string;
@@ -44,6 +53,7 @@ export interface Activity {
   startDate: Date;
   endDate: Date;
   responsible: string;
+  subActivities?: SubActivity[];
 }
 
 export interface KPI {
@@ -149,6 +159,32 @@ export interface ProgressBarData {
   target: number;
   unit: string;
   breakdown: { name: string; value: number; }[];
+}
+
+export interface Output {
+  id: string;
+  outcomeId: string;
+  title: string;
+  description: string;
+  current: number;
+  target: number;
+  unit: string;
+  status: 'on-track' | 'at-risk' | 'behind' | 'completed';
+  activities: string[];
+}
+
+export interface Report {
+  id: string;
+  name: string;
+  type: 'pdf' | 'excel' | 'word' | 'other';
+  size: string;
+  uploadDate: string;
+  description: string;
+  category: 'quarterly' | 'annual' | 'monthly' | 'adhoc';
+  status: 'draft' | 'final' | 'archived';
+  uploadedBy: string;
+  lastModified: string;
+  lastModifiedBy: string;
 }
 
 export type VisualizationData =
