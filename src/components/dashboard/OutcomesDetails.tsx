@@ -11,11 +11,12 @@ import { getProjectOutcomes, getProjectKPIs } from '@/lib/icsData';
 export function OutcomesDetails() {
   const { projectId } = useParams();
   const { user } = useDashboard();
+  if (!user) return null;
   if (!projectId) {
     return <div>No project selected</div>;
   }
-  const outcomes = getProjectOutcomes(user, projectId);
-  const allKPIs = getProjectKPIs(user, projectId);
+  const outcomes = user ? getProjectOutcomes(user, projectId) : [];
+  const allKPIs = user ? getProjectKPIs(user, projectId) : [];
   const [selectedOutcome, setSelectedOutcome] = useState<string | undefined>(undefined);
 
   const filteredOutcomes = selectedOutcome

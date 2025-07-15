@@ -4,8 +4,8 @@ import { mockUser, mockProjects } from '@/lib/mockData';
 import { useNavigate } from 'react-router-dom';
 
 interface DashboardContextType {
-  user: User;
-  setUser: (user: User) => void;
+  user: User | null;
+  setUser: (user: User | null) => void;
   currentProject: Project | null;
   projects: Project[];
   setCurrentProject: (project: Project | null) => void;
@@ -17,8 +17,8 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const storedUser = localStorage.getItem('ics-dashboard-user');
-  const [user, setUser] = useState<User | undefined>(
-    storedUser ? JSON.parse(storedUser) : mockUser
+  const [user, setUser] = useState<User | null>(
+    storedUser ? JSON.parse(storedUser) : null
   );
   const [currentProject, setCurrentProject] = useState<Project | null>(
     mockProjects.find(p => p.id === 'mameb') || null
@@ -34,7 +34,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, navigate]);
 
-  if (!user) return null;
+ 
 
   return (
     <DashboardContext.Provider value={{

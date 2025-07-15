@@ -67,6 +67,7 @@ function MultiSelectDropdown({ options, selected, setSelected, label, allLabel }
 
 export function UserManagement() {
   const { user } = useDashboard();
+  if (!user) return null;
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -78,7 +79,7 @@ export function UserManagement() {
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
 
   // Get all projects from data store
-  const allProjects = getAllProjects(user);
+  const allProjects = user ? getAllProjects(user) : [];
   const projectOptions = allProjects.map(p => p.id);
 
   // Extract unique countries from projects
@@ -110,7 +111,7 @@ export function UserManagement() {
     localStorage.setItem('users', JSON.stringify(users));
   }, [users]);
 
-  if (user.role !== 'global-admin') {
+  if (user && user.role !== 'global-admin') {
     return <div className="p-8 text-center text-lg text-muted-foreground">You do not have permission to access user management.</div>;
   }
 

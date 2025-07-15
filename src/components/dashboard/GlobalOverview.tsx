@@ -5,6 +5,7 @@ import { StackedBarChart } from '@/components/visualizations/StackedBarChart';
 import { AreaChart } from '@/components/visualizations/AreaChart';
 import { BulletChart } from '@/components/visualizations/BulletChart';
 import { PieChart } from '@/components/visualizations/PieChart';
+import { Progress } from '@/components/ui/progress';
 
 // Example strategic goals and subgoals (replace with parsed data from organisationPlan.md)
 const strategicGoals = [
@@ -88,13 +89,33 @@ export function GlobalOverview() {
                     {sub.kpi.type === 'progressBar' && (
                       <div className="w-full">
                         <div className="mb-2 text-sm font-medium">{sub.kpi.value.toLocaleString()} / {sub.kpi.target.toLocaleString()} {sub.kpi.unit}</div>
-                        <div className="w-full bg-gray-200 rounded-full h-4">
-                          <div className="bg-blue-500 h-4 rounded-full" style={{ width: `${(sub.kpi.value / sub.kpi.target) * 100}%` }}></div>
-                        </div>
+                        <Progress value={Math.round((sub.kpi.value / sub.kpi.target) * 100)} />
                       </div>
                     )}
                     {sub.kpi.type === 'bulletChart' && (
-                      <BulletChart current={sub.kpi.value} target={sub.kpi.target} unit={sub.kpi.unit} title={sub.title} qualitativeRanges={{ poor: sub.kpi.target * 0.5, satisfactory: sub.kpi.target * 0.8, good: sub.kpi.target }} />
+                      <div className="w-full">
+                        <div className="mb-2 flex justify-between items-center">
+                          <span className="text-sm font-medium text-foreground">{sub.title}</span>
+                          <span className="text-xs text-muted-foreground">{sub.kpi.value} / {sub.kpi.target} {sub.kpi.unit}</span>
+                        </div>
+                        <div className="relative h-4 w-full rounded-full bg-gray-200 overflow-hidden">
+                          {/* Poor range */}
+                          <div className="absolute left-0 top-0 h-4 bg-red-400" style={{ width: `${(sub.kpi.target * 0.5) / (sub.kpi.target * 1.2) * 100}%` }} />
+                          {/* Satisfactory range */}
+                          <div className="absolute left-0 top-0 h-4 bg-yellow-400" style={{ left: `${(sub.kpi.target * 0.5) / (sub.kpi.target * 1.2) * 100}%`, width: `${(sub.kpi.target * 0.3) / (sub.kpi.target * 1.2) * 100}%` }} />
+                          {/* Good range */}
+                          <div className="absolute left-0 top-0 h-4 bg-green-400" style={{ left: `${(sub.kpi.target * 0.8) / (sub.kpi.target * 1.2) * 100}%`, width: `${(sub.kpi.target * 0.2) / (sub.kpi.target * 1.2) * 100}%` }} />
+                          {/* Current value marker */}
+                          <div className="absolute top-0 h-4 w-1 bg-blue-600" style={{ left: `calc(${(sub.kpi.value / (sub.kpi.target * 1.2)) * 100}% - 2px)` }} />
+                          {/* Target marker */}
+                          <div className="absolute top-0 h-4 w-1 bg-gray-800" style={{ left: `calc(${(sub.kpi.target / (sub.kpi.target * 1.2)) * 100}% - 2px)` }} />
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <span>0</span>
+                          <span className="text-foreground font-medium">Target: {sub.kpi.target}</span>
+                          <span>{Math.round(sub.kpi.target * 1.2)}</span>
+                        </div>
+                      </div>
                     )}
                   </CardContent>
                 </Card>

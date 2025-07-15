@@ -13,15 +13,16 @@ import {
 
 export function ProSidebar() {
   const { user } = useDashboard();
+  if (!user) return null;
   const location = useLocation();
-  const projects = getAllProjects(user).filter(project => {
+  const projects = user ? getAllProjects(user).filter(project => {
     // Only include projects with data stores (i.e., outcomes available)
     try {
       return getProjectOutcomes(user, project.id).length > 0;
     } catch {
       return false;
     }
-  });
+  }) : [];
 
   return (
     <Sidebar width="270px" backgroundColor="rgb(249,249,249,0.7)">
@@ -42,17 +43,17 @@ export function ProSidebar() {
             <SubMenu key={project.id} label={project.name.toUpperCase()}>
               <MenuItem component={<Link to={`/dashboard/projects/${project.id}/kpi`} />}>KPI Analytics</MenuItem>
               {/* Outcomes */}
-              {getProjectOutcomes(user, project.id).length > 0 && (
+              {user && getProjectOutcomes(user, project.id).length > 0 && (
                 <MenuItem component={<Link to={`/dashboard/projects/${project.id}/outcomes`} />}>Outcomes</MenuItem>
               )}
               {/* Outputs (conditional) */}
-              {getProjectOutputs(user, project.id).length > 0 && (
+              {user && getProjectOutputs(user, project.id).length > 0 && (
                 <MenuItem component={<Link to={`/dashboard/projects/${project.id}/outputs`} />}>Outputs</MenuItem>
               )}
               {/* Activities (always shown) */}
               <MenuItem component={<Link to={`/dashboard/projects/${project.id}/activities`} />}>Activities</MenuItem>
               {/* Subactivities (conditional) */}
-              {getProjectSubActivities(user, project.id).length > 0 && (
+              {user && getProjectSubActivities(user, project.id).length > 0 && (
                 <MenuItem component={<Link to={`/dashboard/projects/${project.id}/subactivities`} />}>Subactivities</MenuItem>
               )}
               <MenuItem component={<Link to={`/dashboard/projects/${project.id}/reports`} />}>Reports</MenuItem>

@@ -17,6 +17,8 @@ export function UserMenu() {
   const { user, setUser } = useDashboard();
   const navigate = useNavigate();
 
+  if (!user) return null; // <-- concise guard
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -35,6 +37,7 @@ export function UserMenu() {
     // Clear session/local storage and redirect to login
     localStorage.clear();
     sessionStorage.clear();
+    setUser(null);
     navigate('/login');
   };
 

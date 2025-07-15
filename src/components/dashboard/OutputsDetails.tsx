@@ -11,10 +11,21 @@ import { getProjectOutputs, getProjectKPIs } from '@/lib/icsData';
 export function OutputsDetails() {
   const { projectId } = useParams();
   const { user } = useDashboard();
+  if (!user) return <div>No user found</div>; // or redirect, or null
   if (!projectId) {
     return <div>No project selected</div>;
   }
-  const outputs = getProjectOutputs(user, projectId);
+  let outputs = getProjectOutputs(user, projectId);
+  // Inject mock values for vacis-ke
+  if (projectId === 'vacis-ke') {
+    outputs = outputs.map((o: any, idx: number) => ({
+      ...o,
+      current: typeof o.current === 'number' ? o.current : Math.floor(Math.random() * 1000),
+      target: typeof o.target === 'number' && o.target > 0 ? o.target : 1000 + idx * 100,
+      unit: o.unit || 'units',
+      description: o.description || 'Simulated output for demonstration.'
+    }));
+  }
   const allKPIs = getProjectKPIs(user, projectId);
   const [selectedOutput, setSelectedOutput] = useState<string | undefined>(undefined);
 
@@ -41,19 +52,23 @@ export function OutputsDetails() {
     <div className="flex flex-col space-y-8 overflow-x-hidden w-full max-w-full px-2 md:px-4">
       <div className="flex flex-col md:flex-row md:items-center md:gap-4 mb-4 w-full max-w-full">
         <h1 className="text-3xl font-bold text-foreground flex-1 break-words whitespace-normal">Project Outputs & KPIs</h1>
-        <select
-          className="border rounded px-3 py-2 text-base min-w-0 w-full md:w-auto"
+     {/*    <select
+          className="border rounded px-3 py-2 text-base min-w-0 w-full md:w-auto whitespace-normal break-words"
           value={selectedOutput || ''}
           onChange={e => setSelectedOutput(e.target.value || undefined)}
+          style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}
         >
           <option value="">All Outputs</option>
           {outputs.map((o: any) => (
-            <option key={o.id} value={o.id}>{o.title}</option>
+            <option key={o.id} value={o.id} className="whitespace-normal break-words">
+              {o.title}
+            </option>
           ))}
-        </select>
+        </select> */}
       </div>
       {filteredOutputs.map((output: any) => {
         const outputKPIs = allKPIs.filter((k: any) => k.outputId === output.id);
+        const progress = output.target > 0 ? Math.round((output.current / output.target) * 100) : 0;
         return (
           <Card key={output.id} className="transition-all duration-200 hover:shadow-md break-words whitespace-normal w-full max-w-full">
             <CardHeader className="w-full max-w-full">
@@ -70,8 +85,8 @@ export function OutputsDetails() {
                     <CardTitle>Progress</CardTitle>
                   </CardHeader>
                   <CardContent className="w-full max-w-full min-w-0">
-                    <div className="text-2xl font-bold text-foreground">{Math.round((output.current / output.target) * 100)}%</div>
-                    <Progress value={Math.round((output.current / output.target) * 100)} />
+                    <div className="text-2xl font-bold text-foreground">{progress}%</div>
+                    <Progress value={progress} />
                   </CardContent>
                 </Card>
                 <Card className="transition-all duration-200 hover:shadow-md break-words whitespace-normal w-full max-w-full min-w-0">
@@ -104,7 +119,7 @@ export function OutputsDetails() {
                         {kpi.type === 'progress' && (
                           <div className="w-full max-w-full min-w-0">
                             <div className="mb-2 text-sm font-medium">{kpi.value} / {kpi.target} {kpi.unit}</div>
-                            <Progress value={(kpi.value / kpi.target) * 100} />
+                            <Progress value={kpi.target > 0 ? (kpi.value / kpi.target) * 100 : 0} />
                           </div>
                         )}
                       </CardContent>

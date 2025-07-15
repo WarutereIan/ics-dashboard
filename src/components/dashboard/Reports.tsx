@@ -14,8 +14,9 @@ import { getProjectReports, getProjectActivities, getProjectOutputs, getProjectO
 import { Report } from '@/types/dashboard';
 
 export function Reports() {
-  const { projectId } = useParams();
   const { user } = useDashboard();
+  const { projectId } = useParams();
+  if (!user || !projectId) return null;
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -23,10 +24,10 @@ export function Reports() {
   const [selectedItemId, setSelectedItemId] = useState<string>('');
 
   // Get per-project reports
-  const reports: Report[] = projectId ? getProjectReports(user, projectId) : [];
-  const activities = projectId ? getProjectActivities(user, projectId) : [];
-  const outputs = projectId ? getProjectOutputs(user, projectId) : [];
-  const outcomes = projectId ? getProjectOutcomes(user, projectId) : [];
+  const reports: Report[] = projectId && user ? getProjectReports(user, projectId) : [];
+  const activities = projectId && user ? getProjectActivities(user, projectId) : [];
+  const outputs = projectId && user ? getProjectOutputs(user, projectId) : [];
+  const outcomes = projectId && user ? getProjectOutcomes(user, projectId) : [];
 
   const getFileIcon = (type: string) => {
     switch (type) {

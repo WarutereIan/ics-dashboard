@@ -20,10 +20,11 @@ import { getAllProjects } from '@/lib/icsData';
 
 export function ProjectSwitcher() {
   const { currentProject, setCurrentProject, user, projects } = useDashboard();
+  if (!user) return null;
   const [open, setOpen] = React.useState(false);
 
   // Use unified API for permission-aware project list
-  const accessibleProjects = getAllProjects(user);
+  const accessibleProjects = user ? getAllProjects(user) : [];
 
   if (accessibleProjects.length <= 1) {
     return null;

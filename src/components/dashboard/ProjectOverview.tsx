@@ -15,7 +15,8 @@ import { SubactivitySelector } from './SubactivitySelector';
 import { format } from 'date-fns';
 
 export function ProjectOverview() {
-  const { currentProject, user } = useDashboard();
+  const { user, currentProject } = useDashboard();
+  if (!user || !currentProject) return null;
   const [selectedOutcome, setSelectedOutcome] = useState<string | undefined>(undefined);
   const [selectedOutput, setSelectedOutput] = useState<string | undefined>(undefined);
   const [selectedActivity, setSelectedActivity] = useState<string | undefined>(undefined);
@@ -26,19 +27,26 @@ export function ProjectOverview() {
   }
 
   // Hierarchy data
-  const outcomes = getProjectOutcomes(user, currentProject.id);
-  const outputs = selectedOutcome ? getProjectOutputs(user, currentProject.id).filter((o: any) => o.outcomeId === selectedOutcome) : getProjectOutputs(user, currentProject.id);
-  const activities = selectedOutput
-    ? getProjectActivities(user, currentProject.id).filter((a: any) => outputs.some((o: any) => o.activities?.includes(a.id)))
-    : selectedOutcome
-      ? getProjectActivities(user, currentProject.id).filter((a: any) => {
-          const outcome = outcomes.find((o: any) => o.id === selectedOutcome);
-          return outcome && (outcome as any).activities && (outcome as any).activities.includes(a.id);
-        })
-      : getProjectActivities(user, currentProject.id);
-  const subActivities = selectedActivity
-    ? getProjectSubActivities(user, currentProject.id).filter((sa: any) => sa.parentId === selectedActivity)
-    : getProjectSubActivities(user, currentProject.id);
+  const outcomes = user ? getProjectOutcomes(user, currentProject.id) : [];
+  const outputs = user
+    ? (selectedOutcome
+        ? getProjectOutputs(user, currentProject.id).filter((o: any) => o.outcomeId === selectedOutcome)
+        : getProjectOutputs(user, currentProject.id))
+    : [];
+  const activities = user
+    ? (selectedOutcome
+        ? getProjectActivities(user, currentProject.id).filter((a: any) => outputs.some((o: any) => o.activities?.includes(a.id)))
+        : selectedOutput
+          ? getProjectActivities(user, currentProject.id).filter((a: any) => {
+              return outputs.some((o: any) => o.id === selectedOutput && o.activities?.includes(a.id));
+            })
+          : getProjectActivities(user, currentProject.id))
+    : [];
+  const subactivities = user
+    ? (selectedActivity
+        ? getProjectSubActivities(user, currentProject.id).filter((sa: any) => sa.parentId === selectedActivity)
+        : getProjectSubActivities(user, currentProject.id))
+    : [];
 
   // Reset lower levels when a higher level changes
   const handleSelectOutcome = (outcomeId: string) => {
@@ -124,7 +132,7 @@ export function ProjectOverview() {
     }
   }
   if (selectedSubactivity) {
-    const subActivity = subActivities.find((sa: any) => sa.id === selectedSubactivity);
+    const subActivity = subactivities.find((sa: any) => sa.id === selectedSubactivity);
     if (subActivity) {
       summaryTitle = subActivity.title;
       summaryDescription = subActivity.description;
@@ -157,34 +165,42 @@ export function ProjectOverview() {
 
       {/* Hierarchy Selectors */}
       <div className="flex flex-wrap gap-4 mb-4">
-        <OutcomeSelector
-          user={user}
-          projectId={currentProject.id}
-          value={selectedOutcome}
-          onSelect={handleSelectOutcome}
-        />
-        <OutputSelector
-          user={user}
-          projectId={currentProject.id}
-          outcomeId={selectedOutcome}
-          value={selectedOutput}
-          onSelect={handleSelectOutput}
-        />
-        <ActivitySelector
-          user={user}
-          projectId={currentProject.id}
-          outputId={selectedOutput}
-          outcomeId={selectedOutcome}
-          value={selectedActivity}
-          onSelect={handleSelectActivity}
-        />
-        <SubactivitySelector
-          user={user}
-          projectId={currentProject.id}
-          activityId={selectedActivity}
-          value={selectedSubactivity}
-          onSelect={handleSelectSubactivity}
-        />
+        {user && (
+          <OutcomeSelector
+            user={user}
+            projectId={currentProject.id}
+            value={selectedOutcome}
+            onSelect={handleSelectOutcome}
+          />
+        )}
+        {user && (
+          <OutputSelector
+            user={user}
+            projectId={currentProject.id}
+            outcomeId={selectedOutcome}
+            value={selectedOutput}
+            onSelect={handleSelectOutput}
+          />
+        )}
+        {user && (
+          <ActivitySelector
+            user={user}
+            projectId={currentProject.id}
+            outputId={selectedOutput}
+            outcomeId={selectedOutcome}
+            value={selectedActivity}
+            onSelect={handleSelectActivity}
+          />
+        )}
+        {user && (
+          <SubactivitySelector
+            user={user}
+            projectId={currentProject.id}
+            activityId={selectedActivity}
+            value={selectedSubactivity}
+            onSelect={handleSelectSubactivity}
+          />
+        )}
       </div>
 
       {/* Summary Card */}
