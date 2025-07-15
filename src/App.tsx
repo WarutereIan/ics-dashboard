@@ -49,10 +49,10 @@ function App() {
               <Route path="/dashboard/projects/:projectId/maps" element={<Maps />} />
               <Route path="/dashboard/projects/:projectId/media" element={<Media />} />
               {/* Admin-only routes */}
-              <Route path="/dashboard/projects/:projectId/users" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}> 
+              <Route path="/dashboard/admin/users" element={<ProtectedRoute roles={['global-admin']} />}> 
                 <Route index element={<UserManagement />} />
               </Route>
-              <Route path="/dashboard/projects/:projectId/settings" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}> 
+              <Route path="/dashboard/admin/settings" element={<ProtectedRoute roles={['global-admin']} />}> 
                 <Route index element={<Settings />} />
               </Route>
             </Route>

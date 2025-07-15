@@ -35,16 +35,16 @@ export function ProjectOverview() {
     : [];
   const activities = user
     ? (selectedOutcome
-        ? getProjectActivities(user, currentProject.id).filter((a: any) => outputs.some((o: any) => o.activities?.includes(a.id)))
+    ? getProjectActivities(user, currentProject.id).filter((a: any) => outputs.some((o: any) => o.activities?.includes(a.id)))
         : selectedOutput
-          ? getProjectActivities(user, currentProject.id).filter((a: any) => {
+      ? getProjectActivities(user, currentProject.id).filter((a: any) => {
               return outputs.some((o: any) => o.id === selectedOutput && o.activities?.includes(a.id));
-            })
+        })
           : getProjectActivities(user, currentProject.id))
     : [];
   const subactivities = user
     ? (selectedActivity
-        ? getProjectSubActivities(user, currentProject.id).filter((sa: any) => sa.parentId === selectedActivity)
+    ? getProjectSubActivities(user, currentProject.id).filter((sa: any) => sa.parentId === selectedActivity)
         : getProjectSubActivities(user, currentProject.id))
     : [];
 
@@ -166,40 +166,40 @@ export function ProjectOverview() {
       {/* Hierarchy Selectors */}
       <div className="flex flex-wrap gap-4 mb-4">
         {user && (
-          <OutcomeSelector
-            user={user}
-            projectId={currentProject.id}
-            value={selectedOutcome}
-            onSelect={handleSelectOutcome}
-          />
+        <OutcomeSelector
+          user={user}
+          projectId={currentProject.id}
+          value={selectedOutcome}
+          onSelect={handleSelectOutcome}
+        />
         )}
         {user && (
-          <OutputSelector
-            user={user}
-            projectId={currentProject.id}
-            outcomeId={selectedOutcome}
-            value={selectedOutput}
-            onSelect={handleSelectOutput}
-          />
+        <OutputSelector
+          user={user}
+          projectId={currentProject.id}
+          outcomeId={selectedOutcome}
+          value={selectedOutput}
+          onSelect={handleSelectOutput}
+        />
         )}
         {user && (
-          <ActivitySelector
-            user={user}
-            projectId={currentProject.id}
-            outputId={selectedOutput}
-            outcomeId={selectedOutcome}
-            value={selectedActivity}
-            onSelect={handleSelectActivity}
-          />
+        <ActivitySelector
+          user={user}
+          projectId={currentProject.id}
+          outputId={selectedOutput}
+          outcomeId={selectedOutcome}
+          value={selectedActivity}
+          onSelect={handleSelectActivity}
+        />
         )}
         {user && (
-          <SubactivitySelector
-            user={user}
-            projectId={currentProject.id}
-            activityId={selectedActivity}
-            value={selectedSubactivity}
-            onSelect={handleSelectSubactivity}
-          />
+        <SubactivitySelector
+          user={user}
+          projectId={currentProject.id}
+          activityId={selectedActivity}
+          value={selectedSubactivity}
+          onSelect={handleSelectSubactivity}
+        />
         )}
       </div>
 

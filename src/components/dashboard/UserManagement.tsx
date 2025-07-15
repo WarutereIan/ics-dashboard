@@ -66,45 +66,49 @@ function MultiSelectDropdown({ options, selected, setSelected, label, allLabel }
 }
 
 export function UserManagement() {
-  const { user } = useDashboard();
+  const { user, projects } = useDashboard();
   if (!user) return null;
   const [users, setUsers] = useState<User[]>(mockUsers);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<User['role']>(ROLES[0] as User['role']);
-  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  // New: modalUser state for editing/adding
+  const [modalUser, setModalUser] = useState<User | null>(null);
 
-  // Get all projects from data store
-  const allProjects = user ? getAllProjects(user) : [];
-  const projectOptions = allProjects.map(p => p.id);
+  // Get all projects from data store (for project selector)
+  const allProjectsForSelector = user ? getAllProjects(user) : [];
+  const projectOptions = allProjectsForSelector.map(p => p.id);
 
-  // Extract unique countries from projects
-  const allCountries = Array.from(new Set(allProjects.map(p => p.name.toLowerCase())));
+  // Extract unique countries from accessible projects
+  const allCountriesRaw = Array.from(new Set(projects
+    .filter(p => user.role === 'global-admin' || user.accessibleProjects.includes(p.id))
+    .map((p: typeof projects[number]) => (typeof p.country === 'string' ? p.country.toLowerCase() : ''))
+    .filter((c: string) => !!c)
+  ));
+  const allCountries = allCountriesRaw.map((c: string) => c.charAt(0).toUpperCase() + c.slice(1));
 
   // Aggregate all unique branches from all users
   const allBranches = Array.from(new Set(users.flatMap(u => u.accessibleBranches)));
 
   useEffect(() => {
     if (editUser) {
-      setName(editUser.name);
-      setEmail(editUser.email);
-      setRole(editUser.role);
-      setSelectedProjects(editUser.role === 'global-admin' ? [...projectOptions] : editUser.accessibleProjects || []);
-      setSelectedCountries(editUser.role === 'global-admin' ? [...allCountries] : editUser.accessibleCountries || []);
-      setSelectedBranches(editUser.role === 'global-admin' ? [...allBranches] : editUser.accessibleBranches || []);
+      // Deep copy user for editing
+      setModalUser({ ...editUser });
+    } else if (dialogOpen) {
+      // New user template
+      setModalUser({
+        id: Date.now().toString(),
+        name: '',
+        email: '',
+        role: ROLES[0] as User['role'],
+        accessibleProjects: [],
+        accessibleCountries: [],
+        accessibleBranches: [],
+        avatar: '',
+      });
     } else {
-      setName('');
-      setEmail('');
-      setRole(ROLES[0] as User['role']);
-      setSelectedProjects([]);
-      setSelectedCountries([]);
-      setSelectedBranches([]);
+      setModalUser(null);
     }
-  }, [editUser, allCountries, allBranches, projectOptions]);
+  }, [editUser, dialogOpen]);
 
   // Save users to localStorage
   useEffect(() => {
@@ -127,21 +131,18 @@ export function UserManagement() {
     setUsers(users.filter(us => us.id !== u.id));
   };
   const handleDialogSave = () => {
-    if (!name || !email || !role) return;
-    const newUser = {
-      id: editUser ? editUser.id : Date.now().toString(),
-      name,
-      email,
-      role,
-      accessibleProjects: role === 'global-admin' ? [...projectOptions] : selectedProjects,
-      accessibleCountries: role === 'global-admin' ? [...allCountries] : selectedCountries,
-      accessibleBranches: role === 'global-admin' ? [...allBranches] : selectedBranches,
-      avatar: editUser?.avatar || '',
+    if (!modalUser || !modalUser.name || !modalUser.email || !modalUser.role) return;
+    // Set all for global-admin
+    const updatedUser = {
+      ...modalUser,
+      accessibleProjects: modalUser.role === 'global-admin' ? [...projectOptions] : modalUser.accessibleProjects,
+      accessibleCountries: modalUser.role === 'global-admin' ? [...allCountries] : modalUser.accessibleCountries,
+      accessibleBranches: modalUser.role === 'global-admin' ? [...allBranches] : modalUser.accessibleBranches,
     };
     if (editUser) {
-      setUsers(users.map(u => u.id === editUser.id ? newUser : u));
+      setUsers(users.map(u => u.id === editUser.id ? updatedUser : u));
     } else {
-      setUsers([newUser, ...users]);
+      setUsers([updatedUser, ...users]);
     }
     setDialogOpen(false);
   };
@@ -189,20 +190,22 @@ export function UserManagement() {
             <DialogTitle>{editUser ? 'Edit User' : 'Add User'}</DialogTitle>
             <DialogDescription>Fill in user details and permissions</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Name" />
-            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
-            <select value={role} onChange={e => setRole(e.target.value as User['role'])} className="w-full border rounded p-2">
-              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-            <MultiSelectDropdown options={projectOptions} selected={selectedProjects} setSelected={setSelectedProjects} label="Projects" allLabel="All Projects" />
-            <MultiSelectDropdown options={allCountries} selected={selectedCountries} setSelected={setSelectedCountries} label="Countries" allLabel="All Countries" />
-            <MultiSelectDropdown options={allBranches} selected={selectedBranches} setSelected={setSelectedBranches} label="Branches" allLabel="All Branches" />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleDialogSave}>{editUser ? 'Save' : 'Add'}</Button>
+          {modalUser && (
+            <div className="space-y-4">
+              <Input value={modalUser.name} onChange={e => setModalUser({ ...modalUser, name: e.target.value })} placeholder="Name" />
+              <Input value={modalUser.email} onChange={e => setModalUser({ ...modalUser, email: e.target.value })} placeholder="Email" />
+              <select value={modalUser.role} onChange={e => setModalUser({ ...modalUser, role: e.target.value as User['role'] })} className="w-full border rounded p-2">
+                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <MultiSelectDropdown options={projectOptions} selected={modalUser.accessibleProjects} setSelected={val => setModalUser({ ...modalUser, accessibleProjects: val })} label="Projects" allLabel="All Projects" />
+              <MultiSelectDropdown options={allCountries} selected={modalUser.accessibleCountries} setSelected={val => setModalUser({ ...modalUser, accessibleCountries: val })} label="Countries" allLabel="All Countries" />
+              <MultiSelectDropdown options={allBranches} selected={modalUser.accessibleBranches} setSelected={val => setModalUser({ ...modalUser, accessibleBranches: val })} label="Branches" allLabel="All Branches" />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleDialogSave}>{editUser ? 'Save' : 'Add'}</Button>
+              </div>
             </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
