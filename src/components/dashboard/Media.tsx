@@ -127,8 +127,10 @@ export function Media() {
     const uploadDate = new Date().toISOString();
     const name = file.name;
     const uploadedBy = 'You';
+    const allowedCategories = ['activities', 'outcomes', 'events', 'training', 'other'] as const;
+    const safeCategory = (allowedCategories.includes(cat as any) ? cat : 'other') as MediaFile['category'];
     const newMedia: MediaFile = {
-      id, name, type, url, size, uploadDate, description: desc, category: cat, tags, uploadedBy
+      id, name, type, url, size, uploadDate, description: desc, category: safeCategory, tags, uploadedBy
     };
     setMedia(prev => [newMedia, ...prev]);
     setUploadDialogOpen(false);

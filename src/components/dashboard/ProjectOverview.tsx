@@ -64,14 +64,45 @@ export function ProjectOverview() {
   let summaryTitle = currentProject.name;
   let summaryDescription = currentProject.description;
   let summaryProgress = currentProject.progress;
-  let summaryStatus = currentProject.status;
+  let summaryStatus: 'planning' | 'active' | 'completed' | 'on-hold' = currentProject.status;
+
+  // Map outcome status to allowed summaryStatus values
+  const mapOutcomeStatus = (status: string): 'planning' | 'active' | 'completed' | 'on-hold' => {
+    switch (status) {
+      case 'completed':
+        return 'completed';
+      case 'on-track':
+      case 'at-risk':
+      case 'behind':
+        return 'active';
+      default:
+        return 'active';
+    }
+  };
+
+  // Map activity status to allowed summaryStatus values
+  const mapActivityStatus = (status: string): 'planning' | 'active' | 'completed' | 'on-hold' => {
+    switch (status) {
+      case 'completed':
+        return 'completed';
+      case 'on-hold':
+        return 'on-hold';
+      case 'not-started':
+        return 'planning';
+      case 'in-progress':
+        return 'active';
+      default:
+        return 'active';
+    }
+  };
+
   if (selectedOutcome) {
     const outcome = outcomes.find((o: any) => o.id === selectedOutcome);
     if (outcome) {
       summaryTitle = outcome.title;
       summaryDescription = outcome.description;
       summaryProgress = outcome.progress;
-      summaryStatus = outcome.status;
+      summaryStatus = mapOutcomeStatus(outcome.status);
     }
   }
   if (selectedOutput) {
@@ -80,7 +111,7 @@ export function ProjectOverview() {
       summaryTitle = output.title;
       summaryDescription = output.description;
       summaryProgress = Math.round((output.current / output.target) * 100);
-      summaryStatus = output.status;
+      summaryStatus = mapOutcomeStatus(output.status);
     }
   }
   if (selectedActivity) {
@@ -89,7 +120,7 @@ export function ProjectOverview() {
       summaryTitle = activity.title;
       summaryDescription = activity.description;
       summaryProgress = activity.progress;
-      summaryStatus = activity.status;
+      summaryStatus = mapActivityStatus(activity.status);
     }
   }
   if (selectedSubactivity) {
@@ -98,7 +129,7 @@ export function ProjectOverview() {
       summaryTitle = subActivity.title;
       summaryDescription = subActivity.description;
       summaryProgress = subActivity.progress;
-      summaryStatus = subActivity.status;
+      summaryStatus = mapActivityStatus(subActivity.status);
     }
   }
 
