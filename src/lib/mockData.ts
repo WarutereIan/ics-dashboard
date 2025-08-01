@@ -4,10 +4,10 @@ export const mockUser: User = {
   id: '1',
   name: 'Sarah Johnson',
   email: 'sarah.johnson@ics.org',
-  role: 'project-admin',
-  accessibleProjects: ['mameb', 'vacis'],
+  role: 'global-admin',
+  accessibleProjects: ['mameb', 'vacis-ke', 'vacis-tz', 'cdw', 'kuimarisha', 'nppp', 'aacl'],
   accessibleBranches: ['mameb-nairobi', 'mameb-mombasa'],
-  accessibleCountries: ['kenya'],
+  accessibleCountries: ['kenya', 'tanzania'],
   avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2'
 };
 
@@ -25,16 +25,76 @@ export const mockProjects: Project[] = [
     spent: 1125000
   },
   {
-    id: 'vacis',
-    name: 'VACIS',
-    description: 'Vaccination Information System',
-    country: 'Tanzania',
+    id: 'vacis-ke',
+    name: 'VACIS Kenya',
+    description: 'Violence Against Children in Schools - Kenya',
+    country: 'Kenya',
     status: 'active',
     startDate: new Date('2023-06-01'),
     endDate: new Date('2026-05-31'),
     progress: 42,
     budget: 1800000,
     spent: 756000
+  },
+  {
+    id: 'vacis-tz',
+    name: 'VACIS Tanzania',
+    description: 'Violence Against Children in Schools - Tanzania',
+    country: 'Tanzania',
+    status: 'active',
+    startDate: new Date('2023-06-01'),
+    endDate: new Date('2026-05-31'),
+    progress: 38,
+    budget: 1600000,
+    spent: 608000
+  },
+  {
+    id: 'cdw',
+    name: 'CDW',
+    description: 'Community Development for Women',
+    country: 'Kenya',
+    status: 'active',
+    startDate: new Date('2023-03-01'),
+    endDate: new Date('2026-02-28'),
+    progress: 35,
+    budget: 1200000,
+    spent: 420000
+  },
+  {
+    id: 'kuimarisha',
+    name: 'Kuimarisha',
+    description: 'Early Childhood Development Program',
+    country: 'Kenya',
+    status: 'active',
+    startDate: new Date('2023-01-15'),
+    endDate: new Date('2025-12-31'),
+    progress: 52,
+    budget: 950000,
+    spent: 494000
+  },
+  {
+    id: 'nppp',
+    name: 'NPPP',
+    description: 'National Parenting Program Project',
+    country: 'Kenya',
+    status: 'active',
+    startDate: new Date('2023-04-01'),
+    endDate: new Date('2026-03-31'),
+    progress: 30,
+    budget: 800000,
+    spent: 240000
+  },
+  {
+    id: 'aacl',
+    name: 'AACL',
+    description: 'Accelerated Action for Children Learning',
+    country: 'Kenya',
+    status: 'active',
+    startDate: new Date('2023-02-01'),
+    endDate: new Date('2025-01-31'),
+    progress: 60,
+    budget: 700000,
+    spent: 420000
   }
 ];
 

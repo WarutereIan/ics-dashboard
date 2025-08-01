@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { DashboardProvider, useDashboard } from '@/contexts/DashboardContext';
+import { FormProvider } from '@/contexts/FormContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { GlobalOverview } from '@/components/dashboard/GlobalOverview';
 import { ProjectOverview } from '@/components/dashboard/ProjectOverview';
@@ -15,6 +16,9 @@ import { UserManagement } from '@/components/dashboard/UserManagement';
 import { Settings } from '@/components/dashboard/Settings';
 import { Activities } from '@/components/dashboard/Activities';
 import { Subactivities } from '@/components/dashboard/Subactivities';
+import { ProjectCreationWizard } from '@/components/dashboard/ProjectCreationWizard';
+import { FormRoutes } from '@/components/dashboard/FormRoutes';
+import { GoalDetails } from '@/components/dashboard/GoalDetails';
 // New all-outcomes and all-outputs pages will be created as OutcomesDetails and OutputsDetails
 
 function ProtectedRoute({ roles }: { roles?: string[] }) {
@@ -32,13 +36,24 @@ function App() {
   return (
     <Router>
       <DashboardProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          {/* General authenticated routes */}
-          <Route element={<ProtectedRoute />}>
+        <FormProvider>
+          <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* General authenticated routes */}
+        <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<GlobalOverview />} />
+              {/* Organizational Goals routes */}
+              <Route path="/dashboard/goals/:goalId" element={<GoalDetails />} />
+              <Route path="/dashboard/goals/:goalId/subgoals/:subGoalId" element={<GoalDetails />} />
+              {/* Admin-only project creation */}
+              <Route path="/dashboard/projects/create" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}>
+                <Route index element={<ProjectCreationWizard />} />
+              </Route>
+              <Route path="/dashboard/projects/:projectId/edit" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}>
+                <Route index element={<ProjectCreationWizard />} />
+              </Route>
               <Route path="/dashboard/projects/:projectId" element={<ProjectOverview />} />
               <Route path="/dashboard/projects/:projectId/kpi" element={<KPIAnalytics />} />
               <Route path="/dashboard/projects/:projectId/outcomes" element={<OutcomesDetails />} />
@@ -48,6 +63,8 @@ function App() {
               <Route path="/dashboard/projects/:projectId/reports" element={<Reports />} />
               <Route path="/dashboard/projects/:projectId/maps" element={<Maps />} />
               <Route path="/dashboard/projects/:projectId/media" element={<Media />} />
+              {/* Project Forms - nested routing */}
+              <Route path="/dashboard/projects/:projectId/forms/*" element={<FormRoutes />} />
               {/* Admin-only routes */}
               <Route path="/dashboard/admin/users" element={<ProtectedRoute roles={['global-admin']} />}> 
                 <Route index element={<UserManagement />} />
@@ -58,6 +75,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
+        </FormProvider>
       </DashboardProvider>
     </Router>
   );

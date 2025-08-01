@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Calendar, DollarSign, Target, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -15,37 +16,42 @@ import { SubactivitySelector } from './SubactivitySelector';
 import { format } from 'date-fns';
 
 export function ProjectOverview() {
-  const { user, currentProject } = useDashboard();
-  if (!user || !currentProject) return null;
+  const { projectId } = useParams();
+  const { user, projects } = useDashboard();
   const [selectedOutcome, setSelectedOutcome] = useState<string | undefined>(undefined);
   const [selectedOutput, setSelectedOutput] = useState<string | undefined>(undefined);
   const [selectedActivity, setSelectedActivity] = useState<string | undefined>(undefined);
   const [selectedSubactivity, setSelectedSubactivity] = useState<string | undefined>(undefined);
 
-  if (!currentProject) {
+  if (!user) return null;
+  if (!projectId) {
     return <div>No project selected</div>;
   }
 
-  // Hierarchy data
-  const outcomes = user ? getProjectOutcomes(user, currentProject.id) : [];
+  // Get project details for title and other info
+  const currentProject = projects.find(p => p.id === projectId);
+  const projectName = currentProject?.name || projectId.toUpperCase();
+
+  // Hierarchy data using projectId from URL
+  const outcomes = user ? getProjectOutcomes(user, projectId) : [];
   const outputs = user
     ? (selectedOutcome
-        ? getProjectOutputs(user, currentProject.id).filter((o: any) => o.outcomeId === selectedOutcome)
-        : getProjectOutputs(user, currentProject.id))
+        ? getProjectOutputs(user, projectId).filter((o: any) => o.outcomeId === selectedOutcome)
+        : getProjectOutputs(user, projectId))
     : [];
   const activities = user
     ? (selectedOutcome
-    ? getProjectActivities(user, currentProject.id).filter((a: any) => outputs.some((o: any) => o.activities?.includes(a.id)))
+    ? getProjectActivities(user, projectId).filter((a: any) => outputs.some((o: any) => o.activities?.includes(a.id)))
         : selectedOutput
-      ? getProjectActivities(user, currentProject.id).filter((a: any) => {
+      ? getProjectActivities(user, projectId).filter((a: any) => {
               return outputs.some((o: any) => o.id === selectedOutput && o.activities?.includes(a.id));
         })
-          : getProjectActivities(user, currentProject.id))
+          : getProjectActivities(user, projectId))
     : [];
   const subactivities = user
     ? (selectedActivity
-    ? getProjectSubActivities(user, currentProject.id).filter((sa: any) => sa.parentId === selectedActivity)
-        : getProjectSubActivities(user, currentProject.id))
+    ? getProjectSubActivities(user, projectId).filter((sa: any) => sa.parentId === selectedActivity)
+        : getProjectSubActivities(user, projectId))
     : [];
 
   // Reset lower levels when a higher level changes
@@ -69,10 +75,10 @@ export function ProjectOverview() {
   };
 
   // Determine what to show in summary/visualization based on deepest selection
-  let summaryTitle = currentProject.name;
-  let summaryDescription = currentProject.description;
-  let summaryProgress = currentProject.progress;
-  let summaryStatus: 'planning' | 'active' | 'completed' | 'on-hold' = currentProject.status;
+  let summaryTitle = currentProject?.name || projectName;
+  let summaryDescription = currentProject?.description || 'Project details not available';
+  let summaryProgress = currentProject?.progress || 0;
+  let summaryStatus: 'planning' | 'active' | 'completed' | 'on-hold' = currentProject?.status || 'active';
 
   // Map outcome status to allowed summaryStatus values
   const mapOutcomeStatus = (status: string): 'planning' | 'active' | 'completed' | 'on-hold' => {
@@ -159,8 +165,8 @@ export function ProjectOverview() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">{currentProject.name}</h1>
-        <p className="text-muted-foreground">{currentProject.description}</p>
+        <h1 className="text-3xl font-bold text-foreground">{projectName}</h1>
+        <p className="text-muted-foreground">{currentProject?.description || 'Project overview and details'}</p>
       </div>
 
       {/* Hierarchy Selectors */}
@@ -168,7 +174,7 @@ export function ProjectOverview() {
         {user && (
         <OutcomeSelector
           user={user}
-          projectId={currentProject.id}
+          projectId={projectId}
           value={selectedOutcome}
           onSelect={handleSelectOutcome}
         />
@@ -176,7 +182,7 @@ export function ProjectOverview() {
         {user && (
         <OutputSelector
           user={user}
-          projectId={currentProject.id}
+          projectId={projectId}
           outcomeId={selectedOutcome}
           value={selectedOutput}
           onSelect={handleSelectOutput}
@@ -185,7 +191,7 @@ export function ProjectOverview() {
         {user && (
         <ActivitySelector
           user={user}
-          projectId={currentProject.id}
+          projectId={projectId}
           outputId={selectedOutput}
           outcomeId={selectedOutcome}
           value={selectedActivity}
@@ -195,7 +201,7 @@ export function ProjectOverview() {
         {user && (
         <SubactivitySelector
           user={user}
-          projectId={currentProject.id}
+          projectId={projectId}
           activityId={selectedActivity}
           value={selectedSubactivity}
           onSelect={handleSelectSubactivity}
@@ -251,8 +257,11 @@ export function ProjectOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {format(currentProject.startDate, 'MMM yyyy')} - {format(currentProject.endDate, 'MMM yyyy')}
-              </div>
+              {currentProject?.startDate && currentProject?.endDate 
+                ? `${format(currentProject.startDate, 'MMM yyyy')} - ${format(currentProject.endDate, 'MMM yyyy')}`
+                : 'Dates not available'
+              }
+            </div>
           </CardContent>
         </Card>
       </div>

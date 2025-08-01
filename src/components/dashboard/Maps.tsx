@@ -193,10 +193,10 @@ export function Maps() {
       </div>
 
       <Tabs defaultValue="list" className="w-full min-w-0">
-        <TabsList className="w-full flex flex-wrap gap-2">
-          <TabsTrigger value="list" className="flex-1 min-w-[100px]">List View</TabsTrigger>
-          <TabsTrigger value="map" className="flex-1 min-w-[100px]">Map View</TabsTrigger>
-          <TabsTrigger value="analytics" className="flex-1 min-w-[100px]">Analytics</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="list">List View</TabsTrigger>
+          <TabsTrigger value="map">Map View</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
         
         <TabsContent value="list" className="space-y-4">
@@ -231,20 +231,20 @@ export function Maps() {
                         ))}
                       </div>
                     </div>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-sm text-muted-foreground">
+                      <span className="break-words">
                         Coordinates: {location.coordinates.lat.toFixed(4)}, {location.coordinates.lng.toFixed(4)}
                       </span>
-                      <span>
+                      <span className="break-words">
                         Last updated: {new Date(location.lastUpdate).toLocaleDateString()}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" className="gap-2">
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                      <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
                         <MapPin className="h-4 w-4" />
                         View on Map
                       </Button>
-                      <Button variant="outline" size="sm" className="gap-2">
+                      <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
                         <BarChart3 className="h-4 w-4" />
                         View Data
                       </Button>
@@ -308,10 +308,10 @@ export function Maps() {
         </TabsContent>
         
         <TabsContent value="analytics" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Location Distribution</CardTitle>
+                <CardTitle className="text-lg">Location Distribution</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -320,15 +320,15 @@ export function Maps() {
                     const percentage = filteredLocations.length > 0 ? (count / filteredLocations.length) * 100 : 0;
                     return (
                       <div key={type} className="flex items-center justify-between">
-                        <span className="text-sm capitalize">{type.replace('_', ' ')}</span>
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
+                        <span className="text-sm capitalize flex-shrink-0">{type.replace('_', ' ')}</span>
+                        <div className="flex items-center gap-2 min-w-0 flex-1 ml-4">
+                          <div className="w-full max-w-[80px] bg-gray-200 rounded-full h-2 flex-1">
                             <div 
                               className="bg-primary h-2 rounded-full" 
                               style={{ width: `${percentage}%` }}
                             />
                           </div>
-                          <span className="text-sm font-medium">{count}</span>
+                          <span className="text-sm font-medium flex-shrink-0">{count}</span>
                         </div>
                       </div>
                     );
@@ -339,7 +339,7 @@ export function Maps() {
             
             <Card>
               <CardHeader>
-                <CardTitle>Status Overview</CardTitle>
+                <CardTitle className="text-lg">Status Overview</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -348,15 +348,15 @@ export function Maps() {
                     const percentage = filteredLocations.length > 0 ? (count / filteredLocations.length) * 100 : 0;
                     return (
                       <div key={status} className="flex items-center justify-between">
-                        <span className="text-sm capitalize">{status}</span>
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
+                        <span className="text-sm capitalize flex-shrink-0">{status}</span>
+                        <div className="flex items-center gap-2 min-w-0 flex-1 ml-4">
+                          <div className="w-full max-w-[80px] bg-gray-200 rounded-full h-2 flex-1">
                             <div 
                               className="bg-primary h-2 rounded-full" 
                               style={{ width: `${percentage}%` }}
                             />
                           </div>
-                          <span className="text-sm font-medium">{count}</span>
+                          <span className="text-sm font-medium flex-shrink-0">{count}</span>
                         </div>
                       </div>
                     );

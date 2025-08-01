@@ -1,102 +1,147 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadialGauge } from '@/components/visualizations/RadialGauge';
 import { StackedBarChart } from '@/components/visualizations/StackedBarChart';
 import { Progress } from '@/components/ui/progress';
-
-// MAMEB KPIs grouped by outcome (from projectKPIs.md)
-const mamebKPIData = [
-  {
-    outcome: 'Outcome 1: Children’s Rights & Participation',
-    kpis: [
-      { name: '% of children who report improved knowledge on their rights and responsibilities', value: 78, target: 90, unit: '%', type: 'radialGauge' },
-      { name: '% of children actively using safe platforms to engage on their rights', value: 62, target: 80, unit: '%', type: 'radialGauge' },
-      { name: '# of mentors trained on life skills value-based education', value: 14, target: 20, unit: 'mentors', type: 'bar' },
-      { name: '# of children participating in life skills value-based education', value: 1200, target: 2000, unit: 'children', type: 'bar' },
-      { name: '# of clubs created or strengthened', value: 8, target: 10, unit: 'clubs', type: 'progress' },
-      { name: '# of children actively participating in club activities', value: 950, target: 1500, unit: 'children', type: 'bar' },
-      { name: '# of learners sensitized on speak out boxes', value: 2100, target: 3000, unit: 'learners', type: 'bar' },
-      { name: '% of learners utilizing child-friendly reporting mechanisms', value: 42, target: 60, unit: '%', type: 'radialGauge' },
-      { name: '# of incidences reported through speak out boxes', value: 23, target: 50, unit: 'incidents', type: 'bar' },
-    ]
-  },
-  {
-    outcome: 'Outcome 2: Parent & Community Engagement',
-    kpis: [
-      { name: '# Parents trained and graduated from Skilful parenting training', value: 320, target: 500, unit: 'parents', type: 'bar' },
-      { name: '% of parents/caregivers with improved knowledge on positive parenting', value: 68, target: 85, unit: '%', type: 'radialGauge' },
-      { name: '# of collaborative initiatives launched by parents, caregivers, and teachers', value: 12, target: 20, unit: 'initiatives', type: 'progress' },
-      { name: '# of community awareness sessions held', value: 18, target: 30, unit: 'sessions', type: 'bar' },
-    ]
-  },
-  {
-    outcome: 'Outcome 3: Community & Religious Leaders',
-    kpis: [
-      { name: 'Proportion of parents reporting positive influence from community and religious leaders', value: 67, target: 85, unit: '%', type: 'radialGauge' },
-      { name: '# of community and religious leaders trained', value: 45, target: 60, unit: 'leaders', type: 'bar' },
-      { name: '# parents reached through community awareness', value: 1200, target: 2000, unit: 'parents', type: 'bar' },
-    ]
-  },
-  {
-    outcome: 'Outcome 4: School & Staff Capacity',
-    kpis: [
-      { name: '# club patrons trained', value: 10, target: 15, unit: 'patrons', type: 'progress' },
-      { name: '# of teachers and staff trained on child protection', value: 32, target: 50, unit: 'staff', type: 'bar' },
-    ]
-  },
-  {
-    outcome: 'Outcome 5: Stakeholder Engagement',
-    kpis: [
-      { name: '# of stakeholder review meetings conducted', value: 7, target: 12, unit: 'meetings', type: 'progress' },
-    ]
-  },
-];
+import { useDashboard } from '@/contexts/DashboardContext';
+import { getProjectOutcomes, getProjectKPIs } from '@/lib/icsData';
 
 export function KPIAnalytics() {
-  return (
-    <div className="space-y-8">
+  const { projectId } = useParams();
+  const { user, projects } = useDashboard();
+  const [selectedOutcome, setSelectedOutcome] = useState<string | undefined>(undefined);
+
+  if (!user) return null;
+  if (!projectId) {
+    return <div>No project selected</div>;
+  }
+
+  // Get project details for title
+  const project = projects.find(p => p.id === projectId);
+  const projectName = project?.name || projectId.toUpperCase();
+
+  // Get data for the current project using projectId from URL
+  const outcomes = getProjectOutcomes(user, projectId);
+  const allKPIs = getProjectKPIs(user, projectId);
+
+  // Filter KPIs by selected outcome if one is selected
+  const filteredKPIs = selectedOutcome
+    ? allKPIs.filter((kpi: any) => kpi.outcomeId === selectedOutcome)
+    : allKPIs;
+
+  // Check if current project has KPI data available
+  if (!allKPIs || allKPIs.length === 0) {
+    return (
+      <div className="flex flex-col space-y-8 overflow-x-hidden w-full max-w-full px-2 md:px-4">
         <div>
-        <h1 className="text-3xl font-bold text-foreground">MAMEB KPI Analytics</h1>
-        <p className="text-muted-foreground">Key performance indicators for MAMEB, grouped by outcome</p>
+          <h1 className="text-3xl font-bold text-foreground">{projectName} KPI Analytics</h1>
+          <p className="text-muted-foreground">
+            No KPI data available for {projectName} project.
+          </p>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-muted-foreground">
+              <p>KPI data is not available for this project yet.</p>
+              <p className="text-sm mt-2">
+                Available projects with KPI data: MaMeb, VACIS Kenya, VACIS Tanzania, CDW, Kuimarisha, NPPP, AACL
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      {mamebKPIData.map((outcome, i) => (
-        <Card key={i} className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle>{outcome.outcome}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {outcome.kpis.map((kpi, j) => (
-                <Card key={j} className="bg-muted/50">
-                  <CardHeader>
-                    <CardTitle className="text-base font-semibold">{kpi.name}</CardTitle>
-          </CardHeader>
-          <CardContent>
-                    {kpi.type === 'radialGauge' && (
-                      <RadialGauge value={kpi.value} size={120} unit={kpi.unit} primaryColor="#3B82F6" />
-                    )}
-                    {kpi.type === 'bar' && (
-                      <StackedBarChart
-                        data={[
-                          { name: kpi.name, Actual: kpi.value, Target: kpi.target }
-                        ]}
-                        height={120}
-                        colors={["#3B82F6", "#E5E7EB"]}
-                      />
-                    )}
-                    {kpi.type === 'progress' && (
-                      <div className="w-full">
-                        <div className="mb-2 text-sm font-medium">{kpi.value} / {kpi.target} {kpi.unit}</div>
-                        <Progress value={(kpi.value / kpi.target) * 100} />
-                      </div>
-                  )}
-                </CardContent>
-              </Card>
+    );
+  }
+
+  // Group KPIs by outcome
+  const groupedKPIs: Record<string, any[]> = {};
+  filteredKPIs.forEach((kpi: any) => {
+    if (!groupedKPIs[kpi.outcomeId]) {
+      groupedKPIs[kpi.outcomeId] = [];
+    }
+    groupedKPIs[kpi.outcomeId].push(kpi);
+  });
+
+  return (
+    <div className="flex flex-col space-y-8 overflow-x-hidden w-full max-w-full px-2 md:px-4">
+      {/* Header with outcome filter */}
+      <div className="flex flex-col md:flex-row md:items-center md:gap-4 mb-4 w-full max-w-full">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-foreground break-words whitespace-normal">{projectName} KPI Analytics</h1>
+          <p className="text-muted-foreground">
+            Key performance indicators for {projectName}, grouped by outcome
+          </p>
+        </div>
+        {outcomes.length > 0 && (
+          <select
+            className="border rounded px-3 py-2 text-base min-w-0 w-full md:w-auto"
+            value={selectedOutcome || ''}
+            onChange={e => setSelectedOutcome(e.target.value || undefined)}
+          >
+            <option value="">All Outcomes</option>
+            {outcomes.map((outcome: any) => (
+              <option key={outcome.id} value={outcome.id}>{outcome.title}</option>
             ))}
-          </div>
-              </CardContent>
-            </Card>
-      ))}
+          </select>
+        )}
+      </div>
+
+      {/* Display KPIs grouped by outcome */}
+      {Object.entries(groupedKPIs).map(([outcomeId, kpis]) => {
+        const outcome = outcomes.find((o: any) => o.id === outcomeId);
+        const outcomeTitle = outcome?.title || outcomeId;
+        
+        return (
+          <Card key={outcomeId} className="transition-all duration-200 hover:shadow-md break-words whitespace-normal w-full max-w-full">
+            <CardHeader className="w-full max-w-full">
+              <CardTitle className="break-words whitespace-normal w-full max-w-full">{outcomeTitle}</CardTitle>
+            </CardHeader>
+            <CardContent className="w-full max-w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 w-full max-w-full">
+                {kpis.map((kpi: any, idx: number) => (
+                  <Card key={idx} className="bg-muted/50 break-words whitespace-normal w-full max-w-full min-w-0">
+                    <CardHeader className="w-full max-w-full min-w-0">
+                      <CardTitle className="text-base font-semibold break-words whitespace-normal w-full max-w-full">{kpi.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="break-words whitespace-normal w-full max-w-full min-w-0">
+                      {kpi.type === 'radialGauge' && (
+                        <RadialGauge value={kpi.value} size={120} unit={kpi.unit} primaryColor="#3B82F6" />
+                      )}
+                      {kpi.type === 'bar' && (
+                        <StackedBarChart
+                          data={[
+                            { name: kpi.name, Actual: kpi.value, Target: kpi.target }
+                          ]}
+                          height={120}
+                          colors={["#3B82F6", "#E5E7EB"]}
+                        />
+                      )}
+                      {kpi.type === 'progress' && (
+                        <div className="w-full max-w-full min-w-0">
+                          <div className="mb-2 text-sm font-medium">{kpi.value} / {kpi.target} {kpi.unit}</div>
+                          <Progress value={(kpi.value / kpi.target) * 100} />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      {/* Show message if no KPIs for selected outcome */}
+      {selectedOutcome && Object.keys(groupedKPIs).length === 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-muted-foreground">
+              <p>No KPIs available for the selected outcome.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 } 

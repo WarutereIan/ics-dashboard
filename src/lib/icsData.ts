@@ -6,6 +6,12 @@ import { npppOutcomes, npppActivities, npppKPIs } from './npppData';
 import { vacisKeOutcomes, vacisKeActivities, vacisKeOutputs, vacisKeKPIs } from './vacisKeData';
 import { vacisTzOutcomes, vacisTzActivities, vacisTzOutputs, vacisTzKPIs } from './vacisTzData';
 import { mamebOutcomes, mamebActivities, mamebOutputs, mamebSubActivities, mamebKPIs } from './mamebData';
+import { 
+  getAllProjectsData, 
+  getProjectData, 
+  getProjectKPIsData,
+  projectExists 
+} from './projectDataManager';
 
 // Map projectId to data
 const projectData: Record<string, { outcomes: Outcome[]; activities: Activity[]; outputs?: any[]; subActivities?: any[] }> = {
@@ -18,8 +24,15 @@ const projectData: Record<string, { outcomes: Outcome[]; activities: Activity[];
   'mameb': { outcomes: mamebOutcomes, activities: mamebActivities, outputs: mamebOutputs, subActivities: mamebSubActivities },
 };
 
-// List of all project IDs
-const allProjectIds = Object.keys(projectData);
+// List of all project IDs (static + dynamic)
+function getAllProjectIds(): string[] {
+  const staticProjectIds = Object.keys(projectData);
+  const dynamicProjects = getAllProjectsData();
+  const dynamicProjectIds = dynamicProjects.map(p => p.id);
+  
+  // Combine and deduplicate
+  return Array.from(new Set([...staticProjectIds, ...dynamicProjectIds]));
+}
 
 // Permission check: can user access this project?
 function canAccessProject(user: User, projectId: string): boolean {
@@ -33,6 +46,7 @@ function canAccessProject(user: User, projectId: string): boolean {
 
 // Get all accessible project IDs for a user
 export function getAccessibleProjectIds(user: User): string[] {
+  const allProjectIds = getAllProjectIds();
   if (user.role === 'global-admin') return allProjectIds;
   return allProjectIds.filter(pid => canAccessProject(user, pid));
 }
@@ -40,29 +54,73 @@ export function getAccessibleProjectIds(user: User): string[] {
 // Get all outcomes for a project, with permission check
 export function getProjectOutcomes(user: User, projectId: string): Outcome[] {
   if (!canAccessProject(user, projectId)) return [];
-  return projectData[projectId]?.outcomes || [];
+  
+  // Check static data first
+  if (projectData[projectId]?.outcomes) {
+    return projectData[projectId].outcomes;
+  }
+  
+  // Check dynamic data
+  const dynamicProjectData = getProjectData(projectId);
+  return dynamicProjectData?.outcomes || [];
 }
 
 // Get all activities for a project, with permission check
 export function getProjectActivities(user: User, projectId: string): Activity[] {
   if (!canAccessProject(user, projectId)) return [];
-  return projectData[projectId]?.activities || [];
+  
+  // Check static data first
+  if (projectData[projectId]?.activities) {
+    return projectData[projectId].activities;
+  }
+  
+  // Check dynamic data
+  const dynamicProjectData = getProjectData(projectId);
+  return dynamicProjectData?.activities || [];
 }
 
 // Note: Activities for vacis-ke and vacis-tz include subActivities arrays for detailed tracking.
 // All getProjectActivities calls for these projects will return activities with subActivities.
 // Get all projects (IDs and basic info) accessible to the user
 export function getAllProjects(user: User): { id: string; name: string }[] {
-  return getAccessibleProjectIds(user).map(pid => ({
-    id: pid,
-    name: pid.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-  }));
+  const accessibleIds = getAccessibleProjectIds(user);
+  const projects = [];
+  
+  // Add static projects
+  for (const id of accessibleIds) {
+    if (projectData[id]) {
+      projects.push({
+        id,
+        name: id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      });
+    }
+  }
+  
+  // Add dynamic projects
+  const dynamicProjects = getAllProjectsData();
+  for (const project of dynamicProjects) {
+    if (accessibleIds.includes(project.id)) {
+      projects.push({
+        id: project.id,
+        name: project.name,
+      });
+    }
+  }
+  
+  return projects;
 }
 
 export function getProjectOutputs(user: User, projectId: string) {
   if (!getAccessibleProjectIds(user).includes(projectId)) return [];
-  const project = projectData[projectId];
-  if (project?.outputs) return project.outputs;
+  
+  // Check static data first
+  const staticProject = projectData[projectId];
+  if (staticProject?.outputs) return staticProject.outputs;
+  
+  // Check dynamic data
+  const dynamicProjectData = getProjectData(projectId);
+  if (dynamicProjectData?.outputs) return dynamicProjectData.outputs;
+  
   // Synthesize outputs for projects that don't have them
   // For now, return an empty array (or you could synthesize from activities if needed)
   return [];
@@ -70,18 +128,25 @@ export function getProjectOutputs(user: User, projectId: string) {
 
 export function getProjectSubActivities(user: User, projectId: string) {
   if (!getAccessibleProjectIds(user).includes(projectId)) return [];
-  const project = projectData[projectId];
-  if (project?.subActivities) return project.subActivities;
+  
+  // Check static data first
+  const staticProject = projectData[projectId];
+  if (staticProject?.subActivities) return staticProject.subActivities;
+  
+  // Check dynamic data
+  const dynamicProjectData = getProjectData(projectId);
+  if (dynamicProjectData?.subActivities) return dynamicProjectData.subActivities;
+  
   // Synthesize subActivities from activities if not present
-  if (project?.activities) {
-    return project.activities.flatMap(a => a.subActivities || []);
-  }
-  return [];
+  const activities = getProjectActivities(user, projectId);
+  return activities.flatMap(a => a.subActivities || []);
 }
 
 // Unified KPI fetcher
 export function getProjectKPIs(user: User, projectId: string) {
   if (!getAccessibleProjectIds(user).includes(projectId)) return [];
+  
+  // Check static KPIs first
   if (projectId === 'mameb') return mamebKPIs;
   if (projectId === 'vacis-ke') return vacisKeKPIs;
   if (projectId === 'vacis-tz') return vacisTzKPIs;
@@ -89,8 +154,10 @@ export function getProjectKPIs(user: User, projectId: string) {
   if (projectId === 'kuimarisha') return kuimarishaKPIs;
   if (projectId === 'cdw') return cdwKPIs;
   if (projectId === 'aacl') return aaclKPIs;
-  // Add more projects as needed
-  return [];
+  
+  // Check dynamic KPIs
+  const dynamicKPIs = getProjectKPIsData(projectId);
+  return dynamicKPIs;
 }
 
 // Per-project sample reports

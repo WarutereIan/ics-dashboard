@@ -1,129 +1,232 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { RadialGauge } from '@/components/visualizations/RadialGauge';
 import { StackedBarChart } from '@/components/visualizations/StackedBarChart';
 import { AreaChart } from '@/components/visualizations/AreaChart';
 import { BulletChart } from '@/components/visualizations/BulletChart';
 import { PieChart } from '@/components/visualizations/PieChart';
 import { Progress } from '@/components/ui/progress';
+import { Target, Activity, TrendingUp, ChevronRight } from 'lucide-react';
+import { organizationalGoals } from '@/lib/organizationalGoals';
 
-// Example strategic goals and subgoals (replace with parsed data from organisationPlan.md)
-const strategicGoals = [
-  {
-    title: 'Strategic Goal 1: Safe, stable and nurturing family environments',
-    subgoals: [
-      {
-        title: '1.1: 2,000,000 parents and caregivers have access to platforms and services',
-        kpi: { value: 1200000, target: 2000000, unit: 'parents', type: 'radialGauge' },
-      },
-      {
-        title: '1.2: 500,000 families have access to household economic strengthening opportunities',
-        kpi: { value: 320000, target: 500000, unit: 'families', type: 'progressBar' },
-      },
-    ],
-  },
-  {
-    title: 'Strategic Goal 2: Safe, non-violent and inclusive communities and schools',
-    subgoals: [
-      {
-        title: '2.1: 50% community structures and child protection mechanisms supported',
-        kpi: { value: 38, target: 50, unit: '%', type: 'radialGauge' },
-      },
-      {
-        title: '2.2: 10 public schools per region per year supported to be safe',
-        kpi: { value: 7, target: 10, unit: 'schools', type: 'bulletChart' },
-      },
-    ],
-  },
-  {
-    title: 'Strategic Goal 3: Supportive and responsive laws, policies and services for children',
-    subgoals: [
-      {
-        title: '3.1: Influence government to align and implement existing policies',
-        kpi: { value: 6, target: 10, unit: 'policies', type: 'bulletChart' },
-      },
-      {
-        title: '3.2: Quality and responsive government services for children and families',
-        kpi: { value: 70, target: 100, unit: '%', type: 'radialGauge' },
-      },
-    ],
-  },
-  {
-    title: 'Strategic Goal 4: Sustainable organizational development',
-    subgoals: [
-      {
-        title: '4.1: 100% of processes, systems and structures are standardized and strengthened',
-        kpi: { value: 82, target: 100, unit: '%', type: 'radialGauge' },
-      },
-      {
-        title: '4.2: USD 10 million resource mobilized per year per country',
-        kpi: { value: 7.5, target: 10, unit: 'million USD', type: 'bulletChart' },
-      },
-    ],
-  },
-];
+// Helper functions
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case 'high':
+      return 'bg-red-100 text-red-800';
+    case 'medium':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'low':
+      return 'bg-green-100 text-green-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getOverallProgress = (subgoals: any[]) => {
+  if (subgoals.length === 0) return 0;
+  const totalProgress = subgoals.reduce((sum, subgoal) => {
+    return sum + (subgoal.kpi.value / subgoal.kpi.target) * 100;
+  }, 0);
+  return Math.round(totalProgress / subgoals.length);
+};
 
 export function GlobalOverview() {
+  // Calculate summary statistics
+  const totalSubgoals = organizationalGoals.reduce((sum, goal) => sum + goal.subgoals.length, 0);
+  const totalActivities = organizationalGoals.reduce((sum, goal) => 
+    sum + goal.subgoals.reduce((subSum, subgoal) => subSum + subgoal.linkedActivities.length, 0), 0
+  );
+  const uniqueProjects = new Set();
+  organizationalGoals.forEach(goal => {
+    goal.subgoals.forEach(subgoal => {
+      subgoal.linkedActivities.forEach(activity => {
+        uniqueProjects.add(activity.projectId);
+      });
+    });
+  });
+
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Organization Strategic Goals</h1>
-        <p className="text-muted-foreground">Key performance indicators for each strategic goal and subgoal</p>
+        <p className="text-muted-foreground">
+          Strategic goals with linked project activities and key performance indicators
+        </p>
       </div>
-      {strategicGoals.map((goal, i) => (
-        <Card key={i} className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle>{goal.title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {goal.subgoals.map((sub, j) => (
-                <Card key={j} className="bg-muted/50">
-                  <CardHeader>
-                    <CardTitle className="text-base font-semibold">{sub.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {sub.kpi.type === 'radialGauge' && (
-                      <RadialGauge value={sub.kpi.value / sub.kpi.target * 100} size={120} unit={sub.kpi.unit} primaryColor="#3B82F6" />
-                    )}
-                    {sub.kpi.type === 'progressBar' && (
-                      <div className="w-full">
-                        <div className="mb-2 text-sm font-medium">{sub.kpi.value.toLocaleString()} / {sub.kpi.target.toLocaleString()} {sub.kpi.unit}</div>
-                        <Progress value={Math.round((sub.kpi.value / sub.kpi.target) * 100)} />
-                      </div>
-                    )}
-                    {sub.kpi.type === 'bulletChart' && (
-                      <div className="w-full">
-                        <div className="mb-2 flex justify-between items-center">
-                          <span className="text-sm font-medium text-foreground">{sub.title}</span>
-                          <span className="text-xs text-muted-foreground">{sub.kpi.value} / {sub.kpi.target} {sub.kpi.unit}</span>
-                        </div>
-                        <div className="relative h-4 w-full rounded-full bg-gray-200 overflow-hidden">
-                          {/* Poor range */}
-                          <div className="absolute left-0 top-0 h-4 bg-red-400" style={{ width: `${(sub.kpi.target * 0.5) / (sub.kpi.target * 1.2) * 100}%` }} />
-                          {/* Satisfactory range */}
-                          <div className="absolute left-0 top-0 h-4 bg-yellow-400" style={{ left: `${(sub.kpi.target * 0.5) / (sub.kpi.target * 1.2) * 100}%`, width: `${(sub.kpi.target * 0.3) / (sub.kpi.target * 1.2) * 100}%` }} />
-                          {/* Good range */}
-                          <div className="absolute left-0 top-0 h-4 bg-green-400" style={{ left: `${(sub.kpi.target * 0.8) / (sub.kpi.target * 1.2) * 100}%`, width: `${(sub.kpi.target * 0.2) / (sub.kpi.target * 1.2) * 100}%` }} />
-                          {/* Current value marker */}
-                          <div className="absolute top-0 h-4 w-1 bg-blue-600" style={{ left: `calc(${(sub.kpi.value / (sub.kpi.target * 1.2)) * 100}% - 2px)` }} />
-                          {/* Target marker */}
-                          <div className="absolute top-0 h-4 w-1 bg-gray-800" style={{ left: `calc(${(sub.kpi.target / (sub.kpi.target * 1.2)) * 100}% - 2px)` }} />
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                          <span>0</span>
-                          <span className="text-foreground font-medium">Target: {sub.kpi.target}</span>
-                          <span>{Math.round(sub.kpi.target * 1.2)}</span>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Strategic Goals</p>
+                <p className="text-3xl font-bold text-foreground">{organizationalGoals.length}</p>
+              </div>
+              <Target className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
-      ))}
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Sub-Goals</p>
+                <p className="text-3xl font-bold text-foreground">{totalSubgoals}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Contributing Projects</p>
+                <p className="text-3xl font-bold text-foreground">{uniqueProjects.size}</p>
+              </div>
+              <Activity className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Activities</p>
+                <p className="text-3xl font-bold text-foreground">{totalActivities}</p>
+              </div>
+              <Activity className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Strategic Goals */}
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-foreground">Strategic Goals</h2>
+        
+        {organizationalGoals.map((goal) => {
+          const overallProgress = getOverallProgress(goal.subgoals);
+          
+          return (
+            <Card key={goal.id} className="transition-all duration-200 hover:shadow-lg cursor-pointer group">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <CardTitle className="text-xl group-hover:text-blue-600 transition-colors">
+                        {goal.title}
+                      </CardTitle>
+                      <Badge className={getPriorityColor(goal.priority)}>
+                        {goal.priority} priority
+                      </Badge>
+                    </div>
+                    <CardDescription className="text-base">{goal.description}</CardDescription>
+                    <div className="mt-3 flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {goal.subgoals.length} sub-goals
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {goal.subgoals.reduce((sum, sg) => sum + sg.linkedActivities.length, 0)} activities
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Overall Progress: {overallProgress}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-3">
+                    <Link to={`/dashboard/goals/${goal.id}`}>
+                      <Button variant="outline" className="group-hover:bg-blue-50 group-hover:border-blue-200">
+                        View Details
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </Link>
+                    <div className="text-right">
+                      <Progress value={overallProgress} className="w-32" />
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {goal.subgoals.map((subgoal) => (
+                    <Card key={subgoal.id} className="bg-muted/50 hover:bg-muted/70 transition-colors">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="text-base font-semibold leading-tight">
+                            {subgoal.title}
+                          </CardTitle>
+                          <Link to={`/dashboard/goals/${goal.id}/subgoals/${subgoal.id}`}>
+                            <Button variant="ghost" size="sm">
+                              <ChevronRight className="w-3 h-3" />
+                            </Button>
+                          </Link>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Activity className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
+                            {subgoal.linkedActivities.length} contributing activities
+                          </span>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {subgoal.kpi.type === 'radialGauge' && (
+                          <div className="flex justify-center">
+                            <RadialGauge 
+                              value={(subgoal.kpi.value / subgoal.kpi.target) * 100} 
+                              size={100} 
+                              unit={subgoal.kpi.unit} 
+                              primaryColor="#3B82F6"
+                              max={100}
+                            />
+                          </div>
+                        )}
+                        {subgoal.kpi.type === 'bulletChart' && (
+                          <BulletChart
+                            current={subgoal.kpi.value}
+                            target={subgoal.kpi.target}
+                            title={subgoal.title}
+                            unit={subgoal.kpi.unit}
+                            height={80}
+                          />
+                        )}
+                        {subgoal.kpi.type === 'progressBar' && (
+                          <div className="w-full">
+                            <div className="mb-2 text-sm font-medium">
+                              {subgoal.kpi.value.toLocaleString()} / {subgoal.kpi.target.toLocaleString()} {subgoal.kpi.unit}
+                            </div>
+                            <Progress value={(subgoal.kpi.value / subgoal.kpi.target) * 100} className="h-2" />
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {Math.round((subgoal.kpi.value / subgoal.kpi.target) * 100)}% Complete
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

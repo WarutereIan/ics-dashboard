@@ -1,10 +1,9 @@
 import React from 'react';
 import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
 import { Link, useLocation } from 'react-router-dom';
-import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText } from 'lucide-react';
+import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText, Plus, ClipboardList } from 'lucide-react';
 import { useDashboard } from '@/contexts/DashboardContext';
 import {
-  getAllProjects,
   getProjectOutcomes,
   getProjectOutputs,
   getProjectActivities,
@@ -12,10 +11,10 @@ import {
 } from '@/lib/icsData';
 
 export function ProSidebar() {
-  const { user } = useDashboard();
+  const { user, projects: allProjects } = useDashboard();
   if (!user) return null;
   const location = useLocation();
-  const projects = user ? getAllProjects(user).filter(project => {
+  const projects = user ? allProjects.filter(project => {
     // Only include projects with data stores (i.e., outcomes available)
     try {
       return getProjectOutcomes(user, project.id).length > 0;
@@ -39,8 +38,13 @@ export function ProSidebar() {
       <Menu>
         <MenuItem icon={<Target />} component={<Link to="/dashboard" />}>Organization Goals</MenuItem>
         <SubMenu label="Projects" icon={<Folder />}>
+          {/* Create Project option for admins */}
+          {user?.role?.includes('admin') && (
+            <MenuItem icon={<Plus />} component={<Link to="/dashboard/projects/create" />}>Create Project</MenuItem>
+          )}
           {projects.map(project => (
             <SubMenu key={project.id} label={project.name.toUpperCase()}>
+              <MenuItem component={<Link to={`/dashboard/projects/${project.id}`} />}>Overview</MenuItem>
               <MenuItem component={<Link to={`/dashboard/projects/${project.id}/kpi`} />}>KPI Analytics</MenuItem>
               {/* Outcomes */}
               {user && getProjectOutcomes(user, project.id).length > 0 && (
@@ -56,9 +60,20 @@ export function ProSidebar() {
               {user && getProjectSubActivities(user, project.id).length > 0 && (
                 <MenuItem component={<Link to={`/dashboard/projects/${project.id}/subactivities`} />}>Subactivities</MenuItem>
               )}
+              {/* Forms for data collection */}
+              <MenuItem 
+            
+                component={<Link to={`/dashboard/projects/${project.id}/forms`} />}
+              >
+                Forms
+              </MenuItem>
               <MenuItem component={<Link to={`/dashboard/projects/${project.id}/reports`} />}>Reports</MenuItem>
               <MenuItem component={<Link to={`/dashboard/projects/${project.id}/maps`} />}>Maps</MenuItem>
               <MenuItem component={<Link to={`/dashboard/projects/${project.id}/media`} />}>Media</MenuItem>
+              {/* Edit Project option for admins */}
+              {user?.role?.includes('admin') && (
+                <MenuItem component={<Link to={`/dashboard/projects/${project.id}/edit`} />}>Edit Project</MenuItem>
+              )}
             </SubMenu>
           ))}
         </SubMenu>
