@@ -12,6 +12,9 @@ interface WizardNavigationProps {
   onNextStep: () => void;
   onSaveProject: () => void;
   onCancel: () => void;
+  onSaveDraft?: () => void;
+  onClearDraft?: () => void;
+  hasDraft?: boolean;
   isEditMode?: boolean;
 }
 
@@ -24,6 +27,9 @@ export function WizardNavigation({
   onNextStep,
   onSaveProject,
   onCancel,
+  onSaveDraft,
+  onClearDraft,
+  hasDraft = false,
   isEditMode = false,
 }: WizardNavigationProps) {
   const isLastStep = currentStep === steps.length - 1;
@@ -71,6 +77,17 @@ export function WizardNavigation({
             Cancel
           </Button>
           
+          {!isEditMode && onSaveDraft && (
+            <Button 
+              variant="outline" 
+              onClick={onSaveDraft} 
+              className="flex-1"
+              disabled={!projectData.name}
+            >
+              Save Draft
+            </Button>
+          )}
+          
           {isLastStep && (
             <Button onClick={onSaveProject} className="flex-1 flex items-center justify-center gap-2">
               <Save className="w-4 h-4" />
@@ -96,6 +113,26 @@ export function WizardNavigation({
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
+          
+          {!isEditMode && onSaveDraft && (
+            <Button 
+              variant="outline" 
+              onClick={onSaveDraft}
+              disabled={!projectData.name}
+            >
+              Save Draft
+            </Button>
+          )}
+          
+          {!isEditMode && onClearDraft && hasDraft && (
+            <Button 
+              variant="outline" 
+              onClick={onClearDraft}
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
+              Clear Draft
+            </Button>
+          )}
           
           {isLastStep ? (
             <Button onClick={onSaveProject} className="flex items-center gap-2">

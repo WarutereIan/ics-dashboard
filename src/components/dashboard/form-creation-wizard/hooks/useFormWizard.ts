@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { toast } from '@/hooks/use-toast';
 import { 
+  saveFormWizardDraft, 
+  loadFormWizardDraft, 
+  hasFormWizardDraft, 
+  clearFormWizardDraft, 
+  autoSaveFormWizardDraft, 
+  clearFormWizardAutoSaveTimeout,
+  addForm,
+  updateForm,
+  getFormById
+} from '@/lib/formLocalStorageUtils';
+import { 
   Form, 
   FormSection, 
   FormQuestion, 
@@ -112,6 +123,46 @@ export function useFormWizard(formId?: string) {
 
     loadProjectData();
   }, []);
+
+  // Load draft for new form creation or existing form for editing
+  useEffect(() => {
+    if (!wizardState.isEditing) {
+      // Load draft for new form creation
+      const draft = loadFormWizardDraft();
+      if (draft) {
+        setWizardState(draft);
+      }
+    } else if (formId) {
+      // Load existing form for editing
+      const existingForm = getFormById(formId);
+      if (existingForm) {
+        setWizardState(prev => ({
+          ...prev,
+          form: existingForm,
+          hasUnsavedChanges: false,
+        }));
+      } else {
+        toast({
+          title: "Form Not Found",
+          description: "The form you're trying to edit could not be found.",
+          variant: "destructive",
+        });
+        navigate('/dashboard');
+      }
+    }
+  }, [wizardState.isEditing, formId, navigate]);
+
+  // Auto-save draft when wizard state changes (only for new forms)
+  useEffect(() => {
+    if (!wizardState.isEditing && wizardState.form.title) {
+      autoSaveFormWizardDraft(wizardState);
+    }
+    
+    // Cleanup auto-save timeout on unmount
+    return () => {
+      clearFormWizardAutoSaveTimeout();
+    };
+  }, [wizardState, wizardState.isEditing]);
 
   // Basic form information handlers
   const updateBasicInfo = useCallback((field: string, value: any) => {
@@ -377,11 +428,53 @@ export function useFormWizard(formId?: string) {
   // Save and deploy
   const saveDraft = useCallback(async () => {
     try {
-      // Here you would save to your backend/storage
-      console.log('Saving form draft:', wizardState.form);
+      // Create the draft form with updated timestamp
+      const draftForm = {
+        ...wizardState.form,
+        status: 'DRAFT' as const,
+        updatedAt: new Date(),
+      };
+
+      // Persist the draft form to localStorage
+      console.log('Saving draft form:', { 
+        formId: wizardState.form.id, 
+        isEditing: wizardState.isEditing, 
+        title: wizardState.form.title 
+      });
       
+      if (wizardState.isEditing) {
+        // Update existing form
+        console.log('Updating existing form');
+        updateForm(wizardState.form.id, {
+          ...draftForm,
+          updatedAt: new Date(),
+        });
+      } else {
+        // Check if form already exists to prevent duplicates
+        const existingForm = getFormById(wizardState.form.id);
+        if (existingForm) {
+          // Update existing form instead of creating duplicate
+          console.log('Form already exists, updating instead of creating duplicate');
+          updateForm(wizardState.form.id, {
+            ...draftForm,
+            updatedAt: new Date(),
+          });
+        } else {
+          // Add new form
+          console.log('Adding new form');
+          addForm(draftForm);
+        }
+      }
+      
+      // Clear localStorage draft after successful save
+      if (!wizardState.isEditing) {
+        clearFormWizardDraft();
+      }
+      
+      // Update local state
       setWizardState(prev => ({
         ...prev,
+        form: draftForm,
         hasUnsavedChanges: false,
       }));
 
@@ -389,6 +482,15 @@ export function useFormWizard(formId?: string) {
         title: "Draft Saved",
         description: "Your form has been saved as a draft.",
       });
+
+      // Navigate to form management after successful save
+      setTimeout(() => {
+        if (wizardState.form.projectId) {
+          navigate(`/dashboard/projects/${wizardState.form.projectId}/forms/`);
+        } else {
+          navigate('/dashboard');
+        }
+      }, 1500);
 
       return true;
     } catch (error) {
@@ -400,7 +502,7 @@ export function useFormWizard(formId?: string) {
       });
       return false;
     }
-  }, [wizardState.form]);
+  }, [wizardState.form, wizardState.isEditing]);
 
   const publishForm = useCallback(async () => {
     try {
@@ -409,16 +511,53 @@ export function useFormWizard(formId?: string) {
         return false;
       }
 
-      // Here you would publish to your backend
-      console.log('Publishing form:', wizardState.form);
+      // Create the published form with updated status and timestamp
+      const publishedForm = {
+        ...wizardState.form,
+        status: 'PUBLISHED' as const,
+        updatedAt: new Date(),
+      };
 
+      // Persist the published form to localStorage
+      console.log('Publishing form:', { 
+        formId: wizardState.form.id, 
+        isEditing: wizardState.isEditing, 
+        title: wizardState.form.title 
+      });
+      
+      if (wizardState.isEditing) {
+        // Update existing form
+        console.log('Updating existing form');
+        updateForm(wizardState.form.id, {
+          ...publishedForm,
+          updatedAt: new Date(),
+        });
+      } else {
+        // Check if form already exists to prevent duplicates
+        const existingForm = getFormById(wizardState.form.id);
+        if (existingForm) {
+          // Update existing form instead of creating duplicate
+          console.log('Form already exists, updating instead of creating duplicate');
+          updateForm(wizardState.form.id, {
+            ...publishedForm,
+            updatedAt: new Date(),
+          });
+        } else {
+          // Add new form
+          console.log('Adding new form');
+          addForm(publishedForm);
+        }
+      }
+
+      // Clear localStorage draft after successful publish
+      if (!wizardState.isEditing) {
+        clearFormWizardDraft();
+      }
+
+      // Update local state
       setWizardState(prev => ({
         ...prev,
-        form: {
-          ...prev.form,
-          status: 'PUBLISHED',
-          updatedAt: new Date(),
-        },
+        form: publishedForm,
         hasUnsavedChanges: false,
       }));
 
@@ -426,6 +565,15 @@ export function useFormWizard(formId?: string) {
         title: "Form Published",
         description: `${wizardState.form.title} has been published successfully.`,
       });
+
+      // Navigate to form management after successful publish
+      setTimeout(() => {
+        if (wizardState.form.projectId) {
+          navigate(`/dashboard/projects/${wizardState.form.projectId}/forms/`);
+        } else {
+          navigate('/dashboard');
+        }
+      }, 1500);
 
       return true;
     } catch (error) {
@@ -437,7 +585,7 @@ export function useFormWizard(formId?: string) {
       });
       return false;
     }
-  }, [wizardState.form]);
+  }, [wizardState.form, wizardState.isEditing]);
 
   const validateForm = useCallback(() => {
     const form = wizardState.form;
@@ -517,6 +665,10 @@ export function useFormWizard(formId?: string) {
     saveDraft,
     publishForm,
     validateForm,
+    
+    // localStorage functions
+    hasDraft: hasFormWizardDraft,
+    clearDraft: clearFormWizardDraft,
     
     // Navigation helpers
     navigate,

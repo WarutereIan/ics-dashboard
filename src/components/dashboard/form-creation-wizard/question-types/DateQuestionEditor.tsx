@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from 'lucide-react';
 import { BaseQuestionEditor } from './BaseQuestionEditor';
 import { DateQuestion, ActivityKPIMapping } from '../types';
+import { DatePicker } from '@/components/ui/date-picker';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 interface DateQuestionEditorProps {
   question: DateQuestion;
@@ -19,16 +21,9 @@ interface DateQuestionEditorProps {
 export function DateQuestionEditor(props: DateQuestionEditorProps) {
   const { question, onUpdate } = props;
 
-  const formatDateForInput = (date?: Date) => {
-    if (!date) return '';
-    return question.type === 'DATETIME' 
-      ? date.toISOString().slice(0, 16)
-      : date.toISOString().slice(0, 10);
-  };
-
-  const handleDateChange = (field: 'minDate' | 'maxDate' | 'defaultValue', value: string) => {
+  const handleDateChange = (field: 'minDate' | 'maxDate' | 'defaultValue', date: Date | undefined) => {
     onUpdate({
-      [field]: value ? new Date(value) : undefined
+      [field]: date
     });
   };
 
@@ -66,12 +61,23 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor={`minDate-${question.id}`}>Minimum Date</Label>
-                <Input
-                  id={`minDate-${question.id}`}
-                  type={question.type === 'DATETIME' ? 'datetime-local' : 'date'}
-                  value={formatDateForInput(question.minDate)}
-                  onChange={(e) => handleDateChange('minDate', e.target.value)}
-                />
+                {question.type === 'DATETIME' ? (
+                  <DateTimePicker
+                    date={question.minDate}
+                    onDateChange={(date) => handleDateChange('minDate', date)}
+                    placeholder="Select minimum date and time"
+                    minDate={undefined}
+                    maxDate={question.maxDate}
+                  />
+                ) : (
+                  <DatePicker
+                    date={question.minDate}
+                    onDateChange={(date) => handleDateChange('minDate', date)}
+                    placeholder="Select minimum date"
+                    minDate={undefined}
+                    maxDate={question.maxDate}
+                  />
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   Earliest date users can select
                 </p>
@@ -79,12 +85,23 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
               
               <div>
                 <Label htmlFor={`maxDate-${question.id}`}>Maximum Date</Label>
-                <Input
-                  id={`maxDate-${question.id}`}
-                  type={question.type === 'DATETIME' ? 'datetime-local' : 'date'}
-                  value={formatDateForInput(question.maxDate)}
-                  onChange={(e) => handleDateChange('maxDate', e.target.value)}
-                />
+                {question.type === 'DATETIME' ? (
+                  <DateTimePicker
+                    date={question.maxDate}
+                    onDateChange={(date) => handleDateChange('maxDate', date)}
+                    placeholder="Select maximum date and time"
+                    minDate={question.minDate}
+                    maxDate={undefined}
+                  />
+                ) : (
+                  <DatePicker
+                    date={question.maxDate}
+                    onDateChange={(date) => handleDateChange('maxDate', date)}
+                    placeholder="Select maximum date"
+                    minDate={question.minDate}
+                    maxDate={undefined}
+                  />
+                )}
                 <p className="text-xs text-gray-500 mt-1">
                   Latest date users can select
                 </p>
@@ -94,12 +111,23 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
             {/* Default Value */}
             <div>
               <Label htmlFor={`defaultValue-${question.id}`}>Default Value (optional)</Label>
-              <Input
-                id={`defaultValue-${question.id}`}
-                type={question.type === 'DATETIME' ? 'datetime-local' : 'date'}
-                value={formatDateForInput(question.defaultValue)}
-                onChange={(e) => handleDateChange('defaultValue', e.target.value)}
-              />
+              {question.type === 'DATETIME' ? (
+                <DateTimePicker
+                  date={question.defaultValue}
+                  onDateChange={(date) => handleDateChange('defaultValue', date)}
+                  placeholder="Select default date and time"
+                  minDate={question.minDate}
+                  maxDate={question.maxDate}
+                />
+              ) : (
+                <DatePicker
+                  date={question.defaultValue}
+                  onDateChange={(date) => handleDateChange('defaultValue', date)}
+                  placeholder="Select default date"
+                  minDate={question.minDate}
+                  maxDate={question.maxDate}
+                />
+              )}
               <p className="text-xs text-gray-500 mt-1">
                 Pre-populate the field with this value
               </p>
@@ -163,15 +191,25 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
             )}
             
             <div className="relative">
-              <Input 
-                type={question.type === 'DATETIME' ? 'datetime-local' : 'date'}
-                value={formatDateForInput(question.defaultValue)}
-                min={formatDateForInput(question.minDate)}
-                max={formatDateForInput(question.maxDate)}
-                disabled
-                className="bg-gray-50"
-              />
-              <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              {question.type === 'DATETIME' ? (
+                <DateTimePicker
+                  date={question.defaultValue}
+                  onDateChange={() => {}} // Read-only in preview
+                  placeholder="Select date and time"
+                  disabled={true}
+                  minDate={question.minDate}
+                  maxDate={question.maxDate}
+                />
+              ) : (
+                <DatePicker
+                  date={question.defaultValue}
+                  onDateChange={() => {}} // Read-only in preview
+                  placeholder="Select date"
+                  disabled={true}
+                  minDate={question.minDate}
+                  maxDate={question.maxDate}
+                />
+              )}
             </div>
 
             {(question.minDate || question.maxDate) && (

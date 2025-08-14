@@ -2,6 +2,8 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { BaseQuestionRenderer, BaseQuestionRendererProps } from './BaseQuestionRenderer';
 import { DateQuestion } from '../../form-creation-wizard/types';
+import { DatePicker } from '@/components/ui/date-picker';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 interface DateQuestionRendererProps extends BaseQuestionRendererProps {
   question: DateQuestion;
@@ -16,42 +18,31 @@ export function DateQuestionRenderer({
   error,
   isPreviewMode
 }: DateQuestionRendererProps) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    if (newValue) {
-      onChange?.(new Date(newValue));
-    } else {
-      onChange?.(undefined);
-    }
-  };
-
-  const formatDateForInput = (date?: Date) => {
-    if (!date) return '';
-    
-    if (question.type === 'DATETIME') {
-      // Format as datetime-local (YYYY-MM-DDTHH:MM)
-      return date.toISOString().slice(0, 16);
-    } else {
-      // Format as date (YYYY-MM-DD)
-      return date.toISOString().slice(0, 10);
-    }
-  };
-
-  const getInputType = () => {
-    return question.type === 'DATETIME' ? 'datetime-local' : 'date';
+  const handleDateChange = (date: Date | undefined) => {
+    onChange?.(date);
   };
 
   return (
     <BaseQuestionRenderer question={question} error={error} isPreviewMode={isPreviewMode}>
-      <Input
-        type={getInputType()}
-        value={formatDateForInput(value)}
-        onChange={handleChange}
-        min={question.minDate ? formatDateForInput(question.minDate) : undefined}
-        max={question.maxDate ? formatDateForInput(question.maxDate) : undefined}
-        disabled={isPreviewMode}
-        className={isPreviewMode ? 'bg-gray-50' : ''}
-      />
+      {question.type === 'DATETIME' ? (
+        <DateTimePicker
+          date={value}
+          onDateChange={handleDateChange}
+          placeholder="Select date and time"
+          disabled={isPreviewMode}
+          minDate={question.minDate}
+          maxDate={question.maxDate}
+        />
+      ) : (
+        <DatePicker
+          date={value}
+          onDateChange={handleDateChange}
+          placeholder="Select date"
+          disabled={isPreviewMode}
+          minDate={question.minDate}
+          maxDate={question.maxDate}
+        />
+      )}
       {(question.minDate || question.maxDate) && (
         <p className="text-xs text-gray-500 mt-1">
           {question.minDate && question.maxDate ? (

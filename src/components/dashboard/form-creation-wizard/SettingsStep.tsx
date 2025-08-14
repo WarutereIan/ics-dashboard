@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -143,12 +144,10 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
 
               <div>
                 <Label className="text-base">Form Expiry Date (optional)</Label>
-                <Input
-                  type="datetime-local"
-                  value={settings.expiryDate ? settings.expiryDate.toISOString().slice(0, 16) : ''}
-                  onChange={(e) => onUpdateSettings({ 
-                    expiryDate: e.target.value ? new Date(e.target.value) : undefined 
-                  })}
+                <DateTimePicker
+                  date={settings.expiryDate}
+                  onDateChange={(date) => onUpdateSettings({ expiryDate: date })}
+                  placeholder="Select expiry date and time"
                   className="mt-1"
                 />
                 <p className="text-sm text-gray-500 mt-1">

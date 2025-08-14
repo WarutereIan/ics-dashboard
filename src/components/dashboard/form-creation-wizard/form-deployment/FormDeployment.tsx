@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Globe, 
   Link, 
@@ -19,7 +20,9 @@ import {
   Eye,
   Settings,
   BarChart3,
-  Users
+  Users,
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { Form } from '../types';
 import { FormPreview } from '../../form-preview/FormPreview';
@@ -33,8 +36,10 @@ interface FormDeploymentProps {
 export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
   const [copiedUrl, setCopiedUrl] = useState(false);
   
-  // Generate form URL (this would be your actual domain)
-  const formUrl = `https://forms.yourorganization.org/f/${form.id}`;
+  // Generate form URLs
+  const baseUrl = window.location.origin;
+  const formUrl = `${baseUrl}/fill/${form.id}`;
+  const embedUrl = `${baseUrl}/embed/${form.id}`;
   const previewUrl = `/dashboard/projects/${form.projectId}/forms/preview/${form.id}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(formUrl)}`;
 
@@ -64,8 +69,25 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
     window.open(`mailto:?subject=${subject}&body=${body}`);
   };
 
+  const shareViaWhatsApp = () => {
+    const message = encodeURIComponent(`Please fill out this form: ${form.title}\n\n${formUrl}`);
+    window.open(`https://wa.me/?text=${message}`);
+  };
+
+  const shareViaTwitter = () => {
+    const text = encodeURIComponent(`Please fill out this form: ${form.title}\n\n${formUrl}`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}`);
+  };
+
+  const shareViaLinkedIn = () => {
+    const url = encodeURIComponent(formUrl);
+    const title = encodeURIComponent(form.title);
+    const summary = encodeURIComponent(form.description || '');
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}&title=${title}&summary=${summary}`);
+  };
+
   const EmbedCode = () => {
-    const embedCode = `<iframe src="${formUrl}?embed=true" width="100%" height="600" frameborder="0"></iframe>`;
+    const embedCode = `<iframe src="${embedUrl}" width="100%" height="600" frameborder="0"></iframe>`;
     
     return (
       <div className="space-y-4">
@@ -110,6 +132,15 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {form.status !== 'PUBLISHED' && (
+            <Alert className="mb-4 border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                This form is not published yet. You need to publish the form before it can be shared with others.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="p-4">
               <div className="text-center">
@@ -138,6 +169,18 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                 <p className="text-sm text-gray-600">Form Version</p>
               </div>
             </Card>
+            
+            {form.settings?.expiryDate && (
+              <Card className="p-4">
+                <div className="text-center">
+                  <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                  <p className="text-lg font-bold text-orange-600">
+                    {new Date(form.settings.expiryDate).toLocaleDateString()}
+                  </p>
+                  <p className="text-sm text-gray-600">Expires On</p>
+                </div>
+              </Card>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -166,17 +209,23 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                 <Label>Direct Link</Label>
                 <div className="flex gap-2">
                   <Input
-                    value={formUrl}
+                    value={form.status === 'PUBLISHED' ? formUrl : 'Form must be published to get a shareable link'}
                     readOnly
                     className="font-mono"
                   />
                   <Button
                     variant="outline"
                     onClick={() => copyToClipboard(formUrl, "Form URL")}
+                    disabled={form.status !== 'PUBLISHED'}
                   >
                     {copiedUrl ? 'Copied!' : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
+                {form.status !== 'PUBLISHED' && (
+                  <p className="text-sm text-amber-600 mt-1">
+                    Publish the form to generate a shareable link
+                  </p>
+                )}
               </div>
 
               {/* Share Options */}
@@ -184,12 +233,46 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                 <Button
                   variant="outline"
                   onClick={shareViaEmail}
+                  disabled={form.status !== 'PUBLISHED'}
                   className="flex items-center gap-2"
                 >
                   <Mail className="w-4 h-4" />
                   Email
                 </Button>
                 
+                <Button
+                  variant="outline"
+                  onClick={shareViaWhatsApp}
+                  disabled={form.status !== 'PUBLISHED'}
+                  className="flex items-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  WhatsApp
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={shareViaTwitter}
+                  disabled={form.status !== 'PUBLISHED'}
+                  className="flex items-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Twitter
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={shareViaLinkedIn}
+                  disabled={form.status !== 'PUBLISHED'}
+                  className="flex items-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  LinkedIn
+                </Button>
+              </div>
+
+              {/* Additional Options */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                 <Button
                   variant="outline"
                   onClick={() => window.open(previewUrl, '_blank')}
@@ -202,6 +285,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                 <Button
                   variant="outline"
                   onClick={() => copyToClipboard(formUrl, "Form URL")}
+                  disabled={form.status !== 'PUBLISHED'}
                   className="flex items-center gap-2"
                 >
                   <Link className="w-4 h-4" />
@@ -247,16 +331,32 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
             </CardHeader>
             <CardContent>
               <div className="text-center space-y-4">
-                <div>
-                  <img 
-                    src={qrCodeUrl} 
-                    alt="QR Code for form" 
-                    className="mx-auto border rounded"
-                  />
-                </div>
-                <p className="text-sm text-gray-600">
-                  Scan this QR code with a mobile device to access the form
-                </p>
+                {form.status === 'PUBLISHED' ? (
+                  <>
+                    <div>
+                      <img 
+                        src={qrCodeUrl} 
+                        alt="QR Code for form" 
+                        className="mx-auto border rounded"
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Scan this QR code with a mobile device to access the form
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-48 h-48 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                      <div className="text-center text-gray-500">
+                        <QrCode className="w-16 h-16 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">QR Code will be available after publishing</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-amber-600">
+                      Publish the form to generate a QR code
+                    </p>
+                  </>
+                )}
                 <div className="flex justify-center gap-2">
                   <Button
                     variant="outline"
@@ -266,6 +366,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                       link.download = `${form.title}-qr-code.png`;
                       link.click();
                     }}
+                    disabled={form.status !== 'PUBLISHED'}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Download QR Code
@@ -273,6 +374,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                   <Button
                     variant="outline"
                     onClick={() => copyToClipboard(formUrl, "Form URL")}
+                    disabled={form.status !== 'PUBLISHED'}
                   >
                     <Copy className="w-4 h-4 mr-2" />
                     Copy URL

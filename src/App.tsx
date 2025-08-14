@@ -19,6 +19,8 @@ import { Subactivities } from '@/components/dashboard/Subactivities';
 import { ProjectCreationWizard } from '@/components/dashboard/ProjectCreationWizard';
 import { FormRoutes } from '@/components/dashboard/FormRoutes';
 import { GoalDetails } from '@/components/dashboard/GoalDetails';
+import { PublicFormFiller } from '@/components/public/PublicFormFiller';
+import { PublicLanding } from '@/components/public/PublicLanding';
 // New all-outcomes and all-outputs pages will be created as OutcomesDetails and OutputsDetails
 
 function ProtectedRoute({ roles }: { roles?: string[] }) {
@@ -39,7 +41,12 @@ function App() {
         <FormProvider>
           <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<PublicLanding />} />
+        
+        {/* Public form filling routes */}
+        <Route path="/fill/:formId" element={<PublicFormFiller />} />
+        <Route path="/embed/:formId" element={<PublicFormFiller isEmbedded={true} />} />
+        
         {/* General authenticated routes */}
         <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>

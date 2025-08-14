@@ -1,5 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Download, X } from 'lucide-react';
+import { formatDraftAge, getDraftAge } from '@/lib/localStorageUtils';
 import {
   useProjectWizard,
   StepIndicator,
@@ -29,10 +33,26 @@ export function ProjectCreationWizard() {
     nextStep,
     prevStep,
     saveProject,
+    saveDraft,
+    clearDraft,
+    hasDraft,
     navigate,
   } = useProjectWizard();
 
   const { projectData, outcomes, activities, kpis, currentStep } = wizardState;
+  const [showDraftAlert, setShowDraftAlert] = useState(false);
+  const [draftAgeText, setDraftAgeText] = useState('');
+
+  // Check for draft on component mount
+  useEffect(() => {
+    if (!isEditMode && hasDraft()) {
+      setShowDraftAlert(true);
+      const draftAge = getDraftAge();
+      if (draftAge) {
+        setDraftAgeText(formatDraftAge(draftAge));
+      }
+    }
+  }, [isEditMode, hasDraft]);
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -102,6 +122,41 @@ export function ProjectCreationWizard() {
           </p>
         </div>
 
+        {/* Draft Alert */}
+        {showDraftAlert && !isEditMode && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50">
+            <Download className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span>A draft of your project is available{draftAgeText && ` (saved ${draftAgeText})`}. You can restore it to continue where you left off.</span>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      // The draft is already loaded by the hook, just hide the alert
+                      setShowDraftAlert(false);
+                    }}
+                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  >
+                    Restore Draft
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowDraftAlert(false)}
+                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Progress Steps */}
         <div className="mb-6 md:mb-8 overflow-x-auto">
           <StepIndicator steps={steps} currentStep={currentStep} />
@@ -131,6 +186,9 @@ export function ProjectCreationWizard() {
             onNextStep={nextStep}
             onSaveProject={saveProject}
             onCancel={() => navigate('/dashboard')}
+            onSaveDraft={saveDraft}
+            onClearDraft={clearDraft}
+            hasDraft={hasDraft}
             isEditMode={isEditMode}
           />
         </div>

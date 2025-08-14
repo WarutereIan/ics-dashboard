@@ -1,36 +1,38 @@
 import * as React from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ReactDatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
-interface DatePickerProps {
+interface DateTimePickerProps {
   date?: Date;
   onDateChange?: (date: Date | undefined) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  showTimeSelect?: boolean;
   dateFormat?: string;
   minDate?: Date;
   maxDate?: Date;
+  showTimeSelectOnly?: boolean;
+  timeIntervals?: number;
+  timeCaption?: string;
 }
 
-export function DatePicker({
+export function DateTimePicker({
   date,
   onDateChange,
-  placeholder = "Pick a date",
+  placeholder = "Pick date and time",
   disabled = false,
   className,
-  showTimeSelect = false,
-  dateFormat = "PPP",
+  dateFormat = "PPP p",
   minDate,
   maxDate,
-}: DatePickerProps) {
-  const [open, setOpen] = React.useState(false);
-
+  showTimeSelectOnly = false,
+  timeIntervals = 15,
+  timeCaption = "Time",
+}: DateTimePickerProps) {
   const handleDateChange = (selectedDate: Date | null) => {
     onDateChange?.(selectedDate || undefined);
   };
@@ -42,8 +44,11 @@ export function DatePicker({
         onChange={handleDateChange}
         placeholderText={placeholder}
         disabled={disabled}
-        showTimeSelect={showTimeSelect}
-        dateFormat={showTimeSelect ? "PPP p" : dateFormat}
+        showTimeSelect={true}
+        showTimeSelectOnly={showTimeSelectOnly}
+        timeIntervals={timeIntervals}
+        timeCaption={timeCaption}
+        dateFormat={dateFormat}
         minDate={minDate}
         maxDate={maxDate}
         className={cn(
@@ -71,8 +76,12 @@ export function DatePicker({
             )}
             disabled={disabled}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, showTimeSelect ? "PPP p" : dateFormat) : <span>{placeholder}</span>}
+            {showTimeSelectOnly ? (
+              <Clock className="mr-2 h-4 w-4" />
+            ) : (
+              <CalendarIcon className="mr-2 h-4 w-4" />
+            )}
+            {date ? format(date, dateFormat) : <span>{placeholder}</span>}
           </Button>
         }
       />

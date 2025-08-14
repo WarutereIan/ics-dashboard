@@ -28,75 +28,134 @@ import {
 import { useDashboard } from '@/contexts/DashboardContext';
 import { toast } from '@/hooks/use-toast';
 import { Form } from './form-creation-wizard/types';
-
-// Mock data - in a real app, this would come from your API
-const mockForms: Form[] = [
-  {
-    id: 'form-1',
-    title: 'Baseline Survey - Education Project',
-    description: 'Initial data collection for the education improvement project',
-    projectId: 'project-1',
-    createdBy: 'user-1',
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-20'),
-    status: 'PUBLISHED',
-    version: 1,
-    sections: [],
-    settings: {
-      allowMultipleResponses: false,
-      requireAuthentication: false,
-      showProgressBar: true,
-      allowSaveDraft: true,
-      randomizeQuestions: false,
-      thankYouMessage: 'Thank you for your response!',
-      notificationEmails: [],
-      allowResponseEditing: false,
-      autoSave: true,
-    },
-    responseCount: 127,
-    lastResponseAt: new Date('2024-01-25'),
-    tags: ['baseline', 'education'],
-    category: 'Survey',
-  },
-  {
-    id: 'form-2',
-    title: 'Monthly Progress Monitoring',
-    description: 'Monthly check-in on project activities and outcomes',
-    projectId: 'project-1',
-    createdBy: 'user-1',
-    createdAt: new Date('2024-02-01'),
-    updatedAt: new Date('2024-02-01'),
-    status: 'DRAFT',
-    version: 1,
-    sections: [],
-    settings: {
-      allowMultipleResponses: true,
-      requireAuthentication: true,
-      showProgressBar: true,
-      allowSaveDraft: true,
-      randomizeQuestions: false,
-      thankYouMessage: 'Thank you for your response!',
-      notificationEmails: [],
-      allowResponseEditing: true,
-      autoSave: true,
-    },
-    responseCount: 0,
-    tags: ['monitoring', 'monthly'],
-    category: 'Monitoring',
-  },
-];
+import { 
+  saveFormManagementFilters, 
+  loadFormManagementFilters, 
+  clearFormManagementFilters,
+  getDefaultFormManagementFilters,
+  FormManagementFilters,
+  getFormsByProject,
+  addForm,
+  updateForm,
+  deleteForm as deleteFormFromStorage,
+  duplicateForm as duplicateFormInStorage
+} from '@/lib/formLocalStorageUtils';
 
 export function FormManagement() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { user } = useDashboard();
-  const [forms, setForms] = useState<Form[]>(mockForms);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  
+  // Load forms from localStorage for the current project
+  const [forms, setForms] = useState<Form[]>(() => {
+    if (projectId) {
+      return getFormsByProject(projectId);
+    }
+    return [];
+  });
+  
+  // Load saved filters from localStorage
+  const [filters, setFilters] = useState<FormManagementFilters>(() => {
+    const savedFilters = loadFormManagementFilters();
+    return savedFilters || getDefaultFormManagementFilters();
+  });
 
-  // Mock project name - in real app, this would be fetched based on projectId
-  const projectName = `Project ${projectId?.toUpperCase() || 'UNKNOWN'}`;
+  // Get project name from context or use a default
+  const projectName = projectId ? `Project ${projectId.toUpperCase()}` : 'Unknown Project';
+
+  // Save filters to localStorage when they change
+  useEffect(() => {
+    saveFormManagementFilters(filters);
+  }, [filters]);
+
+  // Refresh forms when projectId changes or when component comes into focus
+  useEffect(() => {
+    const refreshForms = () => {
+      if (projectId) {
+        const projectForms = getFormsByProject(projectId);
+        console.log('Refreshing forms for project:', projectId, 'Found forms:', projectForms.map(f => ({ id: f.id, title: f.title })));
+        setForms(projectForms);
+      } else {
+        setForms([]);
+      }
+    };
+
+    // Refresh forms immediately
+    refreshForms();
+
+    // Refresh forms when window gains focus (user returns from form wizard)
+    const handleFocus = () => {
+      refreshForms();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [projectId]);
+
+  // Initialize with sample data if no forms exist (for demonstration)
+  useEffect(() => {
+    if (projectId && forms.length === 0) {
+      // Check if we should initialize with sample data
+      const hasInitialized = localStorage.getItem(`ics_forms_initialized_${projectId}`);
+     /*  if (!hasInitialized) {
+        const sampleForms: Form[] = [
+          {
+            id: `sample-form-1-${projectId}`,
+            title: 'Baseline Survey - Education Project',
+            description: 'Initial data collection for the education improvement project',
+            projectId: projectId,
+            createdBy: user?.id || 'user-1',
+            createdAt: new Date('2024-01-15'),
+            updatedAt: new Date('2024-01-20'),
+            status: 'PUBLISHED',
+            version: 1,
+            sections: [],
+            settings: {
+              requireAuthentication: false,
+              thankYouMessage: 'Thank you for your response!',
+              notificationEmails: [],
+            },
+            responseCount: 127,
+            lastResponseAt: new Date('2024-01-25'),
+            tags: ['baseline', 'education'],
+            category: 'Survey',
+          },
+          {
+            id: `sample-form-2-${projectId}`,
+            title: 'Monthly Progress Monitoring',
+            description: 'Monthly check-in on project activities and outcomes',
+            projectId: projectId,
+            createdBy: user?.id || 'user-1',
+            createdAt: new Date('2024-02-01'),
+            updatedAt: new Date('2024-02-01'),
+            status: 'DRAFT',
+            version: 1,
+            sections: [],
+            settings: {
+              requireAuthentication: true,
+              thankYouMessage: 'Thank you for your response!',
+              notificationEmails: [],
+            },
+            responseCount: 0,
+            tags: ['monitoring', 'monthly'],
+            category: 'Monitoring',
+          },
+        ];
+        
+        sampleForms.forEach(form => addForm(form));
+        setForms(sampleForms);
+        localStorage.setItem(`ics_forms_initialized_${projectId}`, 'true');
+      } */
+    }
+  }, [projectId, forms.length, user?.id]);
+
+  // Update search term from filters
+  const searchTerm = filters.searchTerm;
+  const statusFilter = filters.status.length > 0 ? filters.status[0] : 'all';
+  const categoryFilter = filters.projectId.length > 0 ? filters.projectId[0] : 'all';
 
   // Filter forms based on search and filters
   const filteredForms = forms.filter((form) => {
@@ -138,18 +197,7 @@ export function FormManagement() {
 
   const handleDuplicateForm = async (form: Form) => {
     try {
-      const duplicatedForm: Form = {
-        ...form,
-        id: `${form.id}-copy-${Date.now()}`,
-        title: `${form.title} (Copy)`,
-        status: 'DRAFT',
-        responseCount: 0,
-        lastResponseAt: undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        version: 1,
-      };
-      
+      const duplicatedForm = duplicateFormInStorage(form);
       setForms(prev => [duplicatedForm, ...prev]);
       
       toast({
@@ -167,6 +215,7 @@ export function FormManagement() {
 
   const handleDeleteForm = async (formId: string) => {
     try {
+      deleteFormFromStorage(formId);
       setForms(prev => prev.filter(form => form.id !== formId));
       
       toast({
@@ -183,12 +232,47 @@ export function FormManagement() {
   };
 
   const handleShareForm = (form: Form) => {
-    const formUrl = `https://forms.yourorganization.org/f/${form.id}`;
+    // Only allow sharing published forms
+    if (form.status !== 'PUBLISHED') {
+      toast({
+        title: "Cannot Share Form",
+        description: "Only published forms can be shared. Please publish the form first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const baseUrl = window.location.origin;
+    const formUrl = `${baseUrl}/fill/${form.id}`;
     navigator.clipboard.writeText(formUrl);
     toast({
-      title: "Link Copied",
+      title: "Link Copied!",
       description: "Form link has been copied to clipboard.",
     });
+  };
+
+  // Filter handlers
+  const handleSearchChange = (value: string) => {
+    setFilters(prev => ({ ...prev, searchTerm: value }));
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      status: value === 'all' ? [] : [value] 
+    }));
+  };
+
+  const handleCategoryFilterChange = (value: string) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      projectId: value === 'all' ? [] : [value] 
+    }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters(getDefaultFormManagementFilters());
+    clearFormManagementFilters();
   };
 
   return (
@@ -283,14 +367,14 @@ export function FormManagement() {
                 <Input
                   placeholder="Search forms by title, description, or tags..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
@@ -303,7 +387,7 @@ export function FormManagement() {
                 </SelectContent>
               </Select>
               
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <Select value={categoryFilter} onValueChange={handleCategoryFilterChange}>
                 <SelectTrigger className="w-full sm:w-auto sm:min-w-[140px]">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
@@ -315,6 +399,14 @@ export function FormManagement() {
                   <SelectItem value="Registration">Registration</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button 
+                variant="outline" 
+                onClick={handleClearFilters}
+                className="w-full sm:w-auto"
+              >
+                Clear Filters
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -424,10 +516,12 @@ export function FormManagement() {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleShareForm(form)}>
-                                <Share2 className="mr-2 h-4 w-4" />
-                                Share Link
-                              </DropdownMenuItem>
+                              {form.status === 'PUBLISHED' && (
+                                <DropdownMenuItem onClick={() => handleShareForm(form)}>
+                                  <Share2 className="mr-2 h-4 w-4" />
+                                  Share Link
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => handleDuplicateForm(form)}>
                                 <Copy className="mr-2 h-4 w-4" />
                                 Duplicate
@@ -482,10 +576,12 @@ export function FormManagement() {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleShareForm(form)}>
-                                <Share2 className="mr-2 h-4 w-4" />
-                                Share Link
-                              </DropdownMenuItem>
+                              {form.status === 'PUBLISHED' && (
+                                <DropdownMenuItem onClick={() => handleShareForm(form)}>
+                                  <Share2 className="mr-2 h-4 w-4" />
+                                  Share Link
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => handleDuplicateForm(form)}>
                                 <Copy className="mr-2 h-4 w-4" />
                                 Duplicate

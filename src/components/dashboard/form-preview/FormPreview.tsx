@@ -10,6 +10,12 @@ import { Form, FormQuestion, FormResponse } from '../form-creation-wizard/types'
 import { projectDataManager } from '../../../utils/projectDataManager';
 import { toast } from '@/hooks/use-toast';
 import { useForm } from '@/contexts/FormContext';
+import { 
+  saveFormPreviewData, 
+  loadFormPreviewData, 
+  clearFormPreviewData,
+  FormPreviewData 
+} from '@/lib/formLocalStorageUtils';
 
 interface FormPreviewProps {
   form?: Form; // If provided, use this form instead of loading from URL
@@ -67,6 +73,32 @@ export function FormPreview({
       setForm(sampleForm);
     }
   }, [currentForm, providedForm, formId, projectId]);
+
+  // Load saved preview data when form changes
+  useEffect(() => {
+    if (form?.id && !isPreviewMode) {
+      const savedData = loadFormPreviewData(form.id);
+      if (savedData) {
+        setResponses(savedData.responses);
+        setCurrentSectionIndex(savedData.currentSection);
+        setIsDraft(true);
+      }
+    }
+  }, [form?.id, isPreviewMode]);
+
+  // Auto-save preview data when responses change
+  useEffect(() => {
+    if (form?.id && !isPreviewMode && Object.keys(responses).length > 0) {
+      const previewData: Omit<FormPreviewData, 'formId'> = {
+        responses,
+        currentSection: currentSectionIndex,
+        isComplete: false,
+        startedAt: new Date(),
+        lastActivityAt: new Date(),
+      };
+      saveFormPreviewData(form.id, previewData);
+    }
+  }, [form?.id, responses, currentSectionIndex, isPreviewMode]);
 
   // Get all questions from all sections
   const allQuestions = form?.sections.flatMap(section => section.questions) || [];
@@ -183,6 +215,11 @@ export function FormPreview({
           title: "Form Submitted",
           description: "Thank you for your response!",
         });
+      }
+
+      // Clear localStorage data after successful submission
+      if (form?.id && !isPreviewMode) {
+        clearFormPreviewData(form.id);
       }
 
       // Navigate to thank you page or back

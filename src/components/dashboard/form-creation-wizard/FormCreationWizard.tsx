@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, Save, Eye, X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ArrowLeft, ArrowRight, Save, Eye, X, Download, Share2 } from 'lucide-react';
 import { useFormWizard } from './hooks/useFormWizard';
 import { ActivityKPIMapping } from './types';
 import { BasicInfoStep } from './BasicInfoStep';
@@ -14,6 +15,8 @@ import { ReviewStep } from './ReviewStep';
 import { useForm } from '@/contexts/FormContext';
 import { FormPreview } from '../form-preview/FormPreview';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { formatFormWizardDraftAge, getFormWizardDraftAge } from '@/lib/formLocalStorageUtils';
+import { toast } from '@/hooks/use-toast';
 
 interface FormCreationWizardProps {
   formId?: string; // For editing existing forms
@@ -40,12 +43,27 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
     updateSettings,
     saveDraft,
     publishForm,
+    hasDraft,
+    clearDraft,
     navigate,
   } = useFormWizard(formId);
 
   const { form, availableProjects, availableActivities, currentStep, hasUnsavedChanges } = wizardState;
   const { setCurrentForm, setHasUnsavedChanges: setContextHasUnsavedChanges, setIsPreviewMode } = useForm();
   const [showPreview, setShowPreview] = useState(false);
+  const [showDraftAlert, setShowDraftAlert] = useState(false);
+  const [draftAgeText, setDraftAgeText] = useState('');
+
+  // Check for draft on component mount
+  useEffect(() => {
+    if (!wizardState.isEditing && hasDraft()) {
+      setShowDraftAlert(true);
+      const draftAge = getFormWizardDraftAge();
+      if (draftAge) {
+        setDraftAgeText(formatFormWizardDraftAge(draftAge));
+      }
+    }
+  }, [wizardState.isEditing, hasDraft]);
 
   // Sync form data with context
   useEffect(() => {
@@ -161,6 +179,18 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
   const isNextDisabled = !validateCurrentStep();
   const isLastStep = currentStep === steps.length - 1;
 
+  const handleShareForm = () => {
+    if (form.id) {
+      const baseUrl = window.location.origin;
+      const formUrl = `${baseUrl}/fill/${form.id}`;
+      navigator.clipboard.writeText(formUrl);
+      toast({
+        title: "Link Copied!",
+        description: "Form link has been copied to clipboard.",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
@@ -197,9 +227,66 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                 <Save className="w-4 h-4" />
                 Save Draft
               </Button>
+
+              {form.status === 'PUBLISHED' && form.id && (
+                <Button
+                  variant="outline"
+                  onClick={handleShareForm}
+                  className="flex items-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share Form
+                </Button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Draft Alert */}
+        {showDraftAlert && !wizardState.isEditing && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50">
+            <Download className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span>A draft of your form is available{draftAgeText && ` (saved ${draftAgeText})`}. You can restore it to continue where you left off.</span>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      // The draft is already loaded by the hook, just hide the alert
+                      setShowDraftAlert(false);
+                    }}
+                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  >
+                    Restore Draft
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      clearDraft();
+                      setShowDraftAlert(false);
+                    }}
+                    className="text-red-600 border-red-300 hover:bg-red-100"
+                  >
+                    Clear Draft
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowDraftAlert(false)}
+                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Progress Steps */}
         <StepIndicator />

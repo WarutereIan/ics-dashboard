@@ -5,6 +5,14 @@ import { toast } from '@/hooks/use-toast';
 import { saveProject as saveProjectData, getProjectData, getProjectKPIsData, getAllProjectsData } from '@/lib/projectDataManager';
 import { getProjectOutcomes, getProjectActivities, getProjectKPIs } from '@/lib/icsData';
 import { 
+  saveWizardDraft, 
+  loadWizardDraft, 
+  hasWizardDraft, 
+  clearWizardDraft, 
+  autoSaveWizardDraft, 
+  clearAutoSaveTimeout 
+} from '@/lib/localStorageUtils';
+import { 
   ProjectFormData, 
   OutcomeFormData, 
   ActivityFormData, 
@@ -44,7 +52,7 @@ export function useProjectWizard() {
     { id: 'review', title: 'Review', description: isEditMode ? 'Review and update project' : 'Review and create project' },
   ];
 
-  // Load existing project data when in edit mode
+  // Load existing project data when in edit mode or load draft for new projects
   useEffect(() => {
     if (isEditMode && projectId && user) {
       const project = projects.find(p => p.id === projectId);
@@ -107,8 +115,26 @@ export function useProjectWizard() {
           });
         }
       }
+    } else if (!isEditMode) {
+      // Load draft for new project creation
+      const draft = loadWizardDraft();
+      if (draft) {
+        setWizardState(draft);
+      }
     }
   }, [isEditMode, projectId, user, projects]);
+
+  // Auto-save draft when wizard state changes (only for new projects)
+  useEffect(() => {
+    if (!isEditMode && wizardState.projectData.name) {
+      autoSaveWizardDraft(wizardState);
+    }
+    
+    // Cleanup auto-save timeout on unmount
+    return () => {
+      clearAutoSaveTimeout();
+    };
+  }, [wizardState, isEditMode]);
 
   // Generate project ID from name
   const generateProjectId = (name: string) => {
@@ -290,6 +316,11 @@ export function useProjectWizard() {
     const success = saveProjectData(project, projectOutcomes, projectActivities, projectKpis);
     
     if (success) {
+      // Clear draft after successful save
+      if (!isEditMode) {
+        clearWizardDraft();
+      }
+      
       toast({
         title: isEditMode ? "Project Updated Successfully" : "Project Created Successfully",
         description: isEditMode 
@@ -313,6 +344,40 @@ export function useProjectWizard() {
     }
   };
 
+  // Save draft manually
+  const saveDraft = () => {
+    saveWizardDraft(wizardState);
+    toast({
+      title: "Draft Saved",
+      description: "Your project draft has been saved successfully.",
+    });
+  };
+
+  // Clear draft
+  const clearDraft = () => {
+    clearWizardDraft();
+    setWizardState({
+      currentStep: 0,
+      projectData: {
+        id: '',
+        name: '',
+        description: '',
+        country: '',
+        status: 'planning',
+        startDate: undefined,
+        endDate: undefined,
+        budget: 0,
+      },
+      outcomes: [],
+      activities: [],
+      kpis: [],
+    });
+    toast({
+      title: "Draft Cleared",
+      description: "Your project draft has been cleared.",
+    });
+  };
+
   return {
     wizardState,
     steps,
@@ -330,6 +395,9 @@ export function useProjectWizard() {
     nextStep,
     prevStep,
     saveProject,
+    saveDraft,
+    clearDraft,
+    hasDraft: hasWizardDraft,
     navigate,
   };
 }
