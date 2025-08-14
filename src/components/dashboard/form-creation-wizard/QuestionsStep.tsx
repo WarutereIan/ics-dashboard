@@ -16,6 +16,7 @@ import {
   MultipleChoiceQuestionEditor,
   NumberQuestionEditor,
   DateQuestionEditor,
+  MediaUploadQuestionEditor,
 } from './question-types';
 
 interface QuestionsStepProps {
@@ -65,10 +66,14 @@ export function QuestionsStep({
         return <MultipleChoiceQuestionEditor {...commonProps} question={question} />;
       case 'NUMBER':
         return <NumberQuestionEditor {...commonProps} question={question} />;
-
       case 'DATE':
       case 'DATETIME':
         return <DateQuestionEditor {...commonProps} question={question} />;
+      case 'IMAGE_UPLOAD':
+      case 'VIDEO_UPLOAD':
+      case 'AUDIO_UPLOAD':
+      case 'FILE_UPLOAD':
+        return <MediaUploadQuestionEditor {...commonProps} question={question} />;
       default:
         // For question types we haven't implemented specific editors for yet
         return <BaseQuestionEditor {...commonProps} />;

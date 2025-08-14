@@ -382,3 +382,114 @@ export const duplicateForm = (form: Form): Form => {
   addForm(duplicatedForm);
   return duplicatedForm;
 };
+
+// Sample response data
+export const generateSampleResponses = (formId: string) => {
+  const sampleResponses = [
+    {
+      id: 'response-1',
+      formId: formId,
+      submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      responses: {
+        'q1': 'John Doe',
+        'q2': 28,
+        'q3': 'male',
+        'q4': 'john.doe@example.com',
+        'q5': 'Software Engineer',
+        'q6': 'I am very satisfied with the current system.',
+        'q7': ['option1', 'option3'],
+        'q8': 8,
+        'q9': new Date('2024-01-15').toISOString(),
+        'q10': 'This is a detailed response about my experience.'
+      },
+      respondentInfo: {
+        ip: '192.168.1.100',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        location: 'New York, USA'
+      }
+    },
+    {
+      id: 'response-2',
+      formId: formId,
+      submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+      responses: {
+        'q1': 'Jane Smith',
+        'q2': 32,
+        'q3': 'female',
+        'q4': 'jane.smith@example.com',
+        'q5': 'Project Manager',
+        'q6': 'The system meets most of our requirements.',
+        'q7': ['option2', 'option4'],
+        'q8': 7,
+        'q9': new Date('2024-01-20').toISOString(),
+        'q10': 'Good overall experience with room for improvement.'
+      },
+      respondentInfo: {
+        ip: '192.168.1.101',
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        location: 'San Francisco, USA'
+      }
+    },
+    {
+      id: 'response-3',
+      formId: formId,
+      submittedAt: new Date(), // Today
+      responses: {
+        'q1': 'Mike Johnson',
+        'q2': 25,
+        'q3': 'male',
+        'q4': 'mike.johnson@example.com',
+        'q5': 'Data Analyst',
+        'q6': 'Excellent system with great features.',
+        'q7': ['option1', 'option2', 'option3'],
+        'q8': 9,
+        'q9': new Date('2024-01-25').toISOString(),
+        'q10': 'Highly recommend this system to others.'
+      },
+      respondentInfo: {
+        ip: '192.168.1.102',
+        userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
+        location: 'Austin, USA'
+      }
+    }
+  ];
+
+  return sampleResponses;
+};
+
+// Save form response
+export const saveFormResponse = (formId: string, response: any) => {
+  try {
+    const existingResponses = localStorage.getItem(`form_responses_${formId}`);
+    const responses = existingResponses ? JSON.parse(existingResponses) : [];
+    
+    const newResponse = {
+      id: `response-${Date.now()}`,
+      formId: formId,
+      submittedAt: new Date(),
+      responses: response,
+      respondentInfo: {
+        ip: 'Unknown', // In a real app, this would be captured from the request
+        userAgent: navigator.userAgent,
+        location: 'Unknown'
+      }
+    };
+    
+    responses.push(newResponse);
+    localStorage.setItem(`form_responses_${formId}`, JSON.stringify(responses));
+    
+    // Update form response count
+    const forms = loadForms();
+    const formIndex = forms.findIndex(f => f.id === formId);
+    if (formIndex !== -1) {
+      forms[formIndex].responseCount = (forms[formIndex].responseCount || 0) + 1;
+      forms[formIndex].lastResponseAt = new Date();
+      saveForms(forms);
+    }
+    
+    return newResponse;
+  } catch (error) {
+    console.error('Error saving form response:', error);
+    throw error;
+  }
+};

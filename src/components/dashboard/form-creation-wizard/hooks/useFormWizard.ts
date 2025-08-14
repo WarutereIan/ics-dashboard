@@ -67,6 +67,8 @@ export function useFormWizard(formId?: string) {
     hasUnsavedChanges: false,
   });
 
+  const [isPublishing, setIsPublishing] = useState(false);
+
   const steps: WizardStep[] = [
     { id: 'basic-info', title: 'Basic Information', description: 'Form title, description, and project' },
     { id: 'sections', title: 'Form Structure', description: 'Organize your form into sections' },
@@ -442,7 +444,7 @@ export function useFormWizard(formId?: string) {
         title: wizardState.form.title 
       });
       
-      if (wizardState.isEditing) {
+      if (wizardState.isEditing && wizardState.form.id) {
         // Update existing form
         console.log('Updating existing form');
         updateForm(wizardState.form.id, {
@@ -451,8 +453,8 @@ export function useFormWizard(formId?: string) {
         });
       } else {
         // Check if form already exists to prevent duplicates
-        const existingForm = getFormById(wizardState.form.id);
-        if (existingForm) {
+        const existingForm = wizardState.form.id ? getFormById(wizardState.form.id) : null;
+        if (existingForm && wizardState.form.id) {
           // Update existing form instead of creating duplicate
           console.log('Form already exists, updating instead of creating duplicate');
           updateForm(wizardState.form.id, {
@@ -462,7 +464,7 @@ export function useFormWizard(formId?: string) {
         } else {
           // Add new form
           console.log('Adding new form');
-          addForm(draftForm);
+          addForm(draftForm as Form);
         }
       }
       
@@ -506,8 +508,11 @@ export function useFormWizard(formId?: string) {
 
   const publishForm = useCallback(async () => {
     try {
+      setIsPublishing(true);
+      
       // Validate form before publishing
       if (!validateForm()) {
+        setIsPublishing(false);
         return false;
       }
 
@@ -525,7 +530,7 @@ export function useFormWizard(formId?: string) {
         title: wizardState.form.title 
       });
       
-      if (wizardState.isEditing) {
+      if (wizardState.isEditing && wizardState.form.id) {
         // Update existing form
         console.log('Updating existing form');
         updateForm(wizardState.form.id, {
@@ -534,8 +539,8 @@ export function useFormWizard(formId?: string) {
         });
       } else {
         // Check if form already exists to prevent duplicates
-        const existingForm = getFormById(wizardState.form.id);
-        if (existingForm) {
+        const existingForm = wizardState.form.id ? getFormById(wizardState.form.id) : null;
+        if (existingForm && wizardState.form.id) {
           // Update existing form instead of creating duplicate
           console.log('Form already exists, updating instead of creating duplicate');
           updateForm(wizardState.form.id, {
@@ -545,7 +550,7 @@ export function useFormWizard(formId?: string) {
         } else {
           // Add new form
           console.log('Adding new form');
-          addForm(publishedForm);
+          addForm(publishedForm as Form);
         }
       }
 
@@ -584,6 +589,8 @@ export function useFormWizard(formId?: string) {
         variant: "destructive",
       });
       return false;
+    } finally {
+      setIsPublishing(false);
     }
   }, [wizardState.form, wizardState.isEditing]);
 
@@ -665,6 +672,7 @@ export function useFormWizard(formId?: string) {
     saveDraft,
     publishForm,
     validateForm,
+    isPublishing,
     
     // localStorage functions
     hasDraft: hasFormWizardDraft,
@@ -697,6 +705,11 @@ function getDefaultDataType(questionType: QuestionType) {
       return 'INTEGER';
     case 'LIKERT_SCALE':
       return 'JSON';
+    case 'IMAGE_UPLOAD':
+    case 'VIDEO_UPLOAD':
+    case 'AUDIO_UPLOAD':
+    case 'FILE_UPLOAD':
+      return 'JSON'; // Store file metadata as JSON
     default:
       return 'TEXT';
   }
@@ -785,6 +798,49 @@ function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionTyp
         max: 100,
         step: 1,
         showValue: true,
+      };
+
+    case 'IMAGE_UPLOAD':
+      return {
+        ...baseQuestion,
+        maxFiles: 10,
+        maxFileSize: 5 * 1024 * 1024, // 5MB
+        allowedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        allowMultiple: true,
+        previewSize: 'medium',
+        compressionQuality: 80,
+      };
+
+    case 'VIDEO_UPLOAD':
+      return {
+        ...baseQuestion,
+        maxFiles: 4,
+        maxFileSize: 100 * 1024 * 1024, // 100MB
+        allowedFormats: ['mp4', 'avi', 'mov', 'wmv', 'webm'],
+        allowMultiple: true,
+        quality: 'medium',
+        autoCompress: true,
+      };
+
+    case 'AUDIO_UPLOAD':
+      return {
+        ...baseQuestion,
+        maxFiles: 3,
+        maxFileSize: 50 * 1024 * 1024, // 50MB
+        allowedFormats: ['mp3', 'wav', 'aac', 'ogg', 'm4a'],
+        allowMultiple: true,
+        quality: 'medium',
+        autoCompress: true,
+      };
+
+    case 'FILE_UPLOAD':
+      return {
+        ...baseQuestion,
+        maxFiles: 5,
+        maxFileSize: 25 * 1024 * 1024, // 25MB
+        allowedFormats: ['pdf', 'doc', 'docx', 'txt', 'rtf'],
+        allowMultiple: true,
+        showPreview: true,
       };
     
     default:

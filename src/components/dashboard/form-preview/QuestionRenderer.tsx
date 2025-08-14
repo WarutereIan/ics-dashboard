@@ -8,7 +8,8 @@ import {
   DropdownQuestionRenderer,
   LikertScaleQuestionRenderer,
   DateQuestionRenderer,
-  SliderQuestionRenderer
+  SliderQuestionRenderer,
+  MediaUploadQuestionRenderer
 } from './question-renderers';
 
 interface QuestionRendererProps {
@@ -113,6 +114,19 @@ export function QuestionRenderer({
           onChange={onChange}
           error={error}
           isPreviewMode={isPreviewMode}
+        />
+      );
+
+    case 'IMAGE_UPLOAD':
+    case 'VIDEO_UPLOAD':
+    case 'AUDIO_UPLOAD':
+    case 'FILE_UPLOAD':
+      return (
+        <MediaUploadQuestionRenderer
+          question={question}
+          value={value}
+          onChange={onChange}
+          disabled={isPreviewMode}
         />
       );
 

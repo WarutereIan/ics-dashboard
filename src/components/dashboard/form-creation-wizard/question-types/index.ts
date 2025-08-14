@@ -4,6 +4,7 @@ export { SingleChoiceQuestionEditor } from './SingleChoiceQuestionEditor';
 export { MultipleChoiceQuestionEditor } from './MultipleChoiceQuestionEditor';
 export { NumberQuestionEditor } from './NumberQuestionEditor';
 export { DateQuestionEditor } from './DateQuestionEditor';
+export { MediaUploadQuestionEditor } from './MediaUploadQuestionEditor';
 
 // Question type mapping for dynamic rendering
 import { QuestionType } from '../types';
@@ -21,6 +22,10 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   LIKERT_SCALE: 'Likert Scale',
   YES_NO: 'Yes/No',
   SLIDER: 'Slider',
+  IMAGE_UPLOAD: 'Image Upload',
+  VIDEO_UPLOAD: 'Video Upload',
+  AUDIO_UPLOAD: 'Audio Upload',
+  FILE_UPLOAD: 'File Upload',
 };
 
 export const QUESTION_TYPE_DESCRIPTIONS: Record<QuestionType, string> = {
@@ -36,6 +41,10 @@ export const QUESTION_TYPE_DESCRIPTIONS: Record<QuestionType, string> = {
   LIKERT_SCALE: 'Agreement scale (Strongly Disagree to Strongly Agree)',
   YES_NO: 'Simple yes/no question',
   SLIDER: 'Range slider for numeric values',
+  IMAGE_UPLOAD: 'Upload images with size and format restrictions',
+  VIDEO_UPLOAD: 'Upload videos with duration and quality settings',
+  AUDIO_UPLOAD: 'Upload audio files with duration and quality settings',
+  FILE_UPLOAD: 'Upload documents and files with format restrictions',
 };
 
 export const QUESTION_TYPE_CATEGORIES = {
@@ -43,5 +52,6 @@ export const QUESTION_TYPE_CATEGORIES = {
   'Numeric Input': ['NUMBER', 'SLIDER'],
   'Date & Time': ['DATE', 'DATETIME'],
   'Choice Questions': ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'DROPDOWN', 'YES_NO'],
+  'Media Upload': ['IMAGE_UPLOAD', 'VIDEO_UPLOAD', 'AUDIO_UPLOAD', 'FILE_UPLOAD'],
   'Advanced': ['LIKERT_SCALE'],
 } as const;

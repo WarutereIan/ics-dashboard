@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, ArrowRight, Save, Eye, X, Download, Share2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Eye, X, Download, Share2, Loader2, CheckCircle } from 'lucide-react';
 import { useFormWizard } from './hooks/useFormWizard';
 import { ActivityKPIMapping } from './types';
 import { BasicInfoStep } from './BasicInfoStep';
@@ -43,6 +43,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
     updateSettings,
     saveDraft,
     publishForm,
+    isPublishing,
     hasDraft,
     clearDraft,
     navigate,
@@ -348,10 +349,24 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
               <Button 
                 onClick={publishForm}
                 className="flex items-center gap-2"
-                disabled={!validateCurrentStep()}
+                disabled={!validateCurrentStep() || isPublishing}
               >
-                <Save className="w-4 h-4" />
-                {wizardState.isEditing ? 'Update Form' : 'Publish Form'}
+                {isPublishing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Publishing...
+                  </>
+                ) : wizardState.form.status === 'PUBLISHED' ? (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    {wizardState.isEditing ? 'Update Form' : 'Published'}
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    {wizardState.isEditing ? 'Update Form' : 'Publish Form'}
+                  </>
+                )}
               </Button>
             ) : (
               <Button

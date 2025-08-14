@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { 
   ArrowLeft,
   Download,
@@ -20,11 +20,176 @@ import {
   Eye,
   Edit,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Loader2,
+  File,
+  Image,
+  Video,
+  Music,
+  Paperclip
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
-import { Form, FormResponse } from './form-creation-wizard/types';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Form, FormResponse, FormQuestion, MediaAttachment } from './form-creation-wizard/types';
+import { useForm } from '@/contexts/FormContext';
+
+// ResponseCell component for displaying different types of response data
+interface ResponseCellProps {
+  question: FormQuestion;
+  value: any;
+  attachments: MediaAttachment[];
+  isEditable?: boolean;
+  onValueChange?: (value: any) => void;
+}
+
+function ResponseCell({ question, value, attachments, isEditable = false, onValueChange }: ResponseCellProps) {
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getMediaIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return '🖼️';
+    if (mimeType.startsWith('video/')) return '🎥';
+    if (mimeType.startsWith('audio/')) return '🎵';
+    return '📎';
+  };
+
+  // Handle different question types
+  switch (question.type) {
+    case 'SHORT_TEXT':
+      if (isEditable) {
+        return (
+          <Input
+            value={value || ''}
+            onChange={(e) => onValueChange?.(e.target.value)}
+            className="text-xs h-6 px-1"
+            placeholder="Enter value..."
+          />
+        );
+      }
+      return (
+        <div className="text-xs max-w-[200px] truncate leading-tight" title={value}>
+          {value || '-'}
+        </div>
+      );
+
+    case 'NUMBER':
+      if (isEditable) {
+        return (
+          <Input
+            type="number"
+            value={value || ''}
+            onChange={(e) => onValueChange?.(e.target.value === '' ? null : Number(e.target.value))}
+            className="text-xs h-6 px-1 font-mono"
+            placeholder="Enter number..."
+          />
+        );
+      }
+      return (
+        <div className="text-xs font-mono leading-tight">
+          {value !== undefined && value !== null ? value : '-'}
+        </div>
+      );
+
+    case 'SINGLE_CHOICE':
+    case 'DROPDOWN':
+      if (question.options) {
+        const selectedOption = question.options.find(opt => opt.value === value);
+        return (
+          <div className="text-xs leading-tight">
+            {selectedOption ? selectedOption.label : value || '-'}
+          </div>
+        );
+      }
+      return <div className="text-xs leading-tight">{value || '-'}</div>;
+
+    case 'MULTIPLE_CHOICE':
+      if (Array.isArray(value) && question.options) {
+        const selectedLabels = value
+          .map(v => question.options?.find(opt => opt.value === v)?.label || v)
+          .join(', ');
+        return (
+          <div className="text-xs max-w-[200px] truncate leading-tight" title={selectedLabels}>
+            {selectedLabels || '-'}
+          </div>
+        );
+      }
+      return <div className="text-xs leading-tight">{Array.isArray(value) ? value.join(', ') : value || '-'}</div>;
+
+    case 'DATE':
+    case 'DATETIME':
+      return (
+        <div className="text-xs leading-tight">
+          {value ? new Date(value).toLocaleDateString() : '-'}
+        </div>
+      );
+
+    case 'SLIDER':
+      return (
+        <div className="text-xs font-mono leading-tight">
+          {value !== undefined && value !== null ? value : '-'}
+        </div>
+      );
+
+    case 'LIKERT_SCALE':
+      return (
+        <div className="text-xs leading-tight">
+          {value ? `${value.value} (${value.label})` : '-'}
+        </div>
+      );
+
+    case 'IMAGE_UPLOAD':
+    case 'VIDEO_UPLOAD':
+    case 'AUDIO_UPLOAD':
+    case 'FILE_UPLOAD':
+      if (attachments.length > 0) {
+        return (
+          <div className="space-y-1">
+            {attachments.map((attachment, index) => (
+              <div key={attachment.id} className="flex items-center gap-1 text-xs">
+                <span>{getMediaIcon(attachment.mimeType)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="truncate leading-tight" title={attachment.fileName}>
+                    {attachment.fileName}
+                  </div>
+                  <div className="text-gray-500 text-[10px] leading-tight">
+                    {formatFileSize(attachment.fileSize)}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-4 w-4 p-0"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = attachment.url;
+                    link.download = attachment.fileName;
+                    link.click();
+                  }}
+                  title="Download file"
+                >
+                  <Download className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      return <div className="text-xs text-gray-400 leading-tight">No files</div>;
+
+    default:
+      return (
+        <div className="text-xs max-w-[200px] truncate leading-tight" title={String(value)}>
+          {value !== undefined && value !== null ? String(value) : '-'}
+        </div>
+      );
+  }
+}
 
 // Mock data - in a real app, this would come from your API
 const mockForm: Form = {
@@ -145,12 +310,41 @@ const mockResponses: FormResponse[] = [
 export function FormResponseViewer() {
   const { formId, projectId } = useParams();
   const navigate = useNavigate();
+  const { getFormResponses, deleteFormResponse, getProjectForms, addFormResponseToStorage } = useForm();
   
-  const [form] = useState<Form>(mockForm);
-  const [responses, setResponses] = useState<FormResponse[]>(mockResponses);
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+  
+  const [form, setForm] = useState<Form | null>(null);
+  const [responses, setResponses] = useState<FormResponse[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; questionId: string } | null>(null);
+  const [manualData, setManualData] = useState<Record<number, Record<string, any>>>({});
+
+  // Load form and responses
+  useEffect(() => {
+    if (formId && projectId) {
+      // Load form data
+      const projectForms = getProjectForms(projectId);
+      const foundForm = projectForms.find(f => f.id === formId);
+      if (foundForm) {
+        setForm(foundForm);
+      }
+
+      // Load responses
+      const formResponses = getFormResponses(formId);
+      setResponses(formResponses);
+    }
+  }, [formId, projectId, getProjectForms, getFormResponses]);
 
   // Filter responses
   const filteredResponses = responses.filter((response) => {
@@ -170,6 +364,58 @@ export function FormResponseViewer() {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredResponses.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedResponses = filteredResponses.slice(startIndex, endIndex);
+
+  // Generate table rows including blank rows for manual entry
+  const generateTableRows = () => {
+    const rows = [];
+    
+    // Add existing responses
+    paginatedResponses.forEach((response, index) => {
+      rows.push({
+        rowIndex: startIndex + index,
+        responseId: response.id,
+        isExisting: true,
+        data: response.data,
+        attachments: response.attachments || [],
+        respondentEmail: response.respondentEmail,
+        isComplete: response.isComplete,
+        submittedAt: response.submittedAt,
+        startedAt: response.startedAt
+      });
+    });
+    
+    // Add blank rows for manual entry
+    const blankRowsNeeded = itemsPerPage - paginatedResponses.length;
+    for (let i = 0; i < blankRowsNeeded; i++) {
+      const rowIndex = startIndex + paginatedResponses.length + i;
+      rows.push({
+        rowIndex,
+        responseId: null,
+        isExisting: false,
+        data: manualData[rowIndex] || {},
+        attachments: [],
+        respondentEmail: null,
+        isComplete: false,
+        submittedAt: null,
+        startedAt: null
+      });
+    }
+    
+    return rows;
+  };
+
+  const tableRows = generateTableRows();
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, dateFilter]);
+
   // Calculate analytics
   const analytics = {
     totalResponses: responses.length,
@@ -185,7 +431,11 @@ export function FormResponseViewer() {
 
   const handleDeleteResponse = async (responseId: string) => {
     try {
+      if (!formId) return;
+      
+      deleteFormResponse(formId, responseId);
       setResponses(prev => prev.filter(r => r.id !== responseId));
+      
       toast({
         title: "Response Deleted",
         description: "The response has been deleted successfully.",
@@ -199,9 +449,65 @@ export function FormResponseViewer() {
     }
   };
 
+  const handleManualDataChange = (rowIndex: number, questionId: string, value: any) => {
+    setManualData(prev => ({
+      ...prev,
+      [rowIndex]: {
+        ...prev[rowIndex],
+        [questionId]: value
+      }
+    }));
+  };
+
+  const handleSaveManualData = (rowIndex: number) => {
+    if (!formId || !form) return;
+    
+    const rowData = manualData[rowIndex];
+    if (!rowData || Object.keys(rowData).length === 0) {
+      toast({
+        title: "No Data to Save",
+        description: "Please enter some data before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create a new form response from manual data
+    const newResponse: FormResponse = {
+      id: `manual-${Date.now()}-${rowIndex}`,
+      formId: formId,
+      formVersion: form.version || 1,
+      respondentEmail: undefined,
+      startedAt: new Date(),
+      submittedAt: new Date(),
+      isComplete: true,
+      data: rowData,
+      attachments: [],
+      ipAddress: 'manual-entry',
+      userAgent: 'manual-entry'
+    };
+
+    // Add the response to storage
+    addFormResponseToStorage(newResponse);
+    
+    // Clear the manual data for this row
+    setManualData(prev => {
+      const newData = { ...prev };
+      delete newData[rowIndex];
+      return newData;
+    });
+
+    toast({
+      title: "Data Saved",
+      description: "Manual data has been saved as a new response.",
+    });
+  };
+
   const handleExportData = () => {
+    if (!form) return;
+    
     // Create CSV content
-    const headers = ['Response ID', 'Email', 'Status', 'Submitted At'];
+    const headers = ['Response ID', 'Email', 'Status', 'Submitted At', 'Completion Time (minutes)'];
     
     // Add question headers
     form.sections.forEach(section => {
@@ -213,18 +519,43 @@ export function FormResponseViewer() {
     const csvContent = [
       headers.join(','),
       ...filteredResponses.map(response => {
+        const completionTime = response.submittedAt && response.startedAt
+          ? Math.round((response.submittedAt.getTime() - response.startedAt.getTime()) / (1000 * 60))
+          : '';
+
         const row = [
           response.id,
           response.respondentEmail || 'Anonymous',
           response.isComplete ? 'Complete' : 'Incomplete',
-          response.submittedAt?.toISOString() || 'Not submitted'
+          response.submittedAt?.toISOString() || 'Not submitted',
+          completionTime
         ];
         
         // Add question responses
         form.sections.forEach(section => {
           section.questions.forEach(question => {
             const value = response.data[question.id];
-            row.push(value ? String(value) : '');
+            const attachments = response.attachments?.filter(att => att.questionId === question.id) || [];
+            
+            let displayValue = '';
+            if (value !== undefined && value !== null) {
+              if (Array.isArray(value)) {
+                displayValue = value.join('; ');
+              } else if (question.type === 'SINGLE_CHOICE' || question.type === 'DROPDOWN') {
+                const option = question.options?.find(opt => opt.value === value);
+                displayValue = option ? option.label : String(value);
+              } else {
+                displayValue = String(value);
+              }
+            }
+            
+            // Add attachment info for media uploads
+            if (attachments.length > 0) {
+              const attachmentInfo = attachments.map(att => `${att.fileName} (${formatFileSize(att.fileSize)})`).join('; ');
+              displayValue = displayValue ? `${displayValue} | Files: ${attachmentInfo}` : `Files: ${attachmentInfo}`;
+            }
+            
+            row.push(displayValue);
           });
         });
         
@@ -248,6 +579,7 @@ export function FormResponseViewer() {
   };
 
   const QuestionAnalytics = ({ questionId }: { questionId: string }) => {
+    if (!form) return null;
     const question = form.sections
       .flatMap(s => s.questions)
       .find(q => q.id === questionId);
@@ -334,6 +666,17 @@ export function FormResponseViewer() {
     );
   };
 
+  if (!form) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading form data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -411,16 +754,12 @@ export function FormResponseViewer() {
         </Card>
       </div>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="responses" className="w-full">
-        <TabsList>
-          <TabsTrigger value="responses">Individual Responses</TabsTrigger>
-          <TabsTrigger value="analytics">Question Analytics</TabsTrigger>
-          <TabsTrigger value="summary">Summary Report</TabsTrigger>
-        </TabsList>
-
-        {/* Responses Tab */}
-        <TabsContent value="responses" className="space-y-4">
+      {/* Individual Responses Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Individual Responses ({filteredResponses.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           {/* Filters */}
           <Card>
             <CardContent className="pt-6">
@@ -468,7 +807,7 @@ export function FormResponseViewer() {
           {/* Responses Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Responses ({filteredResponses.length})</CardTitle>
+              
             </CardHeader>
             <CardContent>
               {filteredResponses.length === 0 ? (
@@ -480,153 +819,270 @@ export function FormResponseViewer() {
                   </p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Respondent</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Submitted</TableHead>
-                      <TableHead>Completion Time</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredResponses.map((response) => {
-                      const completionTime = response.submittedAt && response.startedAt
-                        ? Math.round((response.submittedAt.getTime() - response.startedAt.getTime()) / (1000 * 60))
-                        : null;
+                <div className="overflow-x-auto">
+                  <Table className="border-collapse">
+                    <TableHeader>
+                      <TableRow className="border-b border-gray-300">
+                        {/* Row ID column - stays on the left */}
+                        <TableHead className="sticky left-0 bg-white z-10 border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
+                          Row ID
+                        </TableHead>
+                        
+                        {/* Question columns */}
+                        {form?.sections.flatMap(section => 
+                          section.questions.map(question => (
+                            <TableHead key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
+                              <div>
+                                <div className={`${question.isRequired ? 'font-bold' : 'font-medium'}`}>
+                                  {question.title}
+                                  {question.isRequired && <span className="text-red-500 ml-1">*</span>}
+                                </div>
+                                <div className="text-gray-500">{question.type.replace('_', ' ')}</div>
+                              </div>
+                            </TableHead>
+                          ))
+                        )}
+                        
+                        {/* Metadata columns - moved to the right */}
+                        <TableHead className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
+                          Status
+                        </TableHead>
+                        <TableHead className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
+                          Submitted
+                        </TableHead>
+                        <TableHead className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
+                          Completion Time
+                        </TableHead>
+                        <TableHead className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tableRows.map((row) => {
+                        const completionTime = row.submittedAt && row.startedAt
+                          ? Math.round(((row.submittedAt as Date).getTime() - (row.startedAt as Date).getTime()) / (1000 * 60))
+                          : null;
 
-                      return (
-                        <TableRow key={response.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">
-                                {response.respondentEmail || 'Anonymous'}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                ID: {response.id}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={response.isComplete ? 'default' : 'secondary'}>
-                              {response.isComplete ? 'Complete' : 'Incomplete'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4 text-gray-400" />
-                              {response.submittedAt
-                                ? response.submittedAt.toLocaleDateString()
-                                : 'Not submitted'
-                              }
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {completionTime ? `${completionTime}m` : 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => handleDeleteResponse(response.id)}
-                                  className="text-red-600"
+                        return (
+                          <TableRow key={row.rowIndex} className={`border-b border-gray-300 ${!row.isExisting ? 'bg-gray-50' : ''}`}>
+                            {/* Row ID cell - stays on the left */}
+                            <TableCell className="sticky left-0 bg-white z-10 border border-gray-300 px-2 py-2">
+                              <div className="text-xs font-medium">
+                                {row.rowIndex + 1}
+                              </div>
+                            </TableCell>
+                            
+                            {/* Question response cells */}
+                            {form?.sections.flatMap(section => 
+                              section.questions.map(question => {
+                                const responseValue = row.data[question.id];
+                                const attachments = row.attachments?.filter((att: any) => att.questionId === question.id) || [];
+                                
+                                return (
+                                  <TableCell key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2">
+                                    <ResponseCell 
+                                      question={question}
+                                      value={responseValue}
+                                      attachments={attachments}
+                                      isEditable={!row.isExisting}
+                                      onValueChange={(value) => handleManualDataChange(row.rowIndex, question.id, value)}
+                                    />
+                                  </TableCell>
+                                );
+                              })
+                            )}
+                            
+                            {/* Metadata cells - moved to the right */}
+                            <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
+                              <Badge variant={row.isComplete ? 'default' : 'secondary'} className="text-xs">
+                                {row.isExisting ? (row.isComplete ? 'Complete' : 'Incomplete') : 'Draft'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
+                              <div className="text-xs">
+                                {row.isExisting && row.submittedAt
+                                  ? (row.submittedAt as Date).toLocaleDateString()
+                                  : row.isExisting ? 'Not submitted' : 'Not saved'
+                                }
+                              </div>
+                            </TableCell>
+                            <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
+                              <div className="text-xs">
+                                {row.isExisting && completionTime ? `${completionTime}m` : 'N/A'}
+                              </div>
+                            </TableCell>
+                            <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
+                              {row.isExisting ? (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-6 w-6 p-0">
+                                      <MoreVertical className="h-3 w-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDeleteResponse(row.responseId!)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleSaveManualData(row.rowIndex)}
+                                  className="h-6 px-2 text-xs"
+                                  disabled={!manualData[row.rowIndex] || Object.keys(manualData[row.rowIndex] || {}).length === 0}
                                 >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                                  Save
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+              
+              {/* Pagination Controls */}
+              {filteredResponses.length > 0 && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-gray-600">
+                      Showing {startIndex + 1} to {Math.min(endIndex, filteredResponses.length)} of {filteredResponses.length} responses
+                    </div>
+                    <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10 per page</SelectItem>
+                        <SelectItem value="25">25 per page</SelectItem>
+                        <SelectItem value="50">50 per page</SelectItem>
+                        <SelectItem value="100">100 per page</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <PaginationItem key={pageNum}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(pageNum)}
+                              isActive={currentPage === pageNum}
+                              className="cursor-pointer"
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      })}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </CardContent>
+      </Card>
 
-        {/* Analytics Tab */}
-        <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Question Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {form.sections.flatMap(section => 
-                  section.questions.map(question => (
-                    <QuestionAnalytics key={question.id} questionId={question.id} />
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Question Analytics Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Question Analytics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {form.sections.flatMap(section => 
+              section.questions.map(question => (
+                <QuestionAnalytics key={question.id} questionId={question.id} />
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Summary Tab */}
-        <TabsContent value="summary" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Summary Report</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h4 className="font-medium mb-2">Form Performance</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <p className="text-2xl font-bold text-blue-600">
-                        {((analytics.completeResponses / analytics.totalResponses) * 100).toFixed(1)}%
-                      </p>
-                      <p className="text-sm text-blue-700">Completion Rate</p>
-                    </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <p className="text-2xl font-bold text-green-600">
-                        {analytics.averageCompletionTime.toFixed(1)}
-                      </p>
-                      <p className="text-sm text-green-700">Avg. Minutes</p>
-                    </div>
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <p className="text-2xl font-bold text-purple-600">
-                        {form.sections.reduce((total, section) => total + section.questions.length, 0)}
-                      </p>
-                      <p className="text-sm text-purple-700">Total Questions</p>
-                    </div>
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <p className="text-2xl font-bold text-orange-600">
-                        {responses.filter(r => r.startedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length}
-                      </p>
-                      <p className="text-sm text-orange-700">This Week</p>
-                    </div>
-                  </div>
+      {/* Summary Report Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Summary Report</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <div>
+              <h4 className="font-medium mb-2">Form Performance</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {((analytics.completeResponses / analytics.totalResponses) * 100).toFixed(1)}%
+                  </p>
+                  <p className="text-sm text-blue-700">Completion Rate</p>
                 </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Activity Integration</h4>
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-800">
-                      Response data is automatically synchronized with linked project activities and KPI calculations.
-                      Real-time updates are reflected in project dashboards and progress tracking.
-                    </p>
-                  </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <p className="text-2xl font-bold text-green-600">
+                    {analytics.averageCompletionTime.toFixed(1)}
+                  </p>
+                  <p className="text-sm text-green-700">Avg. Minutes</p>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <p className="text-2xl font-bold text-purple-600">
+                    {form.sections.reduce((total, section) => total + section.questions.length, 0)}
+                  </p>
+                  <p className="text-sm text-purple-700">Total Questions</p>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <p className="text-2xl font-bold text-orange-600">
+                    {responses.filter(r => r.startedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length}
+                  </p>
+                  <p className="text-sm text-orange-700">This Week</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+            </div>
+
+            <div>
+              <h4 className="font-medium mb-2">Activity Integration</h4>
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-sm text-green-800">
+                  Response data is automatically synchronized with linked project activities and KPI calculations.
+                  Real-time updates are reflected in project dashboards and progress tracking.
+                </p>
+              </div>
+            </div>
+          </div>
+                 </CardContent>
+       </Card>
+     </div>
+   );
+ }

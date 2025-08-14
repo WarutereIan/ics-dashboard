@@ -26,6 +26,7 @@ import {
   FolderOpen
 } from 'lucide-react';
 import { useDashboard } from '@/contexts/DashboardContext';
+import { useForm } from '@/contexts/FormContext';
 import { toast } from '@/hooks/use-toast';
 import { Form } from './form-creation-wizard/types';
 import { 
@@ -34,7 +35,6 @@ import {
   clearFormManagementFilters,
   getDefaultFormManagementFilters,
   FormManagementFilters,
-  getFormsByProject,
   addForm,
   updateForm,
   deleteForm as deleteFormFromStorage,
@@ -45,11 +45,35 @@ export function FormManagement() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { user } = useDashboard();
+  const { getProjectForms } = useForm();
   
-  // Load forms from localStorage for the current project
+  // Load forms from context for the current project
   const [forms, setForms] = useState<Form[]>(() => {
     if (projectId) {
-      return getFormsByProject(projectId);
+      const contextForms = getProjectForms(projectId);
+      // If no forms found in context, try loading from legacy storage
+      if (contextForms.length === 0) {
+        try {
+          const legacyForms = localStorage.getItem('ics_forms_data');
+          if (legacyForms) {
+            const parsedForms = JSON.parse(legacyForms);
+            const projectForms = parsedForms.filter((form: any) => form.projectId === projectId);
+            return projectForms.map((form: any) => ({
+              ...form,
+              createdAt: form.createdAt ? new Date(form.createdAt) : new Date(),
+              updatedAt: form.updatedAt ? new Date(form.updatedAt) : new Date(),
+              lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
+              settings: {
+                ...form.settings,
+                expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
+              },
+            }));
+          }
+        } catch (error) {
+          console.error('Error loading legacy forms:', error);
+        }
+      }
+      return contextForms;
     }
     return [];
   });
@@ -72,9 +96,36 @@ export function FormManagement() {
   useEffect(() => {
     const refreshForms = () => {
       if (projectId) {
-        const projectForms = getFormsByProject(projectId);
-        console.log('Refreshing forms for project:', projectId, 'Found forms:', projectForms.map(f => ({ id: f.id, title: f.title })));
-        setForms(projectForms);
+        const contextForms = getProjectForms(projectId);
+        console.log('Refreshing forms for project:', projectId, 'Found forms in context:', contextForms.map((f: Form) => ({ id: f.id, title: f.title })));
+        
+        // If no forms found in context, try loading from legacy storage
+        if (contextForms.length === 0) {
+          try {
+            const legacyForms = localStorage.getItem('ics_forms_data');
+            if (legacyForms) {
+              const parsedForms = JSON.parse(legacyForms);
+              const projectForms = parsedForms.filter((form: any) => form.projectId === projectId);
+              const processedForms = projectForms.map((form: any) => ({
+                ...form,
+                createdAt: form.createdAt ? new Date(form.createdAt) : new Date(),
+                updatedAt: form.updatedAt ? new Date(form.updatedAt) : new Date(),
+                lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
+                settings: {
+                  ...form.settings,
+                  expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
+                },
+              }));
+              console.log('Found forms in legacy storage:', processedForms.map((f: Form) => ({ id: f.id, title: f.title })));
+              setForms(processedForms);
+              return;
+            }
+          } catch (error) {
+            console.error('Error loading legacy forms:', error);
+          }
+        }
+        
+        setForms(contextForms);
       } else {
         setForms([]);
       }
@@ -93,7 +144,7 @@ export function FormManagement() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, [projectId]);
+  }, [projectId, getProjectForms]);
 
   // Initialize with sample data if no forms exist (for demonstration)
   useEffect(() => {

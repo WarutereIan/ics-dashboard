@@ -29,7 +29,11 @@ export type QuestionType =
   | 'DROPDOWN'            // Select dropdown
   | 'LIKERT_SCALE'        // Likert scale (Strongly Disagree to Strongly Agree)
   | 'YES_NO'              // Simple yes/no
-  | 'SLIDER';             // Range slider
+  | 'SLIDER'              // Range slider
+  | 'IMAGE_UPLOAD'        // Image upload
+  | 'VIDEO_UPLOAD'        // Video upload
+  | 'AUDIO_UPLOAD'        // Audio upload
+  | 'FILE_UPLOAD';        // File upload
 
 // Validation rules for form fields
 export interface ValidationRule {
@@ -144,7 +148,53 @@ export interface SliderQuestion extends BaseQuestion {
   suffix?: string;
 }
 
+export interface ImageUploadQuestion extends BaseQuestion {
+  type: 'IMAGE_UPLOAD';
+  maxFiles?: number;
+  maxFileSize?: number; // in bytes
+  allowedFormats?: string[]; // e.g., ['jpg', 'jpeg', 'png', 'gif']
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+  allowMultiple?: boolean;
+  previewSize?: 'small' | 'medium' | 'large';
+  compressionQuality?: number; // 0-100
+}
 
+export interface VideoUploadQuestion extends BaseQuestion {
+  type: 'VIDEO_UPLOAD';
+  maxFiles?: number;
+  maxFileSize?: number; // in bytes
+  allowedFormats?: string[]; // e.g., ['mp4', 'avi', 'mov', 'wmv']
+  maxDuration?: number; // in seconds
+  minDuration?: number; // in seconds
+  allowMultiple?: boolean;
+  quality?: 'low' | 'medium' | 'high';
+  autoCompress?: boolean;
+}
+
+export interface FileUploadQuestion extends BaseQuestion {
+  type: 'FILE_UPLOAD';
+  maxFiles?: number;
+  maxFileSize?: number; // in bytes
+  allowedFormats?: string[]; // e.g., ['pdf', 'doc', 'docx', 'txt']
+  allowMultiple?: boolean;
+  showPreview?: boolean;
+  maxFileNameLength?: number;
+}
+
+export interface AudioUploadQuestion extends BaseQuestion {
+  type: 'AUDIO_UPLOAD';
+  maxFiles?: number;
+  maxFileSize?: number; // in bytes
+  allowedFormats?: string[]; // e.g., ['mp3', 'wav', 'aac', 'ogg']
+  maxDuration?: number; // in seconds
+  minDuration?: number; // in seconds
+  allowMultiple?: boolean;
+  quality?: 'low' | 'medium' | 'high';
+  autoCompress?: boolean;
+}
 
 // Union type for all question types
 export type FormQuestion = 
@@ -155,7 +205,11 @@ export type FormQuestion =
   | DropdownQuestion
   | LikertScaleQuestion
   | DateQuestion
-  | SliderQuestion;
+  | SliderQuestion
+  | ImageUploadQuestion
+  | VideoUploadQuestion
+  | FileUploadQuestion
+  | AudioUploadQuestion;
 
 // Form section for organizing questions
 export interface FormSection {

@@ -25,6 +25,7 @@ import {
   FormPreviewData
 } from '@/lib/formLocalStorageUtils';
 import { getFormById } from '@/lib/formLocalStorageUtils';
+import { useForm } from '@/contexts/FormContext';
 
 interface PublicFormFillerProps {
   isEmbedded?: boolean;
@@ -33,6 +34,7 @@ interface PublicFormFillerProps {
 export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) {
   const { formId } = useParams<{ formId: string }>();
   const navigate = useNavigate();
+  const { addFormResponseToStorage } = useForm();
   
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,9 +136,22 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     setIsSubmitting(true);
     
     try {
-      // In a real implementation, this would submit to your API
-      // For now, we'll simulate a successful submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Create the response object
+      const response = {
+        id: `response-${Date.now()}`,
+        formId: form.id,
+        formVersion: form.version || 1,
+        startedAt: new Date(),
+        submittedAt: new Date(),
+        isComplete: true,
+        data: responses,
+        ipAddress: 'Unknown', // In a real app, this would be captured from the request
+        userAgent: navigator.userAgent,
+        source: isEmbedded ? 'embed' : 'direct'
+      };
+
+      // Save the response using context
+      addFormResponseToStorage(response);
       
       // Clear draft data
       clearFormPreviewData(form.id);

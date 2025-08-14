@@ -7,5 +7,6 @@ export { DropdownQuestionRenderer } from './DropdownQuestionRenderer';
 export { LikertScaleQuestionRenderer } from './LikertScaleQuestionRenderer';
 export { DateQuestionRenderer } from './DateQuestionRenderer';
 export { SliderQuestionRenderer } from './SliderQuestionRenderer';
+export { MediaUploadQuestionRenderer } from './MediaUploadQuestionRenderer';
 
 export type { BaseQuestionRendererProps } from './BaseQuestionRenderer';
