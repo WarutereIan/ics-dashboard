@@ -326,7 +326,7 @@ export function FormResponseViewer() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; questionId: string } | null>(null);
   const [manualData, setManualData] = useState<Record<number, Record<string, any>>>({});
 

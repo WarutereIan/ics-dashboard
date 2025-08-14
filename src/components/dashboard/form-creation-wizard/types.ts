@@ -255,6 +255,17 @@ export interface Form {
   category?: string;
 }
 
+// Media attachment for file uploads
+export interface MediaAttachment {
+  id: string;
+  questionId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  url: string;
+  uploadedAt: Date;
+}
+
 // Form response data
 export interface FormResponse {
   id: string;
@@ -270,8 +281,8 @@ export interface FormResponse {
   source?: string; // How they accessed the form
   // The actual response data
   data: Record<string, any>; // Question ID -> response value
-
-
+  // Media attachments for file upload questions
+  attachments?: MediaAttachment[];
 }
 
 // Form analytics and reporting

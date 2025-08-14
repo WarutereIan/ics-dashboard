@@ -507,7 +507,11 @@ export function FormManagement() {
                   </TableHeader>
                   <TableBody>
                     {filteredForms.map((form) => (
-                      <TableRow key={form.id}>
+                      <TableRow 
+                        key={form.id} 
+                        className="cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => handleViewResponses(form.id)}
+                      >
                         <TableCell>
                           <div>
                             <p className="font-medium break-words">{form.title}</p>
@@ -545,41 +549,45 @@ export function FormManagement() {
                           {new Date(form.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
+                                                      <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewForm(form.id)}>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewForm(form.id); }}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 Preview Form
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditForm(form.id)}>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditForm(form.id); }}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Form
                               </DropdownMenuItem>
                               {form.responseCount > 0 && (
-                                <DropdownMenuItem onClick={() => handleViewResponses(form.id)}>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewResponses(form.id); }}>
                                   <BarChart3 className="mr-2 h-4 w-4" />
                                   View Responses ({form.responseCount})
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
                               {form.status === 'PUBLISHED' && (
-                                <DropdownMenuItem onClick={() => handleShareForm(form)}>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareForm(form); }}>
                                   <Share2 className="mr-2 h-4 w-4" />
                                   Share Link
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={() => handleDuplicateForm(form)}>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
                                 <Copy className="mr-2 h-4 w-4" />
                                 Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleDeleteForm(form.id)}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteForm(form.id); }}
                                 className="text-red-600"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -597,7 +605,11 @@ export function FormManagement() {
               {/* Mobile Card View */}
               <div className="lg:hidden space-y-4">
                 {filteredForms.map((form) => (
-                  <Card key={form.id} className="w-full">
+                  <Card 
+                    key={form.id} 
+                    className="w-full cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => handleViewResponses(form.id)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex flex-col space-y-3">
                         <div className="flex justify-between items-start">
@@ -607,39 +619,43 @@ export function FormManagement() {
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0 flex-shrink-0 ml-2">
+                              <Button 
+                                variant="ghost" 
+                                className="h-8 w-8 p-0 flex-shrink-0 ml-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewForm(form.id)}>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewForm(form.id); }}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 Preview Form
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditForm(form.id)}>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditForm(form.id); }}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Form
                               </DropdownMenuItem>
                               {form.responseCount > 0 && (
-                                <DropdownMenuItem onClick={() => handleViewResponses(form.id)}>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewResponses(form.id); }}>
                                   <BarChart3 className="mr-2 h-4 w-4" />
                                   View Responses ({form.responseCount})
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
                               {form.status === 'PUBLISHED' && (
-                                <DropdownMenuItem onClick={() => handleShareForm(form)}>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareForm(form); }}>
                                   <Share2 className="mr-2 h-4 w-4" />
                                   Share Link
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={() => handleDuplicateForm(form)}>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
                                 <Copy className="mr-2 h-4 w-4" />
                                 Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleDeleteForm(form.id)}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteForm(form.id); }}
                                 className="text-red-600"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
