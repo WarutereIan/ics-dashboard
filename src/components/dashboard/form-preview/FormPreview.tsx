@@ -7,14 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Send, Save, AlertCircle } from 'lucide-react';
 import { QuestionRenderer } from './QuestionRenderer';
 import { Form, FormQuestion, FormResponse } from '../form-creation-wizard/types';
-import { projectDataManager } from '../../../utils/projectDataManager';
+
 import { toast } from '@/hooks/use-toast';
 import { useForm } from '@/contexts/FormContext';
 import { 
   saveFormPreviewData, 
   loadFormPreviewData, 
   clearFormPreviewData,
-  FormPreviewData 
+  FormPreviewData,
+  getFormById
 } from '@/lib/formLocalStorageUtils';
 
 interface FormPreviewProps {
@@ -42,6 +43,7 @@ export function FormPreview({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Use form from context if available, otherwise fall back to provided form or URL params
   useEffect(() => {
@@ -50,27 +52,35 @@ export function FormPreview({
     } else if (providedForm) {
       setForm(providedForm);
     } else if (formId) {
-      // Fallback to sample form if no context or provided form
-      const sampleForm: Form = {
-        id: formId,
-        title: 'Sample Form',
-        description: 'This is a preview of your form as it will appear to respondents.',
-        projectId: projectId || '',
-        createdBy: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        status: 'PUBLISHED',
-        version: 1,
-        sections: [],
-        settings: {
-          requireAuthentication: false,
-          thankYouMessage: 'Thank you for your response!',
-          notificationEmails: [],
-        },
-        responseCount: 0,
-        tags: []
-      };
-      setForm(sampleForm);
+      setIsLoading(true);
+      // Load form from local storage using formId
+      const loadedForm = getFormById(formId);
+      if (loadedForm) {
+        setForm(loadedForm);
+      } else {
+        // Fallback to sample form if form not found
+        const sampleForm: Form = {
+          id: formId,
+          title: 'Sample Form',
+          description: 'This is a preview of your form as it will appear to respondents.',
+          projectId: projectId || '',
+          createdBy: 'admin',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          status: 'PUBLISHED',
+          version: 1,
+          sections: [],
+          settings: {
+            requireAuthentication: false,
+            thankYouMessage: 'Thank you for your response!',
+            notificationEmails: [],
+          },
+          responseCount: 0,
+          tags: []
+        };
+        setForm(sampleForm);
+      }
+      setIsLoading(false);
     }
   }, [currentForm, providedForm, formId, projectId]);
 
@@ -246,6 +256,24 @@ export function FormPreview({
       navigate(-1);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Form...</h3>
+              <p className="text-gray-600">
+                Please wait while we load your form.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!form) {
     return (

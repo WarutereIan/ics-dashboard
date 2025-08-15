@@ -185,6 +185,95 @@ export interface Report {
   uploadedBy: string;
   lastModified: string;
   lastModifiedBy: string;
+  // New fields for progressive authorization
+  projectId: string;
+  currentAuthLevel: 'branch-admin' | 'project-admin' | 'country-admin' | 'global-admin' | 'approved';
+  approvalWorkflow: ReportApprovalWorkflow;
+  isPendingReview: boolean;
+  currentReviewerId?: string;
+  nextReviewerId?: string;
+}
+
+export interface ReportApprovalWorkflow {
+  id: string;
+  reportId: string;
+  projectId: string;
+  createdAt: string;
+  createdBy: string;
+  currentStep: number;
+  totalSteps: number;
+  steps: ReportApprovalStep[];
+  status: 'pending' | 'in-progress' | 'approved' | 'rejected' | 'cancelled';
+  finalApprovalDate?: string;
+  finalApprovedBy?: string;
+}
+
+export interface ReportApprovalStep {
+  id: string;
+  stepNumber: number;
+  requiredRole: 'branch-admin' | 'project-admin' | 'country-admin' | 'global-admin';
+  assignedUserId?: string;
+  assignedUserName?: string;
+  status: 'pending' | 'in-review' | 'approved' | 'rejected' | 'skipped';
+  submittedAt?: string;
+  reviewedAt?: string;
+  comments: ReportComment[];
+  canSkip: boolean;
+  isCurrentStep: boolean;
+}
+
+export interface ReportComment {
+  id: string;
+  stepId: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  comment: string;
+  timestamp: string;
+  type: 'comment' | 'approval' | 'rejection' | 'request-changes';
+  attachments?: ReportAttachment[];
+}
+
+export interface ReportAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+  type: string;
+}
+
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: 'quarterly' | 'annual' | 'monthly' | 'adhoc';
+  projectId?: string; // If null, template is available for all projects
+  requiredAuthLevels: ('branch-admin' | 'project-admin' | 'country-admin' | 'global-admin')[];
+  templateFile?: string;
+  fields: ReportTemplateField[];
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface ReportTemplateField {
+  id: string;
+  name: string;
+  type: 'text' | 'number' | 'date' | 'select' | 'textarea';
+  required: boolean;
+  options?: string[]; // For select fields
+  defaultValue?: string;
+}
+
+export interface ReportNotification {
+  id: string;
+  userId: string;
+  reportId: string;
+  type: 'pending-review' | 'approved' | 'rejected' | 'comment-added' | 'workflow-completed';
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  actionUrl?: string;
 }
 
 export type VisualizationData =

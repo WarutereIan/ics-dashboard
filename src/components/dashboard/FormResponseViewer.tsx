@@ -821,7 +821,7 @@ export function FormResponseViewer() {
               ) : (
                 <div className="overflow-x-auto">
                   <Table className="border-collapse">
-                    <TableHeader>
+                  <TableHeader>
                       <TableRow className="border-b border-gray-300">
                         {/* Row ID column - stays on the left */}
                         <TableHead className="sticky left-0 bg-white z-10 border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
@@ -856,22 +856,22 @@ export function FormResponseViewer() {
                         <TableHead className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
                           Actions
                         </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                       {tableRows.map((row) => {
                         const completionTime = row.submittedAt && row.startedAt
                           ? Math.round(((row.submittedAt as Date).getTime() - (row.startedAt as Date).getTime()) / (1000 * 60))
-                          : null;
+                        : null;
 
-                        return (
+                      return (
                           <TableRow key={row.rowIndex} className={`border-b border-gray-300 ${!row.isExisting ? 'bg-gray-50' : ''}`}>
                             {/* Row ID cell - stays on the left */}
                             <TableCell className="sticky left-0 bg-white z-10 border border-gray-300 px-2 py-2">
                               <div className="text-xs font-medium">
                                 {row.rowIndex + 1}
-                              </div>
-                            </TableCell>
+                            </div>
+                          </TableCell>
                             
                             {/* Question response cells */}
                             {form?.sections.flatMap(section => 
@@ -897,39 +897,39 @@ export function FormResponseViewer() {
                             <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
                               <Badge variant={row.isComplete ? 'default' : 'secondary'} className="text-xs">
                                 {row.isExisting ? (row.isComplete ? 'Complete' : 'Incomplete') : 'Draft'}
-                              </Badge>
-                            </TableCell>
+                            </Badge>
+                          </TableCell>
                             <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
                               <div className="text-xs">
                                 {row.isExisting && row.submittedAt
                                   ? (row.submittedAt as Date).toLocaleDateString()
                                   : row.isExisting ? 'Not submitted' : 'Not saved'
-                                }
-                              </div>
-                            </TableCell>
+                              }
+                            </div>
+                          </TableCell>
                             <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
                               <div className="text-xs">
                                 {row.isExisting && completionTime ? `${completionTime}m` : 'N/A'}
                               </div>
-                            </TableCell>
+                          </TableCell>
                             <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
                               {row.isExisting ? (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" className="h-6 w-6 p-0">
                                       <MoreVertical className="h-3 w-3" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem 
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem 
                                       onClick={() => handleDeleteResponse(row.responseId!)}
-                                      className="text-red-600"
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                               ) : (
                                 <Button
                                   size="sm"
@@ -940,12 +940,12 @@ export function FormResponseViewer() {
                                   Save
                                 </Button>
                               )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
                 </div>
               )}
               
@@ -1019,70 +1019,70 @@ export function FormResponseViewer() {
       </Card>
 
       {/* Question Analytics Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Question Analytics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {form.sections.flatMap(section => 
-              section.questions.map(question => (
-                <QuestionAnalytics key={question.id} questionId={question.id} />
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Question Analytics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {form.sections.flatMap(section => 
+                  section.questions.map(question => (
+                    <QuestionAnalytics key={question.id} questionId={question.id} />
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
       {/* Summary Report Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Summary Report</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div>
-              <h4 className="font-medium mb-2">Form Performance</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">
-                    {((analytics.completeResponses / analytics.totalResponses) * 100).toFixed(1)}%
-                  </p>
-                  <p className="text-sm text-blue-700">Completion Rate</p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Summary Report</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-medium mb-2">Form Performance</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <p className="text-2xl font-bold text-blue-600">
+                        {((analytics.completeResponses / analytics.totalResponses) * 100).toFixed(1)}%
+                      </p>
+                      <p className="text-sm text-blue-700">Completion Rate</p>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <p className="text-2xl font-bold text-green-600">
+                        {analytics.averageCompletionTime.toFixed(1)}
+                      </p>
+                      <p className="text-sm text-green-700">Avg. Minutes</p>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <p className="text-2xl font-bold text-purple-600">
+                        {form.sections.reduce((total, section) => total + section.questions.length, 0)}
+                      </p>
+                      <p className="text-sm text-purple-700">Total Questions</p>
+                    </div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <p className="text-2xl font-bold text-orange-600">
+                        {responses.filter(r => r.startedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length}
+                      </p>
+                      <p className="text-sm text-orange-700">This Week</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">
-                    {analytics.averageCompletionTime.toFixed(1)}
-                  </p>
-                  <p className="text-sm text-green-700">Avg. Minutes</p>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600">
-                    {form.sections.reduce((total, section) => total + section.questions.length, 0)}
-                  </p>
-                  <p className="text-sm text-purple-700">Total Questions</p>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-600">
-                    {responses.filter(r => r.startedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length}
-                  </p>
-                  <p className="text-sm text-orange-700">This Week</p>
-                </div>
-              </div>
-            </div>
 
-            <div>
-              <h4 className="font-medium mb-2">Activity Integration</h4>
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-800">
-                  Response data is automatically synchronized with linked project activities and KPI calculations.
-                  Real-time updates are reflected in project dashboards and progress tracking.
-                </p>
+                <div>
+                  <h4 className="font-medium mb-2">Activity Integration</h4>
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-800">
+                      Response data is automatically synchronized with linked project activities and KPI calculations.
+                      Real-time updates are reflected in project dashboards and progress tracking.
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-                 </CardContent>
-       </Card>
-     </div>
-   );
- }
+            </CardContent>
+          </Card>
+    </div>
+  );
+}

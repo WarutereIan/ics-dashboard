@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Project } from '@/types/dashboard';
 import { mockUser, mockProjects } from '@/lib/mockData';
 import { getAllProjectsData } from '@/lib/projectDataManager';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface DashboardContextType {
   user: User | null;
@@ -19,6 +19,7 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const storedUser = localStorage.getItem('ics-dashboard-user');
   const [user, setUser] = useState<User | null>(
     storedUser ? JSON.parse(storedUser) : null
@@ -48,6 +49,19 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     projects[0] || null
   );
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Update current project based on URL
+  useEffect(() => {
+    const pathMatch = location.pathname.match(/\/dashboard\/projects\/([^\/]+)/);
+    if (pathMatch) {
+      const projectIdFromUrl = pathMatch[1];
+      const projectFromUrl = projects.find(p => p.id === projectIdFromUrl);
+      if (projectFromUrl && currentProject?.id !== projectFromUrl.id) {
+        console.log('Updating current project from URL:', projectIdFromUrl, 'to:', projectFromUrl.name);
+        setCurrentProject(projectFromUrl);
+      }
+    }
+  }, [location.pathname, projects, currentProject?.id]);
 
   // Function to refresh projects from localStorage
   const refreshProjects = () => {

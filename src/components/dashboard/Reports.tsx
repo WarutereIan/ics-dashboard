@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText, Upload, Download, File, Eye, Trash2, Plus, FilePlus } from 'lucide-react';
+import { FileText, Upload, Download, File, Eye, Trash2, Plus, FilePlus, Hash, MapPin, Building, FileText as FileTextIcon, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,22 +9,44 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import { useDashboard } from '@/contexts/DashboardContext';
-import { getProjectReports, getProjectActivities, getProjectOutputs, getProjectOutcomes } from '@/lib/icsData';
+import { getProjectActivities, getProjectOutputs, getProjectOutcomes } from '@/lib/icsData';
 import { Report } from '@/types/dashboard';
+import { ReportUpload } from './ReportUpload';
+import { NamingConventionForm } from './NamingConventionForm';
+import { NamingConventionData, generateFileName, parseFileName } from '@/lib/namingConvention';
+import { PendingReviews } from './PendingReviews';
+import { useReport } from '@/contexts/ReportContext';
+import { listReportFiles, downloadStoredFile, deleteReportFile, StoredFileData } from '@/lib/reportFileStorage';
+import { useToast } from '@/hooks/use-toast';
 
 export function Reports() {
   const { user } = useDashboard();
+  const { reports: contextReports } = useReport();
+  const { toast } = useToast();
   const { projectId } = useParams();
   if (!user || !projectId) return null;
+  
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [namingDialogOpen, setNamingDialogOpen] = useState(false);
   const [reportType, setReportType] = useState<'activity' | 'output' | 'outcome' | ''>('');
   const [selectedItemId, setSelectedItemId] = useState<string>('');
+  const [namingData, setNamingData] = useState<NamingConventionData>({
+    countryCode: '',
+    regionCode: '',
+    projectCode: '',
+    reportTypeCode: '',
+    date: new Date(),
+    versionControl: ''
+  });
+  const [generatedFileName, setGeneratedFileName] = useState<string>('');
+  const [storedFiles, setStoredFiles] = useState<StoredFileData[]>([]);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
-  // Get per-project reports
-  const reports: Report[] = projectId && user ? getProjectReports(user, projectId) : [];
+  // Get project data for report creation
   const activities = projectId && user ? getProjectActivities(user, projectId) : [];
   const outputs = projectId && user ? getProjectOutputs(user, projectId) : [];
   const outcomes = projectId && user ? getProjectOutcomes(user, projectId) : [];
@@ -61,6 +83,62 @@ export function Reports() {
     return variants[status as keyof typeof variants] || variants.draft;
   };
 
+  // Helper function to get file type from extension
+  const getFileTypeFromExtension = (fileName: string): 'pdf' | 'excel' | 'word' | 'other' => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return 'pdf';
+      case 'xls':
+      case 'xlsx':
+        return 'excel';
+      case 'doc':
+      case 'docx':
+        return 'word';
+      default:
+        return 'other';
+    }
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Convert stored files to report format for display
+  const reports = storedFiles.map(file => ({
+    id: file.id,
+    name: file.newName,
+    type: getFileTypeFromExtension(file.originalName),
+    size: formatFileSize(file.size),
+    uploadDate: file.uploadedAt,
+    description: `Stored file: ${file.originalName}`,
+    category: file.metadata?.category || 'adhoc',
+    status: file.metadata?.status || 'draft',
+    uploadedBy: file.metadata?.uploadedBy || 'Unknown',
+    lastModified: file.uploadedAt,
+    lastModifiedBy: file.metadata?.uploadedBy || 'Unknown',
+    projectId: file.metadata?.projectId || '',
+    currentAuthLevel: 'branch-admin' as const,
+    approvalWorkflow: {
+      id: file.id,
+      reportId: file.id,
+      projectId: file.metadata?.projectId || '',
+      createdAt: file.uploadedAt,
+      createdBy: file.metadata?.uploadedBy || '',
+      currentStep: 1,
+      totalSteps: 4,
+      steps: [],
+      status: 'pending' as const
+    },
+    isPendingReview: false,
+    fileStorageKey: file.id // Link to stored file
+  } as Report & { fileStorageKey: string }));
+
   const filteredReports = selectedCategory === 'all' 
     ? reports 
     : reports.filter(report => report.category === selectedCategory);
@@ -82,6 +160,150 @@ export function Reports() {
     relevantItems = outcomes.map(o => ({ id: o.id, title: o.title }));
   }
 
+  const handleNamingDataChange = (data: NamingConventionData, fileName: string) => {
+    setNamingData(data);
+    setGeneratedFileName(fileName);
+  };
+
+  // Load stored files from localStorage
+  const loadStoredFiles = async () => {
+    setIsLoadingFiles(true);
+    try {
+      const response = await listReportFiles();
+      console.log('listReportFiles response:', response);
+      if (response.success && response.data) {
+        const files = response.data as unknown as StoredFileData[];
+        console.log('All stored files:', files);
+        // Filter files for current project
+        const projectFiles = files.filter(file => {
+          console.log('Checking file:', file.id, 'metadata:', file.metadata, 'projectId:', projectId);
+          return file.metadata?.projectId === projectId;
+        });
+        console.log('Filtered project files:', projectFiles);
+        setStoredFiles(projectFiles);
+      }
+    } catch (error) {
+      console.error('Error loading stored files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load stored files",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  };
+
+  // Load files on component mount and when projectId changes
+  useEffect(() => {
+    console.log('Reports component - current projectId:', projectId);
+    if (projectId) {
+      loadStoredFiles();
+    }
+  }, [projectId]);
+
+  const handleFilesUploaded = (files: any[]) => {
+    console.log('Files uploaded with naming convention:', files);
+    setUploadDialogOpen(false);
+    // Reload stored files after upload
+    loadStoredFiles();
+  };
+
+  // Handle file download
+  const handleDownloadFile = async (fileKey: string, fileName: string) => {
+    try {
+      const response = await downloadStoredFile(fileKey, fileName);
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "File downloaded successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to download file",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle file deletion
+  const handleDeleteFile = async (fileKey: string, fileName: string) => {
+    try {
+      const response = await deleteReportFile(fileKey);
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "File deleted successfully",
+        });
+        // Reload files after deletion
+        loadStoredFiles();
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to delete file",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const parseNamingConvention = (fileName: string) => {
+    const parsed = parseFileName(fileName);
+    if (!parsed) return null;
+    
+    return {
+      country: parsed.countryCode,
+      region: parsed.regionCode,
+      project: parsed.projectCode,
+      reportType: parsed.reportTypeCode,
+      date: parsed.date,
+      version: parsed.versionControl
+    };
+  };
+
+  const getNamingConventionDisplay = (fileName: string) => {
+    const parsed = parseNamingConvention(fileName);
+    if (!parsed) return null;
+
+    return (
+      <div className="flex flex-wrap gap-1 mt-2">
+        <Badge variant="outline" className="text-xs">
+          <MapPin className="w-3 h-3 mr-1" />
+          {parsed.country}-{parsed.region}
+        </Badge>
+        <Badge variant="outline" className="text-xs">
+          <Building className="w-3 h-3 mr-1" />
+          {parsed.project}
+        </Badge>
+        <Badge variant="outline" className="text-xs">
+          <FileTextIcon className="w-3 h-3 mr-1" />
+          {parsed.reportType}
+        </Badge>
+        {parsed.version && (
+          <Badge variant="secondary" className="text-xs">
+            {parsed.version}
+          </Badge>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col flex-1 w-full min-w-0 px-2 md:px-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 w-full min-w-0">
@@ -90,6 +312,16 @@ export function Reports() {
           <p className="text-muted-foreground break-words whitespace-normal">Manage project reports and documentation</p>
         </div>
         <div className="flex gap-2 mt-2 md:mt-0 w-full min-w-0">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={loadStoredFiles}
+            disabled={isLoadingFiles}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="secondary" className="gap-2">
@@ -112,7 +344,7 @@ export function Reports() {
                     className="w-full p-2 border rounded"
                     value={reportType}
                     onChange={e => {
-                      setReportType(e.target.value as 'activity' | 'output' | 'outcome' | '');
+                      setReportType(e.target.value as 'activity' | 'output' | 'outcome' );
                       setSelectedItemId('');
                     }}
                   >
@@ -174,44 +406,37 @@ export function Reports() {
                 Upload Report
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Upload New Report</DialogTitle>
+                <DialogTitle>Upload Reports with Naming Convention</DialogTitle>
                 <DialogDescription>
-                  Upload a new report file to the project repository
+                  Upload report files and automatically rename them according to the hierarchical geographic naming protocol
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="file">File</Label>
-                  <Input id="file" type="file" accept=".pdf,.xlsx,.docx,.doc" />
-                </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" placeholder="Enter report description..." />
-                </div>
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <select id="category" className="w-full p-2 border rounded">
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="annual">Annual</option>
-                    <option value="adhoc">Ad-hoc</option>
-                  </select>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={() => setUploadDialogOpen(false)}>
-                    Upload
-                  </Button>
-                </div>
-              </div>
+              <ReportUpload
+                onFilesUploaded={handleFilesUploaded}
+                maxFiles={10}
+                allowedTypes={['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv']}
+                maxFileSize={50}
+              />
             </DialogContent>
           </Dialog>
+        
         </div>
       </div>
+
+      {/* Pending Reviews Section */}
+      <PendingReviews projectId={projectId} />
+
+      {/* Loading indicator */}
+      {isLoadingFiles && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">Loading stored files...</p>
+          </div>
+        </div>
+      )}
 
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
         <TabsList className="w-full">
@@ -250,6 +475,8 @@ export function Reports() {
                     <div>Uploaded by <span className="font-medium text-foreground">{report.uploadedBy}</span></div>
                     <div>Last modified: {new Date(report.lastModified).toLocaleDateString()} by <span className="font-medium text-foreground">{report.lastModifiedBy}</span></div>
                   </div>
+                  {/* Naming Convention Info */}
+                  {report.name && getNamingConventionDisplay(report.name)}
                 </CardHeader>
                 <CardContent className="w-full min-w-0">
                   <p className="text-sm text-muted-foreground mb-4 break-words whitespace-normal w-full">{report.description}</p>
@@ -258,11 +485,21 @@ export function Reports() {
                       <Eye className="h-4 w-4" />
                       View
                     </Button>
-                    <Button variant="default" size="sm" className="gap-2">
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="gap-2"
+                      onClick={() => handleDownloadFile(report.fileStorageKey, report.name)}
+                    >
                       <Download className="h-4 w-4" />
                       Download
                     </Button>
-                    <Button variant="destructive" size="sm" className="gap-2">
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      className="gap-2"
+                      onClick={() => handleDeleteFile(report.fileStorageKey, report.name)}
+                    >
                       <Trash2 className="h-4 w-4" />
                       Delete
                     </Button>
@@ -272,7 +509,7 @@ export function Reports() {
             ))}
           </div>
 
-          {filteredReports.length === 0 && (
+          {filteredReports.length === 0 && !isLoadingFiles && (
             <Card className="w-full">
               <CardContent className="text-center py-8 w-full">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { DashboardProvider, useDashboard } from '@/contexts/DashboardContext';
 import { FormProvider } from '@/contexts/FormContext';
+import { ReportProvider } from '@/contexts/ReportContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { GlobalOverview } from '@/components/dashboard/GlobalOverview';
 import { ProjectOverview } from '@/components/dashboard/ProjectOverview';
@@ -39,7 +40,8 @@ function App() {
     <Router>
       <DashboardProvider>
         <FormProvider>
-          <Routes>
+          <ReportProvider>
+            <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<PublicLanding />} />
         
@@ -82,6 +84,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
+          </ReportProvider>
         </FormProvider>
       </DashboardProvider>
     </Router>
