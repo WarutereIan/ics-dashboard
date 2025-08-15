@@ -8,12 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { BaseQuestionEditor } from './BaseQuestionEditor';
-import { SingleChoiceQuestion, ActivityKPIMapping, ChoiceOption } from '../types';
+import { SingleChoiceQuestion, ActivityKPIMapping, ChoiceOption, FormQuestion } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface SingleChoiceQuestionEditorProps {
   question: SingleChoiceQuestion;
-  onUpdate: (updates: Partial<SingleChoiceQuestion>) => void;
+  onUpdate: (updates: Partial<FormQuestion>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
@@ -32,7 +32,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
     
     onUpdate({
       options: [...question.options, newOption]
-    });
+    } as Partial<FormQuestion>);
   };
 
   const updateOption = (optionId: string, updates: Partial<ChoiceOption>) => {
@@ -40,14 +40,14 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
       options: question.options.map(option =>
         option.id === optionId ? { ...option, ...updates } : option
       )
-    });
+    } as Partial<FormQuestion>);
   };
 
   const removeOption = (optionId: string) => {
     if (question.options.length > 2) {
       onUpdate({
         options: question.options.filter(option => option.id !== optionId)
-      });
+      } as Partial<FormQuestion>);
     }
   };
 
@@ -60,12 +60,12 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
       const newOptions = [...question.options];
       const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
       [newOptions[currentIndex], newOptions[targetIndex]] = [newOptions[targetIndex], newOptions[currentIndex]];
-      onUpdate({ options: newOptions });
+      onUpdate({ options: newOptions } as Partial<FormQuestion>);
     }
   };
 
   return (
-    <BaseQuestionEditor {...props} onUpdate={onUpdate as (updates: Partial<import('../types').FormQuestion>) => void}>
+    <BaseQuestionEditor {...props}>
       <div className="space-y-4">
         <div className="p-4 bg-gray-50 rounded-lg">
           <Label className="text-sm font-medium mb-4 block">Question Configuration</Label>
@@ -76,7 +76,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
               <Label>Display Type</Label>
               <Select 
                 value={question.displayType} 
-                onValueChange={(value: 'RADIO' | 'DROPDOWN') => onUpdate({ displayType: value })}
+                onValueChange={(value: 'RADIO' | 'DROPDOWN') => onUpdate({ displayType: value } as Partial<FormQuestion>)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -93,7 +93,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
               <Label>Allow "Other" option with text input</Label>
               <Switch
                 checked={question.allowOther || false}
-                onCheckedChange={(checked) => onUpdate({ allowOther: checked })}
+                onCheckedChange={(checked) => onUpdate({ allowOther: checked } as Partial<FormQuestion>)}
               />
             </div>
 

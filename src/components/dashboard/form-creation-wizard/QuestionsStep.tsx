@@ -16,6 +16,7 @@ import {
   MultipleChoiceQuestionEditor,
   NumberQuestionEditor,
   DateQuestionEditor,
+  LikertScaleQuestionEditor,
   MediaUploadQuestionEditor,
 } from './question-types';
 
@@ -57,11 +58,11 @@ export function QuestionsStep({
       case 'SHORT_TEXT':
       case 'EMAIL':
       case 'PHONE':
-        return <ShortTextQuestionEditor {...commonProps} question={question} />;
+        return <ShortTextQuestionEditor {...commonProps} question={question as any} />;
       case 'SINGLE_CHOICE':
       case 'YES_NO':
       case 'DROPDOWN':
-        return <SingleChoiceQuestionEditor {...commonProps} question={question} />;
+        return <SingleChoiceQuestionEditor {...commonProps} question={question as any} />;
       case 'MULTIPLE_CHOICE':
         return <MultipleChoiceQuestionEditor {...commonProps} question={question} />;
       case 'NUMBER':
@@ -69,6 +70,8 @@ export function QuestionsStep({
       case 'DATE':
       case 'DATETIME':
         return <DateQuestionEditor {...commonProps} question={question} />;
+      case 'LIKERT_SCALE':
+        return <LikertScaleQuestionEditor {...commonProps} question={question as any} />;
       case 'IMAGE_UPLOAD':
       case 'VIDEO_UPLOAD':
       case 'AUDIO_UPLOAD':
@@ -274,3 +277,4 @@ export function QuestionsStep({
     </div>
   );
 }
+ 

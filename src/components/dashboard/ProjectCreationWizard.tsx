@@ -190,7 +190,7 @@ export function ProjectCreationWizard() {
             onSaveDraft={saveDraft}
             onSaveEdits={saveEdits}
             onClearDraft={clearDraft}
-            hasDraft={hasDraft}
+            hasDraft={hasDraft()}
             isEditMode={isEditMode}
           />
         </div>

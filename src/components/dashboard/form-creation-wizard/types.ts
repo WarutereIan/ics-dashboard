@@ -76,6 +76,16 @@ export interface ShortTextQuestion extends BaseQuestion {
   placeholder?: string;
 }
 
+export interface EmailQuestion extends BaseQuestion {
+  type: 'EMAIL';
+  placeholder?: string;
+}
+
+export interface PhoneQuestion extends BaseQuestion {
+  type: 'PHONE';
+  placeholder?: string;
+}
+
 
 export interface NumberQuestion extends BaseQuestion {
   type: 'NUMBER';
@@ -99,6 +109,12 @@ export interface SingleChoiceQuestion extends BaseQuestion {
   allowOther?: boolean;
 }
 
+export interface YesNoQuestion extends BaseQuestion {
+  type: 'YES_NO';
+  options: ChoiceOption[];
+  displayType: 'RADIO' | 'DROPDOWN';
+}
+
 export interface MultipleChoiceQuestion extends BaseQuestion {
   type: 'MULTIPLE_CHOICE';
   options: ChoiceOption[];
@@ -116,11 +132,23 @@ export interface DropdownQuestion extends BaseQuestion {
 
 
 
+// Likert Scale Statement with individual configuration
+export interface LikertScaleStatement {
+  id: string;
+  text: string;
+  scaleType: '3_POINT' | '5_POINT' | '7_POINT';
+  customLabels?: {
+    negative?: string;
+    neutral?: string;
+    positive?: string;
+  };
+}
+
 export interface LikertScaleQuestion extends BaseQuestion {
   type: 'LIKERT_SCALE';
-  statements: string[];
-  scaleType: '3_POINT' | '5_POINT' | '7_POINT';
-  labels: {
+  statements: LikertScaleStatement[];
+  defaultScaleType: '3_POINT' | '5_POINT' | '7_POINT';
+  defaultLabels: {
     negative: string;
     neutral?: string;
     positive: string;
@@ -199,8 +227,11 @@ export interface AudioUploadQuestion extends BaseQuestion {
 // Union type for all question types
 export type FormQuestion = 
   | ShortTextQuestion
+  | EmailQuestion
+  | PhoneQuestion
   | NumberQuestion
   | SingleChoiceQuestion
+  | YesNoQuestion
   | MultipleChoiceQuestion
   | DropdownQuestion
   | LikertScaleQuestion
@@ -390,6 +421,24 @@ export interface FormWorkflow {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Form sharing and permissions
+export interface FormPermissions {
+  formId: string;
+  permissions: {
+    userId: string;
+    role: 'VIEWER' | 'EDITOR' | 'ADMIN';
+    canViewResponses: boolean;
+    canExportData: boolean;
+    canEditForm: boolean;
+    canDeleteForm: boolean;
+    canManagePermissions: boolean;
+  }[];
+  isPublic: boolean;
+  allowAnonymousResponses: boolean;
+  restrictedDomains?: string[]; // Email domains that can access
+}
+   
 
 // Form sharing and permissions
 export interface FormPermissions {

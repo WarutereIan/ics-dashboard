@@ -9,7 +9,7 @@ import { BaseQuestionRenderer } from './BaseQuestionRenderer';
 interface MediaUploadQuestionRendererProps {
   question: FormQuestion;
   value?: any;
-  onChange: (value: any) => void;
+  onChange?: (value: any) => void;
   disabled?: boolean;
 }
 
@@ -83,7 +83,7 @@ export function MediaUploadQuestionRenderer({
   };
 
   const handleFileSelect = (files: FileList | null) => {
-    if (!files) return;
+    if (!files || !onChange) return;
 
     const fileArray = Array.from(files);
     const validFiles = fileArray.filter(file => {
@@ -109,6 +109,7 @@ export function MediaUploadQuestionRenderer({
   };
 
   const removeFile = (index: number) => {
+    if (!onChange) return;
     const newFiles = value.filter((_: any, i: number) => i !== index);
     onChange(newFiles);
   };
@@ -173,7 +174,7 @@ export function MediaUploadQuestionRenderer({
                 onClick={() => {
                   const input = document.createElement('input');
                   input.type = 'file';
-                  input.multiple = question.allowMultiple !== false;
+                  input.multiple = (question as any).allowMultiple !== false;
                   input.accept = config.acceptedTypes;
                   input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement).files);
                   input.click();
@@ -226,3 +227,4 @@ export function MediaUploadQuestionRenderer({
     </BaseQuestionRenderer>
   );
 }
+

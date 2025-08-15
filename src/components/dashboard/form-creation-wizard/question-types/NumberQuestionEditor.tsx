@@ -3,11 +3,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { BaseQuestionEditor } from './BaseQuestionEditor';
-import { NumberQuestion, ActivityKPIMapping } from '../types';
+import { NumberQuestion, ActivityKPIMapping, FormQuestion } from '../types';
 
 interface NumberQuestionEditorProps {
   question: NumberQuestion;
-  onUpdate: (updates: Partial<NumberQuestion>) => void;
+  onUpdate: (updates: Partial<FormQuestion>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
@@ -30,7 +30,7 @@ export function NumberQuestionEditor(props: NumberQuestionEditorProps) {
                 id={`min-${question.id}`}
                 type="number"
                 value={question.min ?? ''}
-                onChange={(e) => onUpdate({ min: e.target.value ? parseFloat(e.target.value) : undefined })}
+                onChange={(e) => onUpdate({ min: e.target.value ? parseFloat(e.target.value) : undefined } as Partial<FormQuestion>)}
                 placeholder="No minimum"
               />
             </div>
@@ -41,7 +41,7 @@ export function NumberQuestionEditor(props: NumberQuestionEditorProps) {
                 id={`max-${question.id}`}
                 type="number"
                 value={question.max ?? ''}
-                onChange={(e) => onUpdate({ max: e.target.value ? parseFloat(e.target.value) : undefined })}
+                onChange={(e) => onUpdate({ max: e.target.value ? parseFloat(e.target.value) : undefined } as Partial<FormQuestion>)}
                 placeholder="No maximum"
               />
             </div>
@@ -52,7 +52,7 @@ export function NumberQuestionEditor(props: NumberQuestionEditorProps) {
                 id={`step-${question.id}`}
                 type="number"
                 value={question.step ?? ''}
-                onChange={(e) => onUpdate({ step: e.target.value ? parseFloat(e.target.value) : undefined })}
+                onChange={(e) => onUpdate({ step: e.target.value ? parseFloat(e.target.value) : undefined } as Partial<FormQuestion>)}
                 placeholder="1"
                 step="0.01"
               />
@@ -64,7 +64,7 @@ export function NumberQuestionEditor(props: NumberQuestionEditorProps) {
             <Input
               id={`placeholder-${question.id}`}
               value={question.placeholder || ''}
-              onChange={(e) => onUpdate({ placeholder: e.target.value })}
+              onChange={(e) => onUpdate({ placeholder: e.target.value } as Partial<FormQuestion>)}
               placeholder="e.g., Enter amount..."
             />
           </div>

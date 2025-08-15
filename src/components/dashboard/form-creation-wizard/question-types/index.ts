@@ -4,6 +4,7 @@ export { SingleChoiceQuestionEditor } from './SingleChoiceQuestionEditor';
 export { MultipleChoiceQuestionEditor } from './MultipleChoiceQuestionEditor';
 export { NumberQuestionEditor } from './NumberQuestionEditor';
 export { DateQuestionEditor } from './DateQuestionEditor';
+export { LikertScaleQuestionEditor } from './LikertScaleQuestionEditor';
 export { MediaUploadQuestionEditor } from './MediaUploadQuestionEditor';
 
 // Question type mapping for dynamic rendering

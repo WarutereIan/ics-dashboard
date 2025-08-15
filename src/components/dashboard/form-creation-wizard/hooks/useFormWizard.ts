@@ -764,9 +764,15 @@ function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionTyp
     case 'LIKERT_SCALE':
       return {
         ...baseQuestion,
-        statements: ['Statement 1'],
-        scaleType: '5_POINT',
-        labels: {
+        statements: [
+          {
+            id: uuidv4(),
+            text: 'Statement 1',
+            scaleType: '5_POINT'
+          }
+        ],
+        defaultScaleType: '5_POINT',
+        defaultLabels: {
           negative: 'Strongly Disagree',
           neutral: 'Neutral',
           positive: 'Strongly Agree',

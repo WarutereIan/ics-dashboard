@@ -64,6 +64,7 @@ export function DateTimePicker({
             options: {
               offset: [0, 8],
             },
+            fn: (state) => state,
           },
         ]}
         customInput={
@@ -88,3 +89,4 @@ export function DateTimePicker({
     </div>
   );
 }
+

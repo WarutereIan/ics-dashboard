@@ -288,7 +288,6 @@ export function GoalDetails() {
             <div className="flex justify-center">
               <PieChart 
                 data={pieChartData}
-                width={400}
                 height={300}
               />
             </div>

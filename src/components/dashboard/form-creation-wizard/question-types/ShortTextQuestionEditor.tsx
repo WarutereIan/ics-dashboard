@@ -4,11 +4,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { BaseQuestionEditor } from './BaseQuestionEditor';
-import { ShortTextQuestion, ActivityKPIMapping } from '../types';
+import { ShortTextQuestion, ActivityKPIMapping, FormQuestion } from '../types';
 
 interface ShortTextQuestionEditorProps {
   question: ShortTextQuestion;
-  onUpdate: (updates: Partial<ShortTextQuestion>) => void;
+  onUpdate: (updates: Partial<FormQuestion>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
@@ -29,7 +29,7 @@ export function ShortTextQuestionEditor(props: ShortTextQuestionEditorProps) {
             <Input
               id={`placeholder-${question.id}`}
               value={question.placeholder || ''}
-              onChange={(e) => onUpdate({ placeholder: e.target.value })}
+              onChange={(e) => onUpdate({ placeholder: e.target.value } as Partial<FormQuestion>)}
               placeholder="e.g., Enter your response..."
             />
           </div>

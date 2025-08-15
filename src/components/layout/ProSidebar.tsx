@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
 import { Link, useLocation } from 'react-router-dom';
 import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText, Plus, ClipboardList } from 'lucide-react';
@@ -11,9 +11,13 @@ import {
 } from '@/lib/icsData';
 
 export function ProSidebar() {
-  const { user, projects } = useDashboard();
+  const { user, projects, refreshProjects } = useDashboard();
   if (!user) return null;
   const location = useLocation();
+
+  useEffect(() => {
+    refreshProjects();
+  }, []);
 
   return (
     <Sidebar width="270px" backgroundColor="rgb(249,249,249,0.7)">

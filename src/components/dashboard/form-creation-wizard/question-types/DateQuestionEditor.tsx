@@ -5,13 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from 'lucide-react';
 import { BaseQuestionEditor } from './BaseQuestionEditor';
-import { DateQuestion, ActivityKPIMapping } from '../types';
+import { DateQuestion, ActivityKPIMapping, FormQuestion } from '../types';
 import { DatePicker } from '@/components/ui/date-picker';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 interface DateQuestionEditorProps {
   question: DateQuestion;
-  onUpdate: (updates: Partial<DateQuestion>) => void;
+  onUpdate: (updates: Partial<FormQuestion>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
@@ -24,7 +24,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
   const handleDateChange = (field: 'minDate' | 'maxDate' | 'defaultValue', date: Date | undefined) => {
     onUpdate({
       [field]: date
-    });
+    } as Partial<FormQuestion>);
   };
 
   return (
@@ -39,7 +39,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
               <Label>Date Input Type</Label>
               <Select 
                 value={question.type} 
-                onValueChange={(value: 'DATE' | 'DATETIME') => onUpdate({ type: value })}
+                onValueChange={(value: 'DATE' | 'DATETIME') => onUpdate({ type: value } as Partial<FormQuestion>)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -140,7 +140,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
                 <button
                   type="button"
                   className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                  onClick={() => onUpdate({ defaultValue: new Date() })}
+                  onClick={() => onUpdate({ defaultValue: new Date() } as Partial<FormQuestion>)}
                 >
                   Today
                 </button>
@@ -150,7 +150,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
                   onClick={() => {
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
-                    onUpdate({ defaultValue: tomorrow });
+                    onUpdate({ defaultValue: tomorrow } as Partial<FormQuestion>);
                   }}
                 >
                   Tomorrow
@@ -161,7 +161,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
                   onClick={() => {
                     const nextWeek = new Date();
                     nextWeek.setDate(nextWeek.getDate() + 7);
-                    onUpdate({ defaultValue: nextWeek });
+                    onUpdate({ defaultValue: nextWeek } as Partial<FormQuestion>);
                   }}
                 >
                   Next Week
@@ -169,7 +169,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
                 <button
                   type="button"
                   className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                  onClick={() => onUpdate({ defaultValue: undefined })}
+                  onClick={() => onUpdate({ defaultValue: undefined } as Partial<FormQuestion>)}
                 >
                   Clear Default
                 </button>

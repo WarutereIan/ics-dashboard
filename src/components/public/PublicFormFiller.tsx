@@ -324,7 +324,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                   question={question}
                   value={responses[question.id]}
                   onChange={(value) => handleResponseChange(question.id, value)}
-                  error={null}
+                  error={undefined}
                   isPreviewMode={false}
                 />
               ))}

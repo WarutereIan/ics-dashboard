@@ -7,12 +7,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { BaseQuestionEditor } from './BaseQuestionEditor';
-import { MultipleChoiceQuestion, ActivityKPIMapping, ChoiceOption } from '../types';
+import { MultipleChoiceQuestion, ActivityKPIMapping, ChoiceOption, FormQuestion } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface MultipleChoiceQuestionEditorProps {
   question: MultipleChoiceQuestion;
-  onUpdate: (updates: Partial<MultipleChoiceQuestion>) => void;
+  onUpdate: (updates: Partial<FormQuestion>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
@@ -33,7 +33,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
     
     onUpdate({
       options: [...question.options, newOption]
-    });
+    } as Partial<FormQuestion>);
   };
 
   const updateOption = (optionId: string, updates: Partial<ChoiceOption>) => {
@@ -41,14 +41,14 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
       options: question.options.map(option =>
         option.id === optionId ? { ...option, ...updates } : option
       )
-    });
+    } as Partial<FormQuestion>);
   };
 
   const removeOption = (optionId: string) => {
     if (question.options.length > 2) {
       onUpdate({
         options: question.options.filter(option => option.id !== optionId)
-      });
+      } as Partial<FormQuestion>);
     }
   };
 
@@ -61,7 +61,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
       const newOptions = [...question.options];
       const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
       [newOptions[currentIndex], newOptions[targetIndex]] = [newOptions[targetIndex], newOptions[currentIndex]];
-      onUpdate({ options: newOptions });
+      onUpdate({ options: newOptions } as Partial<FormQuestion>);
     }
   };
 
@@ -93,7 +93,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
   };
 
   return (
-    <BaseQuestionEditor {...props} onUpdate={onUpdate as (updates: Partial<import('../types').FormQuestion>) => void}>
+    <BaseQuestionEditor {...props}>
       <div className="space-y-4">
         <div className="p-4 bg-gray-50 rounded-lg">
           <Label className="text-sm font-medium mb-4 block">Question Configuration</Label>
@@ -107,7 +107,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
                   id={`minSelections-${question.id}`}
                   type="number"
                   value={question.minSelections || ''}
-                  onChange={(e) => onUpdate({ minSelections: parseInt(e.target.value) || undefined })}
+                  onChange={(e) => onUpdate({ minSelections: parseInt(e.target.value) || undefined } as Partial<FormQuestion>)}
                   placeholder="No minimum"
                   min="0"
                   max="20"
@@ -120,7 +120,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
                   id={`maxSelections-${question.id}`}
                   type="number"
                   value={question.maxSelections || ''}
-                  onChange={(e) => onUpdate({ maxSelections: parseInt(e.target.value) || undefined })}
+                  onChange={(e) => onUpdate({ maxSelections: parseInt(e.target.value) || undefined } as Partial<FormQuestion>)}
                   placeholder="No maximum"
                   min="1"
                   max="20"
@@ -133,7 +133,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
               <Label>Allow "Other" option with text input</Label>
               <Switch
                 checked={question.allowOther || false}
-                onCheckedChange={(checked) => onUpdate({ allowOther: checked })}
+                onCheckedChange={(checked) => onUpdate({ allowOther: checked } as Partial<FormQuestion>)}
               />
             </div>
 
