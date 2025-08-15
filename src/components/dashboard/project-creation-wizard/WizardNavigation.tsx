@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Loader2 } from 'lucide-react';
 import { WizardStep, ProjectFormData, OutcomeFormData } from './types';
 
 interface WizardNavigationProps {
@@ -10,9 +10,10 @@ interface WizardNavigationProps {
   outcomes: OutcomeFormData[];
   onPrevStep: () => void;
   onNextStep: () => void;
-  onSaveProject: () => void;
+  onSaveProject: () => Promise<void>;
   onCancel: () => void;
   onSaveDraft?: () => void;
+  onSaveEdits?: () => Promise<void>;
   onClearDraft?: () => void;
   hasDraft?: boolean;
   isEditMode?: boolean;
@@ -28,11 +29,24 @@ export function WizardNavigation({
   onSaveProject,
   onCancel,
   onSaveDraft,
+  onSaveEdits,
   onClearDraft,
   hasDraft = false,
   isEditMode = false,
 }: WizardNavigationProps) {
+  const [isSaving, setIsSaving] = useState(false);
   const isLastStep = currentStep === steps.length - 1;
+
+  const handleSaveProject = async () => {
+    setIsSaving(true);
+    try {
+      await onSaveProject();
+    } catch (error) {
+      console.error('Error saving project:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
   
   const isNextDisabled = () => {
     switch (currentStep) {
@@ -88,10 +102,31 @@ export function WizardNavigation({
             </Button>
           )}
           
+          {isEditMode && onSaveEdits && (
+            <Button 
+              variant="outline" 
+              onClick={onSaveEdits} 
+              className="flex-1"
+              disabled={!projectData.name}
+            >
+              Save Edits
+            </Button>
+          )}
+          
           {isLastStep && (
-            <Button onClick={onSaveProject} className="flex-1 flex items-center justify-center gap-2">
-              <Save className="w-4 h-4" />
-              <span className="whitespace-nowrap">{isEditMode ? 'Update Project' : 'Create Project'}</span>
+            <Button 
+              onClick={handleSaveProject} 
+              disabled={isSaving}
+              className="flex-1 flex items-center justify-center gap-2"
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span className="whitespace-nowrap">
+                {isSaving ? 'Saving...' : (isEditMode ? 'Update Project' : 'Create Project')}
+              </span>
             </Button>
           )}
         </div>
@@ -124,6 +159,16 @@ export function WizardNavigation({
             </Button>
           )}
           
+          {isEditMode && onSaveEdits && (
+            <Button 
+              variant="outline" 
+              onClick={onSaveEdits}
+              disabled={!projectData.name}
+            >
+              Save Edits
+            </Button>
+          )}
+          
           {!isEditMode && onClearDraft && hasDraft && (
             <Button 
               variant="outline" 
@@ -135,9 +180,17 @@ export function WizardNavigation({
           )}
           
           {isLastStep ? (
-            <Button onClick={onSaveProject} className="flex items-center gap-2">
-              <Save className="w-4 h-4" />
-              {isEditMode ? 'Update Project' : 'Create Project'}
+            <Button 
+              onClick={handleSaveProject} 
+              disabled={isSaving}
+              className="flex items-center gap-2"
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {isSaving ? 'Saving...' : (isEditMode ? 'Update Project' : 'Create Project')}
             </Button>
           ) : (
             <Button

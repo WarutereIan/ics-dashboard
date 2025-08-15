@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Project } from '@/types/dashboard';
 import { mockUser, mockProjects } from '@/lib/mockData';
-import { getAllProjectsData } from '@/lib/projectDataManager';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface DashboardContextType {
@@ -25,25 +24,8 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     storedUser ? JSON.parse(storedUser) : null
   );
   
-  // Combine static and dynamic projects (deduplicated)
-  const [projects, setProjects] = useState<Project[]>(() => {
-    const dynamicProjects = getAllProjectsData();
-    const projectMap = new Map<string, Project>();
-    
-    // Add mock projects first
-    mockProjects.forEach(project => {
-      projectMap.set(project.id, project);
-    });
-    
-    // Add dynamic projects (won't overwrite existing ones)
-    dynamicProjects.forEach(project => {
-      if (!projectMap.has(project.id)) {
-        projectMap.set(project.id, project);
-      }
-    });
-    
-    return Array.from(projectMap.values());
-  });
+  // Initialize with mock projects, will be updated by ProjectsContext
+  const [projects, setProjects] = useState<Project[]>(mockProjects);
   
   const [currentProject, setCurrentProject] = useState<Project | null>(
     projects[0] || null
@@ -65,23 +47,43 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
 
   // Function to refresh projects from localStorage
   const refreshProjects = () => {
-    const dynamicProjects = getAllProjectsData();
-    const projectMap = new Map<string, Project>();
-    
-    // Add mock projects first
-    mockProjects.forEach(project => {
-      projectMap.set(project.id, project);
-    });
-    
-    // Add dynamic projects (won't overwrite existing ones)
-    dynamicProjects.forEach(project => {
-      if (!projectMap.has(project.id)) {
-        projectMap.set(project.id, project);
+    const storedProjects = localStorage.getItem('ics-dashboard-projects');
+    if (storedProjects) {
+      try {
+        const parsed = JSON.parse(storedProjects);
+        const projectsWithDates = parsed.map((project: any) => ({
+          ...project,
+          startDate: new Date(project.startDate),
+          endDate: new Date(project.endDate)
+        }));
+        setProjects(projectsWithDates);
+      } catch (error) {
+        console.error('Error refreshing projects:', error);
       }
-    });
-    
-    setProjects(Array.from(projectMap.values()));
+    }
   };
+
+  // Listen for localStorage changes from ProjectsContext
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'ics-dashboard-projects' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          const projectsWithDates = parsed.map((project: any) => ({
+            ...project,
+            startDate: new Date(project.startDate),
+            endDate: new Date(project.endDate)
+          }));
+          setProjects(projectsWithDates);
+        } catch (error) {
+          console.error('Error parsing storage change:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Redirect to login if user is undefined (after logout)
   useEffect(() => {
@@ -90,17 +92,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, navigate]);
 
-  // Listen for localStorage changes to update projects
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'ics-dashboard-projects') {
-        refreshProjects();
-      }
-    };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
 
   return (
     <DashboardContext.Provider value={{

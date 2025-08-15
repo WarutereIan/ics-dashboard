@@ -11,17 +11,9 @@ import {
 } from '@/lib/icsData';
 
 export function ProSidebar() {
-  const { user, projects: allProjects } = useDashboard();
+  const { user, projects } = useDashboard();
   if (!user) return null;
   const location = useLocation();
-  const projects = user ? allProjects.filter(project => {
-    // Only include projects with data stores (i.e., outcomes available)
-    try {
-      return getProjectOutcomes(user, project.id).length > 0;
-    } catch {
-      return false;
-    }
-  }) : [];
 
   return (
     <Sidebar width="270px" backgroundColor="rgb(249,249,249,0.7)">

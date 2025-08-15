@@ -34,6 +34,7 @@ export function ProjectCreationWizard() {
     prevStep,
     saveProject,
     saveDraft,
+    saveEdits,
     clearDraft,
     hasDraft,
     navigate,
@@ -187,6 +188,7 @@ export function ProjectCreationWizard() {
             onSaveProject={saveProject}
             onCancel={() => navigate('/dashboard')}
             onSaveDraft={saveDraft}
+            onSaveEdits={saveEdits}
             onClearDraft={clearDraft}
             hasDraft={hasDraft}
             isEditMode={isEditMode}

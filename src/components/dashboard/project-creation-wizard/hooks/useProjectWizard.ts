@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDashboard } from '@/contexts/DashboardContext';
+import { useProjects } from '@/contexts/ProjectsContext';
 import { toast } from '@/hooks/use-toast';
-import { saveProject as saveProjectData, getProjectData, getProjectKPIsData, getAllProjectsData } from '@/lib/projectDataManager';
-import { getProjectOutcomes, getProjectActivities, getProjectKPIs } from '@/lib/icsData';
+
+import { saveProject as saveProjectData, getProjectData, getProjectKPIsData } from '@/lib/projectDataManager';
 import { 
   saveWizardDraft, 
   loadWizardDraft, 
@@ -24,7 +25,8 @@ import {
 export function useProjectWizard() {
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const { refreshProjects, user, projects } = useDashboard();
+  const { user } = useDashboard();
+  const { addProject, updateProject, getProjectById, projects } = useProjects();
   const isEditMode = Boolean(projectId);
   
   const [wizardState, setWizardState] = useState<WizardState>({
@@ -55,7 +57,7 @@ export function useProjectWizard() {
   // Load existing project data when in edit mode or load draft for new projects
   useEffect(() => {
     if (isEditMode && projectId && user) {
-      const project = projects.find(p => p.id === projectId);
+      const project = getProjectById(projectId);
       
       if (project) {
         // Load project basic info
@@ -75,37 +77,38 @@ export function useProjectWizard() {
 
         // Load outcomes, activities, and KPIs
         try {
-          const outcomes = getProjectOutcomes(user, projectId);
-          const activities = getProjectActivities(user, projectId);
-          const kpis = getProjectKPIs(user, projectId);
+          const projectData = getProjectData(projectId);
+          const kpisData = getProjectKPIsData(projectId);
 
-          setWizardState(prev => ({
-            ...prev,
-            outcomes: outcomes.map((outcome: any) => ({
-              id: outcome.id,
-              title: outcome.title,
-              description: outcome.description,
-              target: outcome.target || 0,
-              unit: outcome.unit || '',
-            })),
-            activities: activities.map((activity: any) => ({
-              id: activity.id,
-              outcomeId: activity.outcomeId,
-              title: activity.title,
-              description: activity.description,
-              startDate: activity.startDate,
-              endDate: activity.endDate,
-              responsible: activity.responsible,
-            })),
-            kpis: kpis.map((kpi: any) => ({
-              id: kpi.outcomeId + '-' + kpi.name.toLowerCase().replace(/\s+/g, '-'),
-              outcomeId: kpi.outcomeId,
-              name: kpi.name,
-              target: kpi.target,
-              unit: kpi.unit,
-              type: kpi.type,
-            })),
-          }));
+          if (projectData) {
+            setWizardState(prev => ({
+              ...prev,
+              outcomes: projectData.outcomes.map((outcome: any) => ({
+                id: outcome.id,
+                title: outcome.title,
+                description: outcome.description,
+                target: outcome.target || 0,
+                unit: outcome.unit || '',
+              })),
+              activities: projectData.activities.map((activity: any) => ({
+                id: activity.id,
+                outcomeId: activity.outcomeId,
+                title: activity.title,
+                description: activity.description,
+                startDate: activity.startDate,
+                endDate: activity.endDate,
+                responsible: activity.responsible,
+              })),
+              kpis: kpisData.map((kpi: any) => ({
+                id: kpi.outcomeId + '-' + kpi.name.toLowerCase().replace(/\s+/g, '-'),
+                outcomeId: kpi.outcomeId,
+                name: kpi.name,
+                target: kpi.target,
+                unit: kpi.unit,
+                type: kpi.type,
+              })),
+            }));
+          }
         } catch (error) {
           console.error('Error loading project data:', error);
           toast({
@@ -282,60 +285,92 @@ export function useProjectWizard() {
   };
 
   // Save project
-  const saveProject = () => {
-    const project = {
-      ...wizardState.projectData,
-      startDate: wizardState.projectData.startDate || new Date(),
-      endDate: wizardState.projectData.endDate || new Date(),
-      progress: 0,
-      spent: 0,
-    };
+  const saveProject = async () => {
+    try {
+      const projectData = {
+        id: wizardState.projectData.id,
+        name: wizardState.projectData.name,
+        description: wizardState.projectData.description,
+        country: wizardState.projectData.country,
+        status: wizardState.projectData.status,
+        startDate: wizardState.projectData.startDate || new Date(),
+        endDate: wizardState.projectData.endDate || new Date(),
+        progress: 0,
+        budget: wizardState.projectData.budget,
+        spent: 0,
+      };
 
-    const projectOutcomes = wizardState.outcomes.map(outcome => ({
-      ...outcome,
-      projectId: wizardState.projectData.id,
-      current: 0,
-      progress: 0,
-      status: 'on-track' as const,
-    }));
+      // Convert form data to the expected format for project data manager
+      const outcomes = wizardState.outcomes.map(outcome => ({
+        id: outcome.id,
+        projectId: wizardState.projectData.id,
+        title: outcome.title,
+        description: outcome.description,
+        target: outcome.target,
+        current: 0,
+        unit: outcome.unit,
+        progress: 0,
+        status: 'on-track' as const,
+      }));
 
-    const projectActivities = wizardState.activities.map(activity => ({
-      ...activity,
-      progress: 0,
-      status: 'not-started' as const,
-      startDate: activity.startDate || new Date(),
-      endDate: activity.endDate || new Date(),
-    }));
+      const activities = wizardState.activities.map(activity => ({
+        id: activity.id,
+        outcomeId: activity.outcomeId,
+        title: activity.title,
+        description: activity.description,
+        progress: 0,
+        status: 'not-started' as const,
+        startDate: activity.startDate || new Date(),
+        endDate: activity.endDate || new Date(),
+        responsible: activity.responsible,
+      }));
 
-    const projectKpis = wizardState.kpis.map(kpi => ({
-      ...kpi,
-      value: 0,
-    }));
+      const kpis = wizardState.kpis.map(kpi => ({
+        outcomeId: kpi.outcomeId,
+        name: kpi.name,
+        value: 0,
+        target: kpi.target,
+        unit: kpi.unit,
+        type: 'progress' as const,
+      }));
 
-    // Save project using the data manager
-    const success = saveProjectData(project, projectOutcomes, projectActivities, projectKpis);
-    
-    if (success) {
-      // Clear draft after successful save
-      if (!isEditMode) {
-        clearWizardDraft();
-      }
-      
-      toast({
-        title: isEditMode ? "Project Updated Successfully" : "Project Created Successfully",
-        description: isEditMode 
-          ? `${wizardState.projectData.name} has been updated with ${wizardState.outcomes.length} outcomes, ${wizardState.activities.length} activities, and ${wizardState.kpis.length} KPIs.`
-          : `${wizardState.projectData.name} has been created with ${wizardState.outcomes.length} outcomes, ${wizardState.activities.length} activities, and ${wizardState.kpis.length} KPIs.`,
-      });
-      
-      // Refresh projects and navigate
-      refreshProjects();
       if (isEditMode) {
-        navigate(`/dashboard/projects/${wizardState.projectData.id}`);
+        // Update existing project
+        await updateProject(wizardState.projectData.id, projectData);
+        
+        // Save project data (outcomes, activities, KPIs)
+        const success = saveProjectData(projectData, outcomes, activities, kpis);
+        
+        if (success) {
+          toast({
+            title: "Project Updated Successfully",
+            description: `${wizardState.projectData.name} has been updated with ${outcomes.length} outcomes, ${activities.length} activities, and ${kpis.length} KPIs.`,
+          });
+          navigate(`/dashboard/projects/${wizardState.projectData.id}`);
+        } else {
+          throw new Error('Failed to save project data');
+        }
       } else {
-        navigate('/dashboard');
+        // Create new project
+        const newProject = await addProject(projectData);
+        
+        // Save project data (outcomes, activities, KPIs)
+        const success = saveProjectData(projectData, outcomes, activities, kpis);
+        
+        if (success) {
+          toast({
+            title: "Project Created Successfully",
+            description: `${wizardState.projectData.name} has been created with ${outcomes.length} outcomes, ${activities.length} activities, and ${kpis.length} KPIs.`,
+          });
+          // Clear draft after successful save
+          clearWizardDraft();
+          navigate('/dashboard');
+        } else {
+          throw new Error('Failed to save project data');
+        }
       }
-    } else {
+    } catch (error) {
+      console.error('Error saving project:', error);
       toast({
         title: isEditMode ? "Error Updating Project" : "Error Creating Project",
         description: "There was an error saving your project. Please try again.",
@@ -351,6 +386,80 @@ export function useProjectWizard() {
       title: "Draft Saved",
       description: "Your project draft has been saved successfully.",
     });
+  };
+
+  // Save edits (for edit mode)
+  const saveEdits = async () => {
+    try {
+      const projectData = {
+        id: wizardState.projectData.id,
+        name: wizardState.projectData.name,
+        description: wizardState.projectData.description,
+        country: wizardState.projectData.country,
+        status: wizardState.projectData.status,
+        startDate: wizardState.projectData.startDate || new Date(),
+        endDate: wizardState.projectData.endDate || new Date(),
+        progress: 0,
+        budget: wizardState.projectData.budget,
+        spent: 0,
+      };
+
+      // Convert form data to the expected format for project data manager
+      const outcomes = wizardState.outcomes.map(outcome => ({
+        id: outcome.id,
+        projectId: wizardState.projectData.id,
+        title: outcome.title,
+        description: outcome.description,
+        target: outcome.target,
+        current: 0,
+        unit: outcome.unit,
+        progress: 0,
+        status: 'on-track' as const,
+      }));
+
+      const activities = wizardState.activities.map(activity => ({
+        id: activity.id,
+        outcomeId: activity.outcomeId,
+        title: activity.title,
+        description: activity.description,
+        progress: 0,
+        status: 'not-started' as const,
+        startDate: activity.startDate || new Date(),
+        endDate: activity.endDate || new Date(),
+        responsible: activity.responsible,
+      }));
+
+      const kpis = wizardState.kpis.map(kpi => ({
+        outcomeId: kpi.outcomeId,
+        name: kpi.name,
+        value: 0,
+        target: kpi.target,
+        unit: kpi.unit,
+        type: 'progress' as const,
+      }));
+
+      // Update basic project data
+      await updateProject(wizardState.projectData.id, projectData);
+
+      // Save project data (outcomes, activities, KPIs)
+      const success = saveProjectData(projectData, outcomes, activities, kpis);
+
+      if (success) {
+        toast({
+          title: "Edits Saved",
+          description: `Your project changes have been saved successfully with ${outcomes.length} outcomes, ${activities.length} activities, and ${kpis.length} KPIs.`,
+        });
+      } else {
+        throw new Error('Failed to save project data');
+      }
+    } catch (error) {
+      console.error('Error saving edits:', error);
+      toast({
+        title: "Error Saving Edits",
+        description: "There was an error saving your changes. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Clear draft
@@ -396,6 +505,7 @@ export function useProjectWizard() {
     prevStep,
     saveProject,
     saveDraft,
+    saveEdits,
     clearDraft,
     hasDraft: hasWizardDraft,
     navigate,

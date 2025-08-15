@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-
 import { DashboardProvider, useDashboard } from '@/contexts/DashboardContext';
 import { FormProvider } from '@/contexts/FormContext';
 import { ReportProvider } from '@/contexts/ReportContext';
+import { ProjectsProvider } from '@/contexts/ProjectsContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { GlobalOverview } from '@/components/dashboard/GlobalOverview';
 import { ProjectOverview } from '@/components/dashboard/ProjectOverview';
@@ -39,9 +40,10 @@ function App() {
   return (
     <Router>
       <DashboardProvider>
-        <FormProvider>
-          <ReportProvider>
-            <Routes>
+        <ProjectsProvider>
+          <FormProvider>
+            <ReportProvider>
+              <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<PublicLanding />} />
         
@@ -84,8 +86,9 @@ function App() {
             </Route>
           </Route>
         </Routes>
-          </ReportProvider>
-        </FormProvider>
+            </ReportProvider>
+          </FormProvider>
+        </ProjectsProvider>
       </DashboardProvider>
     </Router>
   );
