@@ -33,7 +33,7 @@ export function KPIAnalytics() {
   // Check if current project has KPI data available
   if (!allKPIs || allKPIs.length === 0) {
     return (
-      <div className="flex flex-col space-y-8 overflow-x-hidden w-full max-w-full px-2 md:px-4">
+      <div className="flex flex-col space-y-8 overflow-x-hidden w-full">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{projectName} KPI Analytics</h1>
           <p className="text-muted-foreground">
@@ -64,7 +64,7 @@ export function KPIAnalytics() {
   });
 
   return (
-    <div className="flex flex-col space-y-8 overflow-x-hidden w-full max-w-full px-2 md:px-4">
+    <div className="flex flex-col space-y-8 overflow-x-hidden w-full">
       {/* Header with outcome filter */}
       <div className="flex flex-col md:flex-row md:items-center md:gap-4 mb-4 w-full max-w-full">
         <div className="flex-1">

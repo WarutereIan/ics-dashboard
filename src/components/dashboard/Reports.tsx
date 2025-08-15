@@ -305,7 +305,7 @@ export function Reports() {
   };
 
   return (
-    <div className="flex flex-col flex-1 w-full min-w-0 px-2 md:px-4">
+    <div className="flex flex-col flex-1 w-full min-w-0">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 w-full min-w-0">
         <div className="w-full min-w-0">
           <h1 className="text-3xl font-bold text-foreground break-words whitespace-normal">Reports</h1>

@@ -112,7 +112,7 @@ export function Maps() {
   const totalBeneficiaries = filteredLocations.reduce((sum, loc) => sum + loc.beneficiaries, 0);
 
   return (
-    <div className="flex flex-col space-y-6 w-full min-w-0 px-2 md:px-6 lg:px-12">
+    <div className="flex flex-col space-y-6 w-full min-w-0">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0 w-full min-w-0">
         <div className="min-w-0">
           <h1 className="text-3xl font-bold text-foreground break-words">Maps</h1>

@@ -109,7 +109,7 @@ export function ProjectCreationWizard() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-3 md:p-6">
-      <div className="max-w-5xl mx-auto w-full min-w-0">
+      <div className="w-full min-w-0">
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 break-words">

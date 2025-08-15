@@ -49,7 +49,7 @@ export function OutputsDetails() {
   };
 
   return (
-    <div className="flex flex-col space-y-8 overflow-x-hidden w-full max-w-full px-2 md:px-4">
+    <div className="flex flex-col space-y-8 overflow-x-hidden w-full">
       <div className="flex flex-col md:flex-row md:items-center md:gap-4 mb-4 w-full max-w-full">
         <h1 className="text-3xl font-bold text-foreground flex-1 break-words whitespace-normal">Project Outputs & KPIs</h1>
      {/*    <select
