@@ -11,28 +11,35 @@ export function Header() {
   const { setSidebarOpen } = useDashboard();
 
   return (
-    <header className="bg-background border-b border-border">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-4">
+    <header className="bg-background border-b border-border mobile-header">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3">
+        {/* Left side - Menu button and breadcrumbs */}
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="md:hidden flex-shrink-0"
             onClick={() => setSidebarOpen(true)}
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
-          <Breadcrumbs />
+          
+          <div className="min-w-0 flex-1">
+            <Breadcrumbs />
+          </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          
-          
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
+        {/* Right side - Notifications and user menu */}
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative h-8 w-8 sm:h-9 sm:w-9"
+          >
+            <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
             <Badge 
               variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+              className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-xs"
             >
               3
             </Badge>

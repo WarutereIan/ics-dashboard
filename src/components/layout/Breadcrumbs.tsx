@@ -28,26 +28,34 @@ export function Breadcrumbs() {
     return '/' + pathSegments.slice(0, index + 1).join('/');
   };
 
+  // For mobile, show only the last segment if there are many
+  const shouldTruncate = pathSegments.length > 3;
+  const displaySegments = shouldTruncate 
+    ? [...pathSegments.slice(0, 1), '...', ...pathSegments.slice(-1)]
+    : pathSegments;
+
   return (
-    <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
+    <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-muted-foreground min-w-0">
       <Link 
         to="/dashboard" 
-        className="flex items-center hover:text-foreground transition-colors"
+        className="flex items-center hover:text-foreground transition-colors flex-shrink-0"
       >
-        <Home className="w-4 h-4" />
+        <Home className="w-3 h-3 sm:w-4 sm:h-4" />
       </Link>
       
-      {pathSegments.map((segment, index) => (
+      {displaySegments.map((segment, index) => (
         <React.Fragment key={index}>
-          <ChevronRight className="w-4 h-4" />
-          {index === pathSegments.length - 1 ? (
-            <span className="text-foreground font-medium">
+          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+          {segment === '...' ? (
+            <span className="text-muted-foreground flex-shrink-0">...</span>
+          ) : index === displaySegments.length - 1 ? (
+            <span className="text-foreground font-medium truncate">
               {getBreadcrumbName(segment, index)}
             </span>
           ) : (
             <Link 
               to={getBreadcrumbPath(index)}
-              className="hover:text-foreground transition-colors"
+              className="hover:text-foreground transition-colors truncate flex-shrink-0"
             >
               {getBreadcrumbName(segment, index)}
             </Link>

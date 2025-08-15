@@ -33,6 +33,75 @@
   }
 }
 
+/* Mobile responsive sidebar styles */
+@layer components {
+  /* React Pro Sidebar mobile improvements */
+  .ps-sidebar-root {
+    @apply shadow-lg md:shadow-none;
+  }
+  
+  .ps-sidebar-container {
+    @apply border-r border-gray-200;
+  }
+  
+  .ps-menu-root {
+    @apply px-2;
+  }
+  
+  .ps-menu-button {
+    @apply text-sm rounded-md transition-colors;
+  }
+  
+  .ps-menu-button:hover {
+    @apply bg-gray-100;
+  }
+  
+  .ps-menu-button.ps-active {
+    @apply bg-blue-50 text-blue-700 border-blue-200;
+  }
+  
+  .ps-submenu-content {
+    @apply bg-white border-l-2 border-gray-100 ml-4;
+  }
+  
+  .ps-submenu-content .ps-menu-button {
+    @apply text-xs;
+  }
+  
+  /* Mobile specific styles */
+  @media (max-width: 768px) {
+    .ps-sidebar-root {
+      @apply w-full max-w-[280px];
+    }
+    
+    .ps-menu-button {
+      @apply py-2 px-3;
+    }
+    
+    .ps-submenu-content {
+      @apply ml-2;
+    }
+  }
+  
+  /* Safe area support for devices with notches */
+  @supports (padding: max(0px)) {
+    .mobile-header {
+      padding-top: max(1rem, env(safe-area-inset-top));
+    }
+  }
+  
+  /* Touch-friendly improvements */
+  @media (pointer: coarse) {
+    .ps-menu-button {
+      @apply min-h-[44px];
+    }
+    
+    button, [role="button"] {
+      @apply min-h-[44px] min-w-[44px];
+    }
+  }
+}
+
 :root {
   font-family: 'Work Sans', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -61,6 +130,10 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
+  /* Improve touch scrolling on mobile */
+  -webkit-overflow-scrolling: touch;
 }
 
 h1 {

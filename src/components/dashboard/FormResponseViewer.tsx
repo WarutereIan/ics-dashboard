@@ -127,9 +127,122 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
       );
 
     case 'LIKERT_SCALE':
+      if (!value || typeof value !== 'object') {
+        return <div className="text-xs text-gray-400 leading-tight">No responses</div>;
+      }
+      
+      // Handle new Likert scale structure with per-statement responses
+      const responses = Object.entries(value).map(([statementId, scaleValue]) => {
+        // Check if question has statements (new structure) or is old structure
+        if (!question.statements || question.statements.length === 0) {
+          // Handle old Likert scale structure
+          return {
+            statementId,
+            statement: `Statement ${statementId}`,
+            response: String(scaleValue),
+            scaleType: '5_POINT' as const // Default for old structure
+          };
+        }
+        
+        const statement = question.statements.find(s => s.id === statementId);
+        if (!statement) return null;
+        
+        // Get scale options for this statement
+        const getScaleOptions = (scaleType: '3_POINT' | '5_POINT' | '7_POINT', customLabels?: any) => {
+          switch (scaleType) {
+            case '3_POINT':
+              return [
+                { value: '1', label: customLabels?.negative || question.defaultLabels?.negative || 'Disagree' },
+                { value: '2', label: customLabels?.neutral || question.defaultLabels?.neutral || 'Neutral' },
+                { value: '3', label: customLabels?.positive || question.defaultLabels?.positive || 'Agree' }
+              ];
+            case '5_POINT':
+              return [
+                { value: '1', label: 'Strongly disagree' },
+                { value: '2', label: 'Disagree' },
+                { value: '3', label: 'Neither agree nor disagree' },
+                { value: '4', label: 'Agree' },
+                { value: '5', label: 'Strongly agree' }
+              ];
+            case '7_POINT':
+              return [
+                { value: '1', label: 'Strongly disagree' },
+                { value: '2', label: 'Disagree' },
+                { value: '3', label: 'Somewhat disagree' },
+                { value: '4', label: 'Neither agree nor disagree' },
+                { value: '5', label: 'Somewhat agree' },
+                { value: '6', label: 'Agree' },
+                { value: '7', label: 'Strongly agree' }
+              ];
+            default:
+              return [
+                { value: '1', label: 'Strongly disagree' },
+                { value: '2', label: 'Disagree' },
+                { value: '3', label: 'Neither agree nor disagree' },
+                { value: '4', label: 'Agree' },
+                { value: '5', label: 'Strongly agree' }
+              ];
+          }
+        };
+        
+        const scaleOptions = getScaleOptions(statement.scaleType, statement.customLabels);
+        const selectedOption = scaleOptions.find(opt => opt.value === scaleValue);
+        
+        return {
+          statementId,
+          statement: statement.text,
+          response: selectedOption ? `${selectedOption.value} (${selectedOption.label})` : String(scaleValue),
+          scaleType: statement.scaleType,
+          scaleOptions
+        };
+      }).filter((response): response is NonNullable<typeof response> => response !== null);
+      
+      if (responses.length === 0) {
+        return <div className="text-xs text-gray-400 leading-tight">No responses</div>;
+      }
+      
+      if (isEditable) {
+        return (
+          <div className="space-y-2">
+            {responses.map((response, index) => (
+              <div key={index} className="space-y-1">
+                <div className="text-xs font-medium text-gray-700">{response.statement}</div>
+                <Select
+                  value={String(value[response.statementId] || '')}
+                  onValueChange={(newValue) => {
+                    if (onValueChange) {
+                      const newResponses = { ...value, [response.statementId]: newValue };
+                      onValueChange(newResponses);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-6 text-xs">
+                    <SelectValue placeholder="Select response..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {response.scaleOptions?.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.value} - {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="text-gray-400 text-[10px]">{response.scaleType.replace('_', '-')} scale</div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+      
       return (
-        <div className="text-xs leading-tight">
-          {value ? `${value.value} (${value.label})` : '-'}
+        <div className="space-y-1">
+          {responses.map((response, index) => (
+            <div key={index} className="text-xs leading-tight">
+              <div className="font-medium text-gray-700">{response.statement}</div>
+              <div className="text-gray-600">{response.response}</div>
+              <div className="text-gray-400 text-[10px]">{response.scaleType.replace('_', '-')} scale</div>
+            </div>
+          ))}
         </div>
       );
 
