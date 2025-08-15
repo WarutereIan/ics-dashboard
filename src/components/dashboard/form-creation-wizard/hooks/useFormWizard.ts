@@ -750,15 +750,7 @@ function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionTyp
         ],
       };
     
-    case 'DROPDOWN':
-      return {
-        ...baseQuestion,
-        options: [
-          { id: uuidv4(), label: 'Option 1', value: 'option1' },
-          { id: uuidv4(), label: 'Option 2', value: 'option2' },
-        ],
-        placeholder: 'Select an option...',
-      };
+
     
 
     case 'LIKERT_SCALE':

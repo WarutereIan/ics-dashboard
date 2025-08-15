@@ -17,6 +17,11 @@ function ProjectFormWrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
+function FormCreationWizardWrapper() {
+  const { formId } = useParams<{ formId: string }>();
+  return <FormCreationWizard formId={formId} />;
+}
+
 export function FormRoutes() {
   return (
     <Routes>
@@ -30,14 +35,14 @@ export function FormRoutes() {
       {/* Create new form */}
       <Route path="/create" element={
         <ProjectFormWrapper>
-          <FormCreationWizard />
+          <FormCreationWizard formId={undefined} />
         </ProjectFormWrapper>
       } />
       
       {/* Edit existing form */}
       <Route path="/edit/:formId" element={
         <ProjectFormWrapper>
-          <FormCreationWizard />
+          <FormCreationWizardWrapper />
         </ProjectFormWrapper>
       } />
       

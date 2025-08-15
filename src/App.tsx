@@ -45,7 +45,7 @@ function App() {
             <ReportProvider>
               <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<PublicLanding />} />
+        <Route path="/" element={<Login />} />
         
         {/* Public form filling routes */}
         <Route path="/fill/:formId" element={<PublicFormFiller />} />

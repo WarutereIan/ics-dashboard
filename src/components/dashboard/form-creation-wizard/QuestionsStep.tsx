@@ -61,7 +61,6 @@ export function QuestionsStep({
         return <ShortTextQuestionEditor {...commonProps} question={question as any} />;
       case 'SINGLE_CHOICE':
       case 'YES_NO':
-      case 'DROPDOWN':
         return <SingleChoiceQuestionEditor {...commonProps} question={question as any} />;
       case 'MULTIPLE_CHOICE':
         return <MultipleChoiceQuestionEditor {...commonProps} question={question} />;

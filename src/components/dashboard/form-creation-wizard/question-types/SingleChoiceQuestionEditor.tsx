@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
@@ -181,21 +181,33 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
             )}
             
                          {question.displayType === 'RADIO' ? (
-               <RadioGroup>
+               <div className="space-y-3">
                  {question.options.map((option) => (
                    <div key={option.id} className="flex items-center space-x-2">
-                     <RadioGroupItem value={String(option.value)} id={option.id} />
-                     <Label htmlFor={option.id}>{option.label}</Label>
+                     <input
+                       type="radio"
+                       id={`preview-${option.id}`}
+                       name={`preview-${question.id}`}
+                       value={String(option.value)}
+                       className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                     />
+                     <Label htmlFor={`preview-${option.id}`}>{option.label}</Label>
                    </div>
                  ))}
                  {question.allowOther && (
                    <div className="flex items-center space-x-2">
-                     <RadioGroupItem value="other" id="other" />
-                     <Label htmlFor="other">Other:</Label>
+                     <input
+                       type="radio"
+                       id="preview-other"
+                       name={`preview-${question.id}`}
+                       value="other"
+                       className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                     />
+                     <Label htmlFor="preview-other">Other:</Label>
                      <Input placeholder="Please specify..." className="flex-1" />
                    </div>
                  )}
-               </RadioGroup>
+               </div>
              ) : (
                <Select>
                  <SelectTrigger>

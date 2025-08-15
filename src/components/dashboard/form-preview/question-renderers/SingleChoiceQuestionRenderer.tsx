@@ -1,5 +1,4 @@
 import React from 'react';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BaseQuestionRenderer, BaseQuestionRendererProps } from './BaseQuestionRenderer';
@@ -44,18 +43,18 @@ export function SingleChoiceQuestionRenderer({
   // Radio button display
   return (
     <BaseQuestionRenderer question={question} error={error} isPreviewMode={isPreviewMode}>
-      <RadioGroup
-        value={value || ''}
-        onValueChange={onChange}
-        disabled={isPreviewMode}
-        className="space-y-3"
-      >
+      <div className="space-y-3">
         {question.options.map((option) => (
           <div key={option.id} className="flex items-center space-x-2">
-            <RadioGroupItem 
-              value={option.value.toString()} 
+            <input
+              type="radio"
               id={`${question.id}-${option.id}`}
+              name={question.id}
+              value={option.value.toString()}
+              checked={value === option.value.toString()}
+              onChange={(e) => onChange?.(e.target.value)}
               disabled={isPreviewMode}
+              className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             />
             <Label 
               htmlFor={`${question.id}-${option.id}`}
@@ -65,7 +64,7 @@ export function SingleChoiceQuestionRenderer({
             </Label>
           </div>
         ))}
-      </RadioGroup>
+      </div>
     </BaseQuestionRenderer>
   );
 }

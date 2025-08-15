@@ -5,7 +5,7 @@ import {
   NumberQuestionRenderer,
   SingleChoiceQuestionRenderer,
   MultipleChoiceQuestionRenderer,
-  DropdownQuestionRenderer,
+
   LikertScaleQuestionRenderer,
   DateQuestionRenderer,
   SliderQuestionRenderer,
@@ -72,16 +72,7 @@ export function QuestionRenderer({
         />
       );
 
-    case 'DROPDOWN':
-      return (
-        <DropdownQuestionRenderer
-          question={question}
-          value={value}
-          onChange={onChange}
-          error={error}
-          isPreviewMode={isPreviewMode}
-        />
-      );
+
 
     case 'LIKERT_SCALE':
       return (

@@ -97,17 +97,7 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
       );
 
     case 'SINGLE_CHOICE':
-    case 'DROPDOWN':
-      if (question.options) {
-        const selectedOption = question.options.find(opt => opt.value === value);
-        return (
-          <div className="text-xs leading-tight">
-            {selectedOption ? selectedOption.label : value || '-'}
-          </div>
-        );
-      }
-      return <div className="text-xs leading-tight">{value || '-'}</div>;
-
+   
     case 'MULTIPLE_CHOICE':
       if (Array.isArray(value) && question.options) {
         const selectedLabels = value
@@ -541,7 +531,7 @@ export function FormResponseViewer() {
             if (value !== undefined && value !== null) {
               if (Array.isArray(value)) {
                 displayValue = value.join('; ');
-              } else if (question.type === 'SINGLE_CHOICE' || question.type === 'DROPDOWN') {
+              } else if (question.type === 'SINGLE_CHOICE') {
                 const option = question.options?.find(opt => opt.value === value);
                 displayValue = option ? option.label : String(value);
               } else {

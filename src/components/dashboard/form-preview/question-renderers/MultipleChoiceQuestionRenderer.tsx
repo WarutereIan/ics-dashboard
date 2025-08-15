@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { BaseQuestionRenderer, BaseQuestionRendererProps } from './BaseQuestionRenderer';
@@ -107,13 +106,13 @@ export function MultipleChoiceQuestionRenderer({
           
           return (
             <div key={option.id} className="flex items-center space-x-2">
-              <Checkbox
+              <input
+                type="checkbox"
                 id={`${question.id}-${option.id}`}
                 checked={isSelected}
-                onCheckedChange={(checked) => 
-                  handleOptionChange(option.value.toString(), checked as boolean)
-                }
+                onChange={(e) => handleOptionChange(option.value.toString(), e.target.checked)}
                 disabled={isDisabled}
+                className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               />
               <Label 
                 htmlFor={`${question.id}-${option.id}`}
@@ -130,15 +129,17 @@ export function MultipleChoiceQuestionRenderer({
         {/* Other option */}
         {question.allowOther && (
           <div className="flex items-center space-x-2">
-            <Checkbox
+            <input
+              type="checkbox"
               id={`${question.id}-other`}
               checked={value.some(v => v.startsWith('other:'))}
-              onCheckedChange={handleOtherToggle}
+              onChange={(e) => handleOtherToggle(e.target.checked)}
               disabled={isPreviewMode || !!(
                 question.maxSelections && 
                 !value.some(v => v.startsWith('other:')) && 
                 value.length >= question.maxSelections
               )}
+              className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             />
             <Label 
               htmlFor={`${question.id}-other`}

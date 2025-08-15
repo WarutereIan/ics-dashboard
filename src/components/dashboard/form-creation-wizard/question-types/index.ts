@@ -19,7 +19,7 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   DATETIME: 'Date & Time',
   SINGLE_CHOICE: 'Single Choice',
   MULTIPLE_CHOICE: 'Multiple Choice',
-  DROPDOWN: 'Dropdown',
+
   LIKERT_SCALE: 'Likert Scale',
   YES_NO: 'Yes/No',
   SLIDER: 'Slider',
@@ -38,7 +38,7 @@ export const QUESTION_TYPE_DESCRIPTIONS: Record<QuestionType, string> = {
   DATETIME: 'Date and time picker',
   SINGLE_CHOICE: 'Radio buttons or dropdown for one selection',
   MULTIPLE_CHOICE: 'Checkboxes for multiple selections',
-  DROPDOWN: 'Select dropdown menu',
+
   LIKERT_SCALE: 'Agreement scale (Strongly Disagree to Strongly Agree)',
   YES_NO: 'Simple yes/no question',
   SLIDER: 'Range slider for numeric values',
@@ -52,7 +52,7 @@ export const QUESTION_TYPE_CATEGORIES = {
   'Text Input': ['SHORT_TEXT', 'EMAIL', 'PHONE'],
   'Numeric Input': ['NUMBER', 'SLIDER'],
   'Date & Time': ['DATE', 'DATETIME'],
-  'Choice Questions': ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'DROPDOWN', 'YES_NO'],
+  'Choice Questions': ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'YES_NO'],
   'Media Upload': ['IMAGE_UPLOAD', 'VIDEO_UPLOAD', 'AUDIO_UPLOAD', 'FILE_UPLOAD'],
   'Advanced': ['LIKERT_SCALE'],
 } as const;

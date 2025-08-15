@@ -1,5 +1,4 @@
 import React from 'react';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { BaseQuestionRenderer, BaseQuestionRendererProps } from './BaseQuestionRenderer';
 import { LikertScaleQuestion, LikertScaleStatement } from '../../form-creation-wizard/types';
@@ -89,19 +88,18 @@ export function LikertScaleQuestionRenderer({
               
               {/* Likert Scale */}
               <div className="flex justify-center">
-                <RadioGroup
-                  value={value[statement.id] || ''}
-                  onValueChange={(scaleValue) => handleStatementChange(statement.id, scaleValue)}
-                  disabled={isPreviewMode}
-                  className="flex items-center gap-6"
-                >
+                <div className="grid grid-cols-7 gap-4 w-full max-w-4xl">
                   {scaleOptions.map((option) => (
-                    <div key={option.value} className="flex flex-col items-center space-y-2">
-                      <RadioGroupItem
-                        value={option.value}
+                    <div key={option.value} className="flex flex-col items-center space-y-1">
+                      <input
+                        type="radio"
                         id={`${question.id}-${index}-${option.value}`}
+                        name={`${question.id}-${index}`}
+                        value={option.value}
+                        checked={value[statement.id] === option.value}
+                        onChange={(e) => handleStatementChange(statement.id, e.target.value)}
                         disabled={isPreviewMode}
-                        className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       />
                       <Label 
                         htmlFor={`${question.id}-${index}-${option.value}`}
@@ -117,7 +115,7 @@ export function LikertScaleQuestionRenderer({
                       </Label>
                     </div>
                   ))}
-                </RadioGroup>
+                </div>
               </div>
             </div>
           );

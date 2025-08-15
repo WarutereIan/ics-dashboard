@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { BaseQuestionEditor } from './BaseQuestionEditor';
@@ -223,22 +223,26 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
                          <div className="space-y-2">
                {question.options.map((option) => (
                  <div key={option.id} className="flex items-center space-x-2">
-                   <Checkbox 
-                     id={option.id} 
+                   <input
+                     type="checkbox"
+                     id={`preview-${option.id}`}
                      checked={selectedOptions.includes(option.id)}
-                     onCheckedChange={() => handleOptionToggle(option.id)}
+                     onChange={() => handleOptionToggle(option.id)}
+                     className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                    />
-                   <Label htmlFor={option.id}>{option.label}</Label>
+                   <Label htmlFor={`preview-${option.id}`}>{option.label}</Label>
                  </div>
                ))}
                {question.allowOther && (
                  <div className="flex items-center space-x-2">
-                   <Checkbox 
-                     id="other" 
+                   <input
+                     type="checkbox"
+                     id="preview-other"
                      checked={selectedOptions.includes('other')}
-                     onCheckedChange={handleOtherToggle}
+                     onChange={(e) => handleOtherToggle(e.target.checked)}
+                     className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                    />
-                   <Label htmlFor="other">Other:</Label>
+                   <Label htmlFor="preview-other">Other:</Label>
                    <Input 
                      placeholder="Please specify..." 
                      className="flex-1" 

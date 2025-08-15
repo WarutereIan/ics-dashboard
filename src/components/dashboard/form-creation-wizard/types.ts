@@ -26,7 +26,7 @@ export type QuestionType =
   | 'DATETIME'            // Date and time picker
   | 'SINGLE_CHOICE'       // Radio buttons
   | 'MULTIPLE_CHOICE'     // Checkboxes
-  | 'DROPDOWN'            // Select dropdown
+  
   | 'LIKERT_SCALE'        // Likert scale (Strongly Disagree to Strongly Agree)
   | 'YES_NO'              // Simple yes/no
   | 'SLIDER'              // Range slider
@@ -123,12 +123,7 @@ export interface MultipleChoiceQuestion extends BaseQuestion {
   allowOther?: boolean;
 }
 
-export interface DropdownQuestion extends BaseQuestion {
-  type: 'DROPDOWN';
-  options: ChoiceOption[];
-  placeholder?: string;
-  allowSearch?: boolean;
-}
+
 
 
 
@@ -233,7 +228,7 @@ export type FormQuestion =
   | SingleChoiceQuestion
   | YesNoQuestion
   | MultipleChoiceQuestion
-  | DropdownQuestion
+
   | LikertScaleQuestion
   | DateQuestion
   | SliderQuestion
