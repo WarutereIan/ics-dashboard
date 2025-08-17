@@ -71,7 +71,11 @@
   /* Mobile specific styles */
   @media (max-width: 768px) {
     .ps-sidebar-root {
-      @apply w-full max-w-[280px];
+      @apply w-full max-w-[280px] h-screen;
+    }
+    
+    .ps-sidebar-container {
+      @apply h-full flex flex-col;
     }
     
     .ps-menu-button {
@@ -80,6 +84,11 @@
     
     .ps-submenu-content {
       @apply ml-2;
+    }
+    
+    /* Ensure proper scrolling on mobile */
+    .ps-menu-root {
+      @apply overflow-y-auto;
     }
   }
   

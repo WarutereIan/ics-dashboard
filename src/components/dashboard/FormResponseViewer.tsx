@@ -126,6 +126,34 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
         </div>
       );
 
+    case 'LOCATION':
+      if (!value) {
+        return <div className="text-xs text-gray-400 leading-tight">No location captured</div>;
+      }
+      
+      const formatCoordinates = (lat: number, lng: number) => {
+        const latDir = lat >= 0 ? 'N' : 'S';
+        const lngDir = lng >= 0 ? 'E' : 'W';
+        return `${Math.abs(lat).toFixed(6)}° ${latDir}, ${Math.abs(lng).toFixed(6)}° ${lngDir}`;
+      };
+      
+      return (
+        <div className="text-xs leading-tight space-y-1">
+          <div className="font-medium">📍 {formatCoordinates(value.latitude, value.longitude)}</div>
+          {value.accuracy && (
+            <div className="text-gray-600">Accuracy: {value.accuracy}m</div>
+          )}
+          {value.address && (
+            <div className="text-gray-600 truncate" title={value.address}>
+              {value.address}
+            </div>
+          )}
+          <div className="text-gray-500 text-xs">
+            {new Date(value.timestamp).toLocaleString()}
+          </div>
+        </div>
+      );
+
     case 'LIKERT_SCALE':
       if (!value || typeof value !== 'object') {
         return <div className="text-xs text-gray-400 leading-tight">No responses</div>;

@@ -30,6 +30,7 @@ export type QuestionType =
   | 'LIKERT_SCALE'        // Likert scale (Strongly Disagree to Strongly Agree)
   | 'YES_NO'              // Simple yes/no
   | 'SLIDER'              // Range slider
+  | 'LOCATION'            // GPS location capture
   | 'IMAGE_UPLOAD'        // Image upload
   | 'VIDEO_UPLOAD'        // Video upload
   | 'AUDIO_UPLOAD'        // Audio upload
@@ -207,6 +208,16 @@ export interface FileUploadQuestion extends BaseQuestion {
   maxFileNameLength?: number;
 }
 
+export interface LocationQuestion extends BaseQuestion {
+  type: 'LOCATION';
+  accuracy?: number; // Required accuracy in meters
+  timeout?: number; // Timeout in milliseconds
+  enableHighAccuracy?: boolean; // Use high accuracy GPS
+  showMap?: boolean; // Show map preview
+  allowManualInput?: boolean; // Allow manual coordinate entry
+  captureAddress?: boolean; // Also capture address from coordinates
+}
+
 export interface AudioUploadQuestion extends BaseQuestion {
   type: 'AUDIO_UPLOAD';
   maxFiles?: number;
@@ -232,6 +243,7 @@ export type FormQuestion =
   | LikertScaleQuestion
   | DateQuestion
   | SliderQuestion
+  | LocationQuestion
   | ImageUploadQuestion
   | VideoUploadQuestion
   | FileUploadQuestion

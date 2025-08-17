@@ -798,6 +798,16 @@ function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionTyp
         showValue: true,
       };
 
+    case 'LOCATION':
+      return {
+        ...baseQuestion,
+        enableHighAccuracy: true,
+        timeout: 10000, // 10 seconds
+        allowManualInput: true,
+        captureAddress: false,
+        showMap: false,
+      };
+
     case 'IMAGE_UPLOAD':
       return {
         ...baseQuestion,

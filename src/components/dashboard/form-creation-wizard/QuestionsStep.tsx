@@ -17,6 +17,7 @@ import {
   NumberQuestionEditor,
   DateQuestionEditor,
   LikertScaleQuestionEditor,
+  LocationQuestionEditor,
   MediaUploadQuestionEditor,
 } from './question-types';
 
@@ -71,6 +72,8 @@ export function QuestionsStep({
         return <DateQuestionEditor {...commonProps} question={question} />;
       case 'LIKERT_SCALE':
         return <LikertScaleQuestionEditor {...commonProps} question={question as any} />;
+      case 'LOCATION':
+        return <LocationQuestionEditor {...commonProps} question={question as any} />;
       case 'IMAGE_UPLOAD':
       case 'VIDEO_UPLOAD':
       case 'AUDIO_UPLOAD':

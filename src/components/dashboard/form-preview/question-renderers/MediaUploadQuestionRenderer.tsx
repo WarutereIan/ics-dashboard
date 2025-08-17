@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload, X, File, Image, Video, Music } from 'lucide-react';
+import { Upload, X, File, Image, Video, Music, Camera, Mic } from 'lucide-react';
 import { FormQuestion } from '../../form-creation-wizard/types';
 import { BaseQuestionRenderer } from './BaseQuestionRenderer';
 
@@ -20,6 +20,28 @@ export function MediaUploadQuestionRenderer({
   disabled = false 
 }: MediaUploadQuestionRendererProps) {
   const [dragActive, setDragActive] = useState(false);
+  const [showCaptureOptions, setShowCaptureOptions] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    };
+  }, []);
 
   const getMediaTypeConfig = () => {
     switch (question.type) {
@@ -73,6 +95,268 @@ export function MediaUploadQuestionRenderer({
 
   const config = getMediaTypeConfig();
   const IconComponent = config.icon;
+
+  // Check if device supports media capture
+  const supportsMediaCapture = () => {
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  };
+
+  // Check if device has camera
+  const hasCamera = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.some(device => device.kind === 'videoinput');
+    } catch {
+      return false;
+    }
+  };
+
+  // Check if device has microphone
+  const hasMicrophone = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.some(device => device.kind === 'audioinput');
+    } catch {
+      return false;
+    }
+  };
+
+  // Start camera capture for images
+  const startImageCapture = async () => {
+    try {
+      setIsCapturing(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Use back camera if available
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        } 
+      });
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Unable to access camera. Please check permissions.');
+      setIsCapturing(false);
+    }
+  };
+
+  // Start camera capture for videos
+  const startVideoCapture = async () => {
+    try {
+      setIsCapturing(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: true 
+      });
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error accessing camera/microphone:', error);
+      alert('Unable to access camera/microphone. Please check permissions.');
+      setIsCapturing(false);
+    }
+  };
+
+  // Start video recording
+  const startVideoRecording = async () => {
+    if (!streamRef.current) return;
+
+    try {
+      const mediaRecorder = new MediaRecorder(streamRef.current, {
+        mimeType: 'video/webm;codecs=vp9'
+      });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      recordingChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordingChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordingChunksRef.current, { type: 'video/webm' });
+        const file = new (window as any).File([blob], `recorded-video-${Date.now()}.webm`, { type: 'video/webm' });
+        handleFileSelect([file] as any);
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      // Start recording timer
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error starting video recording:', error);
+      alert('Unable to start video recording.');
+    }
+  };
+
+  // Stop video recording
+  const stopVideoRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    }
+  };
+
+  // Start audio recording
+  const startAudioRecording = async () => {
+    if (!streamRef.current) return;
+
+    try {
+      const mediaRecorder = new MediaRecorder(streamRef.current, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      recordingChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordingChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordingChunksRef.current, { type: 'audio/webm' });
+        const file = new (window as any).File([blob], `recorded-audio-${Date.now()}.webm`, { type: 'audio/webm' });
+        handleFileSelect([file] as any);
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      // Start recording timer
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error starting audio recording:', error);
+      alert('Unable to start audio recording.');
+    }
+  };
+
+  // Stop audio recording
+  const stopAudioRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    }
+  };
+
+  // Start audio capture
+  const startAudioCapture = async () => {
+    try {
+      setIsCapturing(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { 
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100
+        } 
+      });
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      alert('Unable to access microphone. Please check permissions.');
+      setIsCapturing(false);
+    }
+  };
+
+  // Capture image from camera
+  const captureImage = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+
+    // Set canvas size to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to blob
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new (window as any).File([blob], `captured-image-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        handleFileSelect([file] as any);
+      }
+    }, 'image/jpeg', 0.8);
+
+    stopCapture();
+  };
+
+  // Stop media capture
+  const stopCapture = () => {
+    // Stop recording if active
+    if (isRecording) {
+      if (question.type === 'VIDEO_UPLOAD') {
+        stopVideoRecording();
+      } else if (question.type === 'AUDIO_UPLOAD') {
+        stopAudioRecording();
+      }
+    }
+    
+    // Stop media stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
+    // Clear recording timer
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    
+    setIsCapturing(false);
+    setIsRecording(false);
+    setRecordingTime(0);
+    setShowCaptureOptions(false);
+  };
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -137,6 +421,185 @@ export function MediaUploadQuestionRenderer({
   return (
     <BaseQuestionRenderer question={question}>
       <div className="space-y-4">
+        {/* Capture Options for Image/Video/Audio */}
+        {supportsMediaCapture() && (question.type === 'IMAGE_UPLOAD' || question.type === 'VIDEO_UPLOAD' || question.type === 'AUDIO_UPLOAD') && (
+          <Card className="border border-gray-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-900">
+                  Capture from Device
+                </h3>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCaptureOptions(!showCaptureOptions)}
+                  disabled={disabled}
+                >
+                  {showCaptureOptions ? 'Hide' : 'Show'} Options
+                </Button>
+              </div>
+              
+              {showCaptureOptions && (
+                <div className="space-y-3">
+                  {question.type === 'IMAGE_UPLOAD' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={startImageCapture}
+                      disabled={disabled || isCapturing}
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      Capture Photo
+                    </Button>
+                  )}
+                  
+                  {question.type === 'VIDEO_UPLOAD' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={startVideoCapture}
+                      disabled={disabled || isCapturing}
+                    >
+                      <Video className="w-4 h-4 mr-2" />
+                      Record Video
+                    </Button>
+                  )}
+                  
+                  {question.type === 'AUDIO_UPLOAD' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={startAudioCapture}
+                      disabled={disabled || isCapturing}
+                    >
+                      <Mic className="w-4 h-4 mr-2" />
+                      Record Audio
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Camera/Media Capture Interface */}
+        {isCapturing && (
+          <Card className="border border-gray-200">
+            <CardContent className="p-4">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {question.type === 'IMAGE_UPLOAD' ? 'Take Photo' : 
+                   question.type === 'VIDEO_UPLOAD' ? 'Record Video' : 'Record Audio'}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {question.type === 'IMAGE_UPLOAD' ? 'Position your camera and click capture' :
+                   question.type === 'VIDEO_UPLOAD' ? (isRecording ? 'Recording... Click stop when done' : 'Click start to begin recording') :
+                   question.type === 'AUDIO_UPLOAD' ? (isRecording ? 'Recording audio... Click stop when done' : 'Click start to begin recording') :
+                   'Position your camera and click capture'}
+                </p>
+                {isRecording && (
+                  <div className="mt-2">
+                    <Badge variant="destructive" className="text-sm">
+                      Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              
+              {(question.type === 'IMAGE_UPLOAD' || question.type === 'VIDEO_UPLOAD') && (
+                <div className="relative mb-4">
+                  <video
+                    ref={videoRef}
+                    className="w-full max-w-md mx-auto rounded-lg border border-gray-300"
+                    autoPlay
+                    muted
+                    playsInline
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    className="hidden"
+                  />
+                </div>
+              )}
+              
+              <div className="flex justify-center space-x-3">
+                {question.type === 'IMAGE_UPLOAD' && (
+                  <Button
+                    type="button"
+                    onClick={captureImage}
+                    disabled={disabled}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Capture Photo
+                  </Button>
+                )}
+                
+                {question.type === 'VIDEO_UPLOAD' && !isRecording && (
+                  <Button
+                    type="button"
+                    onClick={startVideoRecording}
+                    disabled={disabled}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Start Recording
+                  </Button>
+                )}
+                
+                {question.type === 'VIDEO_UPLOAD' && isRecording && (
+                  <Button
+                    type="button"
+                    onClick={stopVideoRecording}
+                    disabled={disabled}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Video className="w-4 h-4 mr-2" />
+                    Stop Recording
+                  </Button>
+                )}
+                
+                {question.type === 'AUDIO_UPLOAD' && !isRecording && (
+                  <Button
+                    type="button"
+                    onClick={startAudioRecording}
+                    disabled={disabled}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Mic className="w-4 h-4 mr-2" />
+                    Start Recording
+                  </Button>
+                )}
+                
+                {question.type === 'AUDIO_UPLOAD' && isRecording && (
+                  <Button
+                    type="button"
+                    onClick={stopAudioRecording}
+                    disabled={disabled}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Mic className="w-4 h-4 mr-2" />
+                    Stop Recording
+                  </Button>
+                )}
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={stopCapture}
+                  disabled={disabled}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Upload Area */}
         <Card 
           className={`border-2 border-dashed transition-colors ${

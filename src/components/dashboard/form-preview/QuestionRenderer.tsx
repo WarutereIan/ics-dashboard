@@ -9,6 +9,7 @@ import {
   LikertScaleQuestionRenderer,
   DateQuestionRenderer,
   SliderQuestionRenderer,
+  LocationQuestionRenderer,
   MediaUploadQuestionRenderer
 } from './question-renderers';
 
@@ -104,6 +105,17 @@ export function QuestionRenderer({
           value={value}
           onChange={onChange}
           error={error}
+          isPreviewMode={isPreviewMode}
+        />
+      );
+
+    case 'LOCATION':
+      return (
+        <LocationQuestionRenderer
+          question={question}
+          value={value}
+          onChange={onChange}
+          disabled={isPreviewMode}
           isPreviewMode={isPreviewMode}
         />
       );

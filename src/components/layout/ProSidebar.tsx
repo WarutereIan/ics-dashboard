@@ -28,10 +28,10 @@ export function ProSidebar() {
     <Sidebar 
       width="270px" 
       backgroundColor="rgb(249,249,249,0.95)"
-      className="border-r border-gray-200"
+      className="border-r border-gray-200 h-screen md:h-auto flex flex-col"
     >
       {/* Mobile close button */}
-      <div className="flex justify-end p-4 md:hidden">
+      <div className="flex justify-end p-4 md:hidden flex-shrink-0">
         <Button
           variant="ghost"
           size="icon"
@@ -43,7 +43,7 @@ export function ProSidebar() {
       </div>
 
       {/* Organization Logo/Header */}
-      <div className="flex flex-col items-center px-4 pb-6">
+      <div className="flex flex-col items-center px-4 pb-6 flex-shrink-0">
         <img
           src="/logo.png"
           alt="Organization Logo"
@@ -55,7 +55,8 @@ export function ProSidebar() {
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      {/* Scrollable menu container */}
+      <div className="flex-1 overflow-y-auto min-h-0">
         <Menu className="px-2">
           <MenuItem 
             icon={<Target className="h-4 w-4" />} 

@@ -5,6 +5,7 @@ export { MultipleChoiceQuestionEditor } from './MultipleChoiceQuestionEditor';
 export { NumberQuestionEditor } from './NumberQuestionEditor';
 export { DateQuestionEditor } from './DateQuestionEditor';
 export { LikertScaleQuestionEditor } from './LikertScaleQuestionEditor';
+export { LocationQuestionEditor } from './LocationQuestionEditor';
 export { MediaUploadQuestionEditor } from './MediaUploadQuestionEditor';
 
 // Question type mapping for dynamic rendering
@@ -23,6 +24,7 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   LIKERT_SCALE: 'Likert Scale',
   YES_NO: 'Yes/No',
   SLIDER: 'Slider',
+  LOCATION: 'Location',
   IMAGE_UPLOAD: 'Image Upload',
   VIDEO_UPLOAD: 'Video Upload',
   AUDIO_UPLOAD: 'Audio Upload',
@@ -42,6 +44,7 @@ export const QUESTION_TYPE_DESCRIPTIONS: Record<QuestionType, string> = {
   LIKERT_SCALE: 'Agreement scale (Strongly Disagree to Strongly Agree)',
   YES_NO: 'Simple yes/no question',
   SLIDER: 'Range slider for numeric values',
+  LOCATION: 'GPS location capture with accuracy and address lookup',
   IMAGE_UPLOAD: 'Upload images with size and format restrictions',
   VIDEO_UPLOAD: 'Upload videos with duration and quality settings',
   AUDIO_UPLOAD: 'Upload audio files with duration and quality settings',
@@ -53,6 +56,6 @@ export const QUESTION_TYPE_CATEGORIES = {
   'Numeric Input': ['NUMBER', 'SLIDER'],
   'Date & Time': ['DATE', 'DATETIME'],
   'Choice Questions': ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'YES_NO'],
-  'Media Upload': ['IMAGE_UPLOAD', 'VIDEO_UPLOAD', 'AUDIO_UPLOAD', 'FILE_UPLOAD'],
+  'Location & Media': ['LOCATION', 'IMAGE_UPLOAD', 'VIDEO_UPLOAD', 'AUDIO_UPLOAD', 'FILE_UPLOAD'],
   'Advanced': ['LIKERT_SCALE'],
 } as const;
