@@ -51,6 +51,57 @@ export function ProjectReview({
         </CardContent>
       </Card>
 
+      {/* Project Overview */}
+      {(projectData.backgroundInformation || projectData.mapData || projectData.theoryOfChange) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {projectData.backgroundInformation && (
+                <div>
+                  <p className="text-sm text-gray-600 font-medium">Background Information</p>
+                  <p className="text-sm mt-1">{projectData.backgroundInformation}</p>
+                </div>
+              )}
+              
+              {projectData.mapData && (
+                <div>
+                  <p className="text-sm text-gray-600 font-medium">Map Visualization</p>
+                  <p className="text-sm mt-1">
+                    <span className="font-medium">{projectData.mapData.title}</span> - {projectData.mapData.description}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Type: {projectData.mapData.type} | Visualization: {projectData.mapData.visualizationType}
+                  </p>
+                </div>
+              )}
+              
+              {projectData.theoryOfChange && (
+                <div>
+                  <p className="text-sm text-gray-600 font-medium">Theory of Change</p>
+                  {projectData.theoryOfChange.type === 'image' ? (
+                    <div className="mt-2">
+                      <img 
+                        src={projectData.theoryOfChange.content} 
+                        alt="Theory of Change" 
+                        className="max-w-xs border rounded-lg"
+                      />
+                      {projectData.theoryOfChange.description && (
+                        <p className="text-sm mt-2">{projectData.theoryOfChange.description}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm mt-1">{projectData.theoryOfChange.content}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Summary Statistics */}
       <div className="grid grid-cols-3 gap-4">
         <Card>

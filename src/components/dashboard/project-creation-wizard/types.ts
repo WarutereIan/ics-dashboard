@@ -7,6 +7,27 @@ export interface ProjectFormData {
   startDate: Date | undefined;
   endDate: Date | undefined;
   budget: number;
+  // New fields for project overview
+  backgroundInformation?: string;
+  mapData?: ProjectMapFormData;
+  theoryOfChange?: TheoryOfChangeFormData;
+}
+
+export interface ProjectMapFormData {
+  type: 'data-visualization';
+  title: string;
+  description: string;
+  mapProvider: 'openstreetmap' | 'google-maps';
+  visualizationType: 'markers' | 'heatmap' | 'choropleth';
+  center?: { lat: number; lng: number };
+  zoom?: number;
+  dataSource: 'form-responses';
+}
+
+export interface TheoryOfChangeFormData {
+  type: 'image' | 'text';
+  content: string;
+  description?: string;
 }
 
 export interface OutcomeFormData {

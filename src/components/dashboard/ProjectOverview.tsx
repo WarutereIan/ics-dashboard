@@ -1,27 +1,22 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Calendar, DollarSign, Target, AlertTriangle } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Calendar, DollarSign, Target, AlertTriangle, FileText, MapPin, Edit } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { RadialGauge } from '@/components/visualizations/RadialGauge';
 import { BulletChart } from '@/components/visualizations/BulletChart';
 import { StackedBarChart } from '@/components/visualizations/StackedBarChart';
 import { useDashboard } from '@/contexts/DashboardContext';
-import { getProjectOutcomes, getProjectOutputs, getProjectActivities, getProjectSubActivities } from '@/lib/icsData';
-import { OutcomeSelector } from './OutcomeSelector';
-import { OutputSelector } from './OutputSelector';
-import { ActivitySelector } from './ActivitySelector';
-import { SubactivitySelector } from './SubactivitySelector';
+import { getProjectOutcomes, getProjectActivities, getProjectSubActivities } from '@/lib/icsData';
 import { format } from 'date-fns';
+import { ProjectMapVisualization } from './ProjectMapVisualization';
 
 export function ProjectOverview() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const { user, projects } = useDashboard();
-  const [selectedOutcome, setSelectedOutcome] = useState<string | undefined>(undefined);
-  const [selectedOutput, setSelectedOutput] = useState<string | undefined>(undefined);
-  const [selectedActivity, setSelectedActivity] = useState<string | undefined>(undefined);
-  const [selectedSubactivity, setSelectedSubactivity] = useState<string | undefined>(undefined);
 
   if (!user) return null;
   if (!projectId) {
@@ -32,120 +27,10 @@ export function ProjectOverview() {
   const currentProject = projects.find(p => p.id === projectId);
   const projectName = currentProject?.name || projectId.toUpperCase();
 
-  // Hierarchy data using projectId from URL
+  // Get project data for stats
   const outcomes = user ? getProjectOutcomes(user, projectId) : [];
-  const outputs = user
-    ? (selectedOutcome
-        ? getProjectOutputs(user, projectId).filter((o: any) => o.outcomeId === selectedOutcome)
-        : getProjectOutputs(user, projectId))
-    : [];
-  const activities = user
-    ? (selectedOutcome
-    ? getProjectActivities(user, projectId).filter((a: any) => outputs.some((o: any) => o.activities?.includes(a.id)))
-        : selectedOutput
-      ? getProjectActivities(user, projectId).filter((a: any) => {
-              return outputs.some((o: any) => o.id === selectedOutput && o.activities?.includes(a.id));
-        })
-          : getProjectActivities(user, projectId))
-    : [];
-  const subactivities = user
-    ? (selectedActivity
-    ? getProjectSubActivities(user, projectId).filter((sa: any) => sa.parentId === selectedActivity)
-        : getProjectSubActivities(user, projectId))
-    : [];
-
-  // Reset lower levels when a higher level changes
-  const handleSelectOutcome = (outcomeId: string) => {
-    setSelectedOutcome(outcomeId);
-    setSelectedOutput(undefined);
-    setSelectedActivity(undefined);
-    setSelectedSubactivity(undefined);
-  };
-  const handleSelectOutput = (outputId: string) => {
-    setSelectedOutput(outputId);
-    setSelectedActivity(undefined);
-    setSelectedSubactivity(undefined);
-  };
-  const handleSelectActivity = (activityId: string) => {
-    setSelectedActivity(activityId);
-    setSelectedSubactivity(undefined);
-  };
-  const handleSelectSubactivity = (subActivityId: string) => {
-    setSelectedSubactivity(subActivityId);
-  };
-
-  // Determine what to show in summary/visualization based on deepest selection
-  let summaryTitle = currentProject?.name || projectName;
-  let summaryDescription = currentProject?.description || 'Project details not available';
-  let summaryProgress = currentProject?.progress || 0;
-  let summaryStatus: 'planning' | 'active' | 'completed' | 'on-hold' = currentProject?.status || 'active';
-
-  // Map outcome status to allowed summaryStatus values
-  const mapOutcomeStatus = (status: string): 'planning' | 'active' | 'completed' | 'on-hold' => {
-    switch (status) {
-      case 'completed':
-        return 'completed';
-      case 'on-track':
-      case 'at-risk':
-      case 'behind':
-        return 'active';
-      default:
-        return 'active';
-    }
-  };
-
-  // Map activity status to allowed summaryStatus values
-  const mapActivityStatus = (status: string): 'planning' | 'active' | 'completed' | 'on-hold' => {
-    switch (status) {
-      case 'completed':
-        return 'completed';
-      case 'on-hold':
-        return 'on-hold';
-      case 'not-started':
-        return 'planning';
-      case 'in-progress':
-        return 'active';
-      default:
-        return 'active';
-    }
-  };
-
-  if (selectedOutcome) {
-    const outcome = outcomes.find((o: any) => o.id === selectedOutcome);
-    if (outcome) {
-      summaryTitle = outcome.title;
-      summaryDescription = outcome.description;
-      summaryProgress = outcome.progress;
-      summaryStatus = mapOutcomeStatus(outcome.status);
-    }
-  }
-  if (selectedOutput) {
-    const output = outputs.find((o: any) => o.id === selectedOutput);
-    if (output) {
-      summaryTitle = output.title;
-      summaryDescription = output.description;
-      summaryProgress = Math.round((output.current / output.target) * 100);
-      summaryStatus = mapOutcomeStatus(output.status);
-    }
-  }
-  if (selectedActivity) {
-    const activity = activities.find((a: any) => a.id === selectedActivity);
-    if (activity) {
-      summaryTitle = activity.title;
-      summaryDescription = activity.description;
-      summaryProgress = activity.progress;
-      summaryStatus = mapActivityStatus(activity.status);
-    }
-  }
-  if (selectedSubactivity) {
-    const subActivity = subactivities.find((sa: any) => sa.id === selectedSubactivity);
-    if (subActivity) {
-      summaryTitle = subActivity.title;
-      summaryDescription = subActivity.description;
-      summaryProgress = subActivity.progress;
-      summaryStatus = mapActivityStatus(subActivity.status);
-    }
-  }
+  const activities = user ? getProjectActivities(user, projectId) : [];
+  const subactivities = user ? getProjectSubActivities(user, projectId) : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -169,104 +54,200 @@ export function ProjectOverview() {
         <p className="text-muted-foreground">{currentProject?.description || 'Project overview and details'}</p>
       </div>
 
-      {/* Hierarchy Selectors */}
-      <div className="flex flex-wrap gap-4 mb-4">
-        {user && (
-        <OutcomeSelector
-          user={user}
-          projectId={projectId}
-          value={selectedOutcome}
-          onSelect={handleSelectOutcome}
-        />
-        )}
-        {user && (
-        <OutputSelector
-          user={user}
-          projectId={projectId}
-          outcomeId={selectedOutcome}
-          value={selectedOutput}
-          onSelect={handleSelectOutput}
-        />
-        )}
-        {user && (
-        <ActivitySelector
-          user={user}
-          projectId={projectId}
-          outputId={selectedOutput}
-          outcomeId={selectedOutcome}
-          value={selectedActivity}
-          onSelect={handleSelectActivity}
-        />
-        )}
-        {user && (
-        <SubactivitySelector
-          user={user}
-          projectId={projectId}
-          activityId={selectedActivity}
-          value={selectedSubactivity}
-          onSelect={handleSelectSubactivity}
-        />
-        )}
+      {/* Project Navigation Links */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/dashboard/projects/${projectId}/kpi`)}
+          className="flex items-center gap-2"
+        >
+          <Target className="h-4 w-4" />
+          KPI Analytics
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/dashboard/projects/${projectId}/forms`)}
+          className="flex items-center gap-2"
+        >
+          <FileText className="h-4 w-4" />
+          Forms
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/dashboard/projects/${projectId}/media`)}
+          className="flex items-center gap-2"
+        >
+          <MapPin className="h-4 w-4" />
+          Media
+        </Button>
       </div>
 
-      {/* Summary Card */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Progress
-            </CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{summaryProgress}%</div>
-            <Progress value={summaryProgress} className="mt-2" />
-          </CardContent>
-        </Card>
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Status
-            </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <Badge className={getStatusColor(summaryStatus)}>
-              {summaryStatus?.charAt(0).toUpperCase() + summaryStatus?.slice(1)}
-            </Badge>
-          </CardContent>
-        </Card>
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Title
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{summaryTitle}</div>
-            <p className="text-xs text-muted-foreground">{summaryDescription}</p>
-          </CardContent>
-        </Card>
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Duration
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              {currentProject?.startDate && currentProject?.endDate 
-                ? `${format(currentProject.startDate, 'MMM yyyy')} - ${format(currentProject.endDate, 'MMM yyyy')}`
-                : 'Dates not available'
-              }
+      {/* Project Overview Information - Main Content */}
+      {currentProject && (
+        <div className="space-y-6">
+          {/* Project Overview Header */}
+          <div className="border-b pb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Project Overview</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Comprehensive project information including background, map visualization, and theory of change
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/dashboard/projects/${projectId}/edit`)}
+              className="flex items-center gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              Edit Overview
+            </Button>
+          </div>
 
-      {/* Visualizations and other content can be added here, using the selected hierarchy level */}
+          {/* Background Information */}
+          {currentProject.backgroundInformation && (
+            <Card className="transition-all duration-200 hover:shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  Background Information
+                </CardTitle>
+                <CardDescription>
+                  Project context, challenges, and objectives
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-sm leading-relaxed text-gray-700">{currentProject.backgroundInformation}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Map Visualization */}
+          {currentProject.mapData && (
+            <ProjectMapVisualization 
+              project={currentProject}
+              mapData={currentProject.mapData}
+            />
+          )}
+
+          {/* Theory of Change */}
+          {currentProject.theoryOfChange && (
+            <Card className="transition-all duration-200 hover:shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-purple-600" />
+                  Theory of Change
+                  {currentProject.theoryOfChange.lastUpdated && (
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      Updated {format(currentProject.theoryOfChange.lastUpdated, 'MMM dd, yyyy')}
+                    </Badge>
+                  )}
+                </CardTitle>
+                {currentProject.theoryOfChange.description && (
+                  <CardDescription>{currentProject.theoryOfChange.description}</CardDescription>
+                )}
+              </CardHeader>
+              <CardContent>
+                {currentProject.theoryOfChange.type === 'image' ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <img 
+                        src={currentProject.theoryOfChange.content} 
+                        alt="Theory of Change" 
+                        className="w-full max-w-2xl border rounded-lg shadow-sm"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <pre className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap font-sans">
+                        {currentProject.theoryOfChange.content}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Project Quick Stats */}
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-lg text-blue-900">Project Quick Stats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{outcomes.length}</div>
+                  <div className="text-sm text-blue-700">Outcomes</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{activities.length}</div>
+                  <div className="text-sm text-green-700">Activities</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">{subactivities.length}</div>
+                  <div className="text-sm text-purple-700">Sub-activities</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">{currentProject.progress}%</div>
+                  <div className="text-sm text-orange-700">Progress</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* No Overview Data Message */}
+          {!currentProject.backgroundInformation && !currentProject.mapData && !currentProject.theoryOfChange && (
+            <Card className="border-dashed">
+              <CardContent className="p-8 text-center">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Overview Information</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  This project doesn't have background information, map visualization, or theory of change configured yet.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Project overview information can be added when editing the project.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Project Duration and Status Summary */}
+      <Card className="bg-gradient-to-r from-gray-50 to-gray-100">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{currentProject?.progress || 0}%</div>
+              <div className="text-sm text-gray-600">Overall Progress</div>
+              <Progress value={currentProject?.progress || 0} className="mt-2" />
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">
+                {currentProject?.startDate && currentProject?.endDate 
+                  ? `${format(currentProject.startDate, 'MMM yyyy')} - ${format(currentProject.endDate, 'MMM yyyy')}`
+                  : 'Dates not available'
+                }
+              </div>
+              <div className="text-sm text-gray-600">Project Duration</div>
+            </div>
+            <div className="text-center">
+              <Badge className={getStatusColor(currentProject?.status || 'active')}>
+                {currentProject?.status?.charAt(0).toUpperCase() + currentProject?.status?.slice(1) || 'Active'}
+              </Badge>
+              <div className="text-sm text-gray-600 mt-1">Project Status</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -73,7 +73,7 @@ export function ReportUpload({
   maxFileSize = 50 // 50MB default
 }: ReportUploadProps) {
   const { createReportWithWorkflow } = useReport();
-  const { user } = useDashboard();
+  const { user, currentProject } = useDashboard();
   const { projectId } = useParams();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -90,6 +90,35 @@ export function ReportUpload({
     date: new Date(),
     versionControl: 'none'
   });
+
+  // Auto-fill country and project from current project context
+  React.useEffect(() => {
+    if (currentProject) {
+      // Map project country to country code
+      const countryCodeMap: Record<string, string> = {
+        'kenya': 'KE',
+        'tanzania': 'TZ',
+        'uganda': 'UG',
+        'ethiopia': 'ET'
+      };
+      
+      const countryCode = countryCodeMap[currentProject.country.toLowerCase()];
+      
+      // Find project code from project name
+      const projectCode = PROJECTS.find(p => 
+        p.name.toLowerCase() === currentProject.name.toLowerCase() ||
+        p.description.toLowerCase().includes(currentProject.name.toLowerCase())
+      )?.code;
+      
+      if (countryCode && projectCode) {
+        setCategorization(prev => ({
+          ...prev,
+          countryCode,
+          projectCode
+        }));
+      }
+    }
+  }, [currentProject]);
 
   // Report frequency state
   const [reportFrequency, setReportFrequency] = useState<'monthly' | 'quarterly' | 'annual' | 'adhoc'>('adhoc');
@@ -159,11 +188,11 @@ export function ReportUpload({
     
     if (files.length === 0) return;
 
-    // Check if categorization is complete
-    if (!categorization.countryCode || !categorization.regionCode || !categorization.projectCode || !categorization.reportTypeCode) {
+    // Check if categorization is complete (country and project are auto-filled)
+    if (!categorization.regionCode || !categorization.reportTypeCode) {
       toast({
         title: "Incomplete Categorization",
-        description: "Please complete the categorization (Country, Region, Project, Report Type) and select report frequency before uploading files.",
+        description: "Please complete the categorization (Region, Report Type) and select report frequency before uploading files.",
         variant: "destructive",
       });
       return;
@@ -367,11 +396,11 @@ export function ReportUpload({
       return;
     }
 
-    // Check if categorization is complete
-    if (!categorization.countryCode || !categorization.regionCode || !categorization.projectCode || !categorization.reportTypeCode) {
+    // Check if categorization is complete (country and project are auto-filled)
+    if (!categorization.regionCode || !categorization.reportTypeCode) {
       toast({
         title: "Incomplete Categorization",
-        description: "Please complete the categorization (Country, Region, Project, Report Type) before uploading.",
+        description: "Please complete the categorization (Region, Report Type) before uploading.",
         variant: "destructive",
       });
       return;
@@ -461,16 +490,15 @@ export function ReportUpload({
           onFilesUploaded(uploadedFiles);
         }
         
-        // Clear uploaded files and reset categorization
+        // Clear uploaded files and reset categorization (keep auto-filled country and project)
         setUploadedFiles([]);
-        setCategorization({
-          countryCode: '',
+        setCategorization(prev => ({
+          ...prev,
           regionCode: '',
-          projectCode: '',
           reportTypeCode: '',
           date: new Date(),
           versionControl: 'none'
-        });
+        }));
         setReportFrequency('adhoc');
       } catch (error) {
         console.error('Upload failed with error:', error);
@@ -502,7 +530,7 @@ export function ReportUpload({
               <h3 className="text-lg font-medium">Document Categorization</h3>
             </div>
             <p className="text-sm text-gray-600">
-              Configure the categorization for your documents. Files will be automatically renamed according to the naming convention. <strong>Categorization and report frequency are required before uploading files.</strong>
+              Configure the categorization for your documents. Country and Project are automatically filled from the current project context. Files will be automatically renamed according to the naming convention. <strong>Region, Report Type, and report frequency are required before uploading files.</strong>
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -515,9 +543,15 @@ export function ReportUpload({
                 <Select
                   value={categorization.countryCode}
                   onValueChange={(value) => handleCategorizationChange('countryCode', value)}
+                  disabled={true}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a country" />
+                  <SelectTrigger className="bg-gray-50">
+                    <SelectValue>
+                      {categorization.countryCode ? 
+                        COUNTRIES.find(c => c.code === categorization.countryCode)?.name + ` (${categorization.countryCode})` :
+                        "Auto-filled from project"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {COUNTRIES.map((country) => (
@@ -527,6 +561,9 @@ export function ReportUpload({
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-gray-500">
+                  Automatically filled from current project
+                </p>
               </div>
 
               {/* Region Selection */}
@@ -562,10 +599,15 @@ export function ReportUpload({
                 <Select
                   value={categorization.projectCode}
                   onValueChange={(value) => handleCategorizationChange('projectCode', value)}
-                  disabled={!categorization.countryCode}
+                  disabled={true}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a project" />
+                  <SelectTrigger className="bg-gray-50">
+                    <SelectValue>
+                      {categorization.projectCode ? 
+                        availableProjects.find(p => p.code === categorization.projectCode)?.name + ` (${categorization.projectCode})` :
+                        "Auto-filled from project"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {availableProjects.map((project) => (
@@ -575,6 +617,9 @@ export function ReportUpload({
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-gray-500">
+                  Automatically filled from current project
+                </p>
               </div>
 
               {/* Report Type Selection */}
@@ -651,7 +696,7 @@ export function ReportUpload({
             </div>
 
             {/* Generated File Name Preview */}
-            {categorization.countryCode && categorization.regionCode && categorization.projectCode && categorization.reportTypeCode && (
+            {categorization.regionCode && categorization.reportTypeCode && (
               <div className="p-3 bg-gray-50 rounded-lg border">
                 <p className="text-sm font-medium text-gray-700 mb-2">Generated File Name Pattern:</p>
                 <code className="text-sm font-mono break-all">
@@ -669,23 +714,23 @@ export function ReportUpload({
 
           {/* File Upload Input */}
           <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            categorization.countryCode && categorization.regionCode && categorization.projectCode && categorization.reportTypeCode
+            categorization.regionCode && categorization.reportTypeCode
               ? 'border-gray-300 hover:border-gray-400'
               : 'border-gray-200 bg-gray-50'
           }`}>
             <Upload className={`w-12 h-12 mx-auto mb-4 ${
-              categorization.countryCode && categorization.regionCode && categorization.projectCode && categorization.reportTypeCode
+              categorization.regionCode && categorization.reportTypeCode
                 ? 'text-gray-400'
                 : 'text-gray-300'
             }`} />
             <Label htmlFor="file-upload" className={`cursor-pointer ${
-              categorization.countryCode && categorization.regionCode && categorization.projectCode && categorization.reportTypeCode
+              categorization.regionCode && categorization.reportTypeCode
                 ? ''
                 : 'pointer-events-none'
             }`}>
               <div className="space-y-2">
                 <p className="text-lg font-medium">
-                  {categorization.countryCode && categorization.regionCode && categorization.projectCode && categorization.reportTypeCode
+                  {categorization.regionCode && categorization.reportTypeCode
                     ? 'Drop files here or click to upload'
                     : 'Complete categorization and select frequency to upload files'
                   }
@@ -696,7 +741,7 @@ export function ReportUpload({
                 <p className="text-sm text-gray-500">
                   Maximum {maxFiles} files allowed
                 </p>
-                {!(categorization.countryCode && categorization.regionCode && categorization.projectCode && categorization.reportTypeCode) && (
+                {!(categorization.regionCode && categorization.reportTypeCode) && (
                   <p className="text-sm text-orange-600 font-medium">
                     Please complete all required categorization fields and select report frequency above
                   </p>

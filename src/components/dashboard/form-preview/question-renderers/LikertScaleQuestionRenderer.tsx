@@ -17,14 +17,16 @@ export function LikertScaleQuestionRenderer({
   isPreviewMode
 }: LikertScaleQuestionRendererProps) {
   // Clean implementation - no migration needed
-  const getScaleOptions = (scaleType: '3_POINT' | '5_POINT' | '7_POINT', customLabels?: any) => {
-    switch (scaleType) {
-              case '3_POINT':
-          return [
-            { value: '1', label: customLabels?.negative || question.defaultLabels.negative },
-            { value: '2', label: customLabels?.neutral || question.defaultLabels.neutral || 'Neutral' },
-            { value: '3', label: customLabels?.positive || question.defaultLabels.positive }
-          ];
+  const getScaleOptions = (scaleType: '3_POINT' | '5_POINT' | '7_POINT' | undefined, customLabels?: any) => {
+    const safeScaleType = scaleType || '5_POINT';
+    
+    switch (safeScaleType) {
+      case '3_POINT':
+        return [
+          { value: '1', label: customLabels?.negative || question.defaultLabels.negative },
+          { value: '2', label: customLabels?.neutral || question.defaultLabels.neutral || 'Neutral' },
+          { value: '3', label: customLabels?.positive || question.defaultLabels.positive }
+        ];
       case '5_POINT':
         return [
           { value: '1', label: 'Strongly disagree' },
@@ -70,7 +72,7 @@ export function LikertScaleQuestionRenderer({
     <BaseQuestionRenderer question={question} error={error} isPreviewMode={isPreviewMode}>
       <div className="space-y-8">
         {question.statements.map((statement: LikertScaleStatement, index: number) => {
-          const scaleOptions = getScaleOptions(statement.scaleType, statement.customLabels);
+          const scaleOptions = getScaleOptions(statement.scaleType || '5_POINT', statement.customLabels);
           
           return (
             <div key={statement.id} className="space-y-4">
@@ -79,12 +81,12 @@ export function LikertScaleQuestionRenderer({
                 {statement.text}
               </div>
               
-              {/* Scale Type Badge */}
-              <div className="flex justify-center">
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {statement.scaleType.replace('_', '-')} Scale
-                </span>
-              </div>
+                                {/* Scale Type Badge */}
+                  <div className="flex justify-center">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {(statement.scaleType || '5_POINT').replace('_', '-')} Scale
+                    </span>
+                  </div>
               
               {/* Likert Scale */}
               <div className="flex justify-center">

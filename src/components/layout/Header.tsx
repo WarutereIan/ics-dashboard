@@ -1,14 +1,16 @@
 import React from 'react';
-import { Menu, Bell } from 'lucide-react';
+import { Menu, Bell, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from './Breadcrumbs';
 import { ProjectSwitcher } from './ProjectSwitcher';
 import { UserMenu } from './UserMenu';
 import { useDashboard } from '@/contexts/DashboardContext';
+import { useForm } from '@/contexts/FormContext';
 
 export function Header() {
   const { setSidebarOpen } = useDashboard();
+  const { isOnline, syncStatus } = useForm();
 
   return (
     <header className="bg-background border-b border-border mobile-header">
@@ -31,6 +33,21 @@ export function Header() {
         
         {/* Right side - Notifications and user menu */}
         <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+          {/* Offline indicator */}
+          {!isOnline && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-md text-xs">
+              <WifiOff className="h-3 w-3" />
+              <span className="hidden sm:inline">Offline</span>
+            </div>
+          )}
+          
+          {/* Pending sync indicator */}
+          {isOnline && syncStatus.pendingItems > 0 && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs">
+              <span>{syncStatus.pendingItems} pending</span>
+            </div>
+          )}
+          
           <Button 
             variant="ghost" 
             size="icon" 

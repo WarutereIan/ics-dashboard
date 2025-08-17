@@ -22,7 +22,52 @@ export const mockProjects: Project[] = [
     endDate: new Date('2027-12-31'),
     progress: 45,
     budget: 2500000,
-    spent: 1125000
+    spent: 1125000,
+    backgroundInformation: 'The MaMeb project addresses critical gaps in maternal and neonatal healthcare in rural Kenya. The project focuses on improving access to quality healthcare services, strengthening community health systems, and reducing maternal and infant mortality rates through comprehensive interventions including capacity building, infrastructure development, and community engagement.',
+    mapData: {
+      type: 'data-visualization',
+      title: 'Project Data Map',
+      description: 'Visualization of project data from form responses with location information',
+      mapProvider: 'openstreetmap',
+      visualizationType: 'markers',
+      center: { lat: -1.2921, lng: 36.8219 },
+      zoom: 7,
+      dataSource: 'form-responses'
+    },
+    theoryOfChange: {
+      type: 'text',
+      content: `INPUTS → ACTIVITIES → OUTPUTS → OUTCOMES → IMPACT
+
+INPUTS:
+• Healthcare infrastructure development
+• Medical equipment and supplies
+• Training programs for healthcare workers
+• Community health worker networks
+
+ACTIVITIES:
+• Establish and upgrade health facilities
+• Conduct maternal and neonatal care training
+• Implement community health programs
+• Provide mobile health services
+
+OUTPUTS:
+• Improved health facilities
+• Trained healthcare workers
+• Community health programs
+• Mobile health services
+
+OUTCOMES:
+• Increased access to maternal care
+• Improved neonatal survival rates
+• Enhanced community health awareness
+• Strengthened health systems
+
+IMPACT:
+• Reduced maternal mortality
+• Reduced neonatal mortality
+• Improved overall community health`,
+      description: 'Theory of Change framework showing the logical pathway from inputs to impact'
+    }
   },
   {
     id: 'vacis-ke',

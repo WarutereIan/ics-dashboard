@@ -17,6 +17,7 @@ interface WizardNavigationProps {
   onClearDraft?: () => void;
   hasDraft?: boolean;
   isEditMode?: boolean;
+  hasUnsavedChanges?: boolean;
 }
 
 export function WizardNavigation({
@@ -33,6 +34,7 @@ export function WizardNavigation({
   onClearDraft,
   hasDraft = false,
   isEditMode = false,
+  hasUnsavedChanges = false,
 }: WizardNavigationProps) {
   const [isSaving, setIsSaving] = useState(false);
   const isLastStep = currentStep === steps.length - 1;
@@ -52,7 +54,10 @@ export function WizardNavigation({
     switch (currentStep) {
       case 0: // Project Details
         return !projectData.name || !projectData.description || !projectData.country;
-      case 1: // Outcomes
+      case 1: // Project Overview
+        // Overview step is optional, so always allow next
+        return false;
+      case 2: // Outcomes
         return outcomes.length === 0;
       default:
         return false;
@@ -109,7 +114,7 @@ export function WizardNavigation({
               className="flex-1"
               disabled={!projectData.name}
             >
-              Save Edits
+              {hasUnsavedChanges ? 'Save Changes' : 'No Changes'}
             </Button>
           )}
           
@@ -165,7 +170,7 @@ export function WizardNavigation({
               onClick={onSaveEdits}
               disabled={!projectData.name}
             >
-              Save Edits
+              {hasUnsavedChanges ? 'Save Changes' : 'No Changes'}
             </Button>
           )}
           

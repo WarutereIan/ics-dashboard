@@ -1,24 +1,40 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Upload, X, File, Image, Video, Music, Camera, Mic } from 'lucide-react';
 import { FormQuestion } from '../../form-creation-wizard/types';
 import { BaseQuestionRenderer } from './BaseQuestionRenderer';
+import { useForm } from '@/contexts/FormContext';
+import { useProjects } from '@/contexts/ProjectsContext';
+import { useDashboard } from '@/contexts/DashboardContext';
+import { generateMediaFileName, createMediaNamingData, getMediaTypeFromExtension } from '@/lib/mediaNamingConvention';
 
 interface MediaUploadQuestionRendererProps {
   question: FormQuestion;
   value?: any;
   onChange?: (value: any) => void;
   disabled?: boolean;
+  locationData?: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    address?: string;
+  };
 }
 
 export function MediaUploadQuestionRenderer({ 
   question, 
   value = [], 
   onChange, 
-  disabled = false 
+  disabled = false,
+  locationData
 }: MediaUploadQuestionRendererProps) {
+  const { projectId } = useParams();
+  const { currentForm, uploadMediaFile } = useForm();
+  const { projects } = useProjects();
+  const { user } = useDashboard();
   const [dragActive, setDragActive] = useState(false);
   const [showCaptureOptions, setShowCaptureOptions] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -42,6 +58,40 @@ export function MediaUploadQuestionRenderer({
       }
     };
   }, []);
+
+  // Generate proper file name with naming convention
+  const generateProperFileName = (originalFile: File, mediaType: 'image' | 'video' | 'audio' | 'file'): File => {
+    if (!projectId || !currentForm) {
+      return originalFile; // Return original if we don't have context
+    }
+
+    const project = projects.find(p => p.id === projectId);
+    if (!project) {
+      return originalFile; // Return original if project not found
+    }
+
+    try {
+      // Create naming data
+      const namingData = createMediaNamingData(
+        project,
+        currentForm,
+        originalFile.name,
+        mediaType
+      );
+
+      // Generate new file name
+      const newFileName = generateMediaFileName(namingData);
+
+      // Create new File object with the new name
+      return new (window as any).File([originalFile], newFileName, {
+        type: originalFile.type,
+        lastModified: originalFile.lastModified
+      });
+    } catch (error) {
+      console.error('Error generating file name:', error);
+      return originalFile; // Return original on error
+    }
+  };
 
   const getMediaTypeConfig = () => {
     switch (question.type) {
@@ -188,10 +238,29 @@ export function MediaUploadQuestionRenderer({
         }
       };
       
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const blob = new Blob(recordingChunksRef.current, { type: 'video/webm' });
-        const file = new (window as any).File([blob], `recorded-video-${Date.now()}.webm`, { type: 'video/webm' });
-        handleFileSelect([file] as any);
+        const originalFile = new (window as any).File([blob], `recorded-video-${Date.now()}.webm`, { type: 'video/webm' });
+        const renamedFile = generateProperFileName(originalFile, 'video');
+        
+        // Store with metadata if we have context
+        if (projectId && currentForm && user) {
+          const project = projects.find(p => p.id === projectId);
+          if (project) {
+            await uploadMediaFile(
+              renamedFile,
+              project,
+              currentForm,
+              question.id,
+              question.title,
+              user.name,
+              'video',
+              locationData
+            );
+          }
+        }
+        
+        handleFileSelect([renamedFile] as any);
       };
       
       mediaRecorder.start();
@@ -240,10 +309,29 @@ export function MediaUploadQuestionRenderer({
         }
       };
       
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const blob = new Blob(recordingChunksRef.current, { type: 'audio/webm' });
-        const file = new (window as any).File([blob], `recorded-audio-${Date.now()}.webm`, { type: 'audio/webm' });
-        handleFileSelect([file] as any);
+        const originalFile = new (window as any).File([blob], `recorded-audio-${Date.now()}.webm`, { type: 'audio/webm' });
+        const renamedFile = generateProperFileName(originalFile, 'audio');
+        
+        // Store with metadata if we have context
+        if (projectId && currentForm && user) {
+          const project = projects.find(p => p.id === projectId);
+          if (project) {
+            await uploadMediaFile(
+              renamedFile,
+              project,
+              currentForm,
+              question.id,
+              question.title,
+              user.name,
+              'audio',
+              locationData
+            );
+          }
+        }
+        
+        handleFileSelect([renamedFile] as any);
       };
       
       mediaRecorder.start();
@@ -316,10 +404,29 @@ export function MediaUploadQuestionRenderer({
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     // Convert canvas to blob
-    canvas.toBlob((blob) => {
+    canvas.toBlob(async (blob) => {
       if (blob) {
-        const file = new (window as any).File([blob], `captured-image-${Date.now()}.jpg`, { type: 'image/jpeg' });
-        handleFileSelect([file] as any);
+        const originalFile = new (window as any).File([blob], `captured-image-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const renamedFile = generateProperFileName(originalFile, 'image');
+        
+        // Store with metadata if we have context
+        if (projectId && currentForm && user) {
+          const project = projects.find(p => p.id === projectId);
+          if (project) {
+            await uploadMediaFile(
+              renamedFile,
+              project,
+              currentForm,
+              question.id,
+              question.title,
+              user.name,
+              'image',
+              locationData
+            );
+          }
+        }
+        
+        handleFileSelect([renamedFile] as any);
       }
     }, 'image/jpeg', 0.8);
 
@@ -366,7 +473,7 @@ export function MediaUploadQuestionRenderer({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const handleFileSelect = (files: FileList | null) => {
+  const handleFileSelect = async (files: FileList | null) => {
     if (!files || !onChange) return;
 
     const fileArray = Array.from(files);
@@ -387,8 +494,45 @@ export function MediaUploadQuestionRenderer({
     });
 
     if (validFiles.length > 0) {
-      const newFiles = [...value, ...validFiles];
-      onChange(newFiles);
+      try {
+        // Store files with metadata
+        const storedFiles = [];
+        for (const file of validFiles) {
+          const mediaType = getMediaTypeFromExtension(file.name);
+          const renamedFile = generateProperFileName(file, mediaType);
+          
+          // Store with metadata if we have context
+          if (projectId && currentForm && user) {
+            const project = projects.find(p => p.id === projectId);
+            if (project) {
+              await uploadMediaFile(
+                renamedFile,
+                project,
+                currentForm,
+                question.id,
+                question.title,
+                user.name,
+                mediaType,
+                locationData
+              );
+            }
+          }
+          
+          storedFiles.push(renamedFile);
+        }
+
+        const newFiles = [...value, ...storedFiles];
+        onChange(newFiles);
+      } catch (error) {
+        console.error('Error storing media files:', error);
+        // Fallback to just renaming without metadata storage
+        const renamedFiles = validFiles.map(file => {
+          const mediaType = getMediaTypeFromExtension(file.name);
+          return generateProperFileName(file, mediaType);
+        });
+        const newFiles = [...value, ...renamedFiles];
+        onChange(newFiles);
+      }
     }
   };
 
@@ -628,6 +772,9 @@ export function MediaUploadQuestionRenderer({
                 {config.formats.length > 0 && (
                   <p>Accepted formats: {config.formats.join(', ')}</p>
                 )}
+                <p className="text-blue-600 font-medium">
+                  📝 Files will be automatically renamed with project and form prefixes
+                </p>
               </div>
 
               <Button

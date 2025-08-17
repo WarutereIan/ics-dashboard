@@ -13,7 +13,8 @@ import {
   Save,
   Send,
   Eye,
-  EyeOff
+  EyeOff,
+  Plus
 } from 'lucide-react';
 import { Form } from '@/components/dashboard/form-creation-wizard/types';
 import { QuestionRenderer } from '@/components/dashboard/form-preview/QuestionRenderer';
@@ -248,13 +249,33 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
             <p className="text-gray-600 mb-6">
               {form.settings?.thankYouMessage || "Thank you for your response. Your submission has been received."}
             </p>
-            <Button 
-              onClick={() => navigate('/')}
-              className="w-full"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Return Home
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => {
+                  // Reset form state for new response
+                  setResponses({});
+                  setCurrentSectionIndex(0);
+                  setIsComplete(false);
+                  setShowProgress(true);
+                  // Clear any saved draft data
+                  if (form?.id) {
+                    clearFormPreviewData(form.id);
+                  }
+                }}
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Submit Another Response
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/')}
+                className="w-full"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Return Home
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

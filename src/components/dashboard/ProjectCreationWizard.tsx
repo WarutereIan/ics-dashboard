@@ -8,12 +8,14 @@ import {
   useProjectWizard,
   StepIndicator,
   ProjectDetailsForm,
+  ProjectOverviewForm,
   OutcomesForm,
   ActivitiesForm,
   KPIsForm,
   ProjectReview,
   WizardNavigation,
 } from './project-creation-wizard';
+import { ProjectFormData } from './project-creation-wizard/types';
 
 export function ProjectCreationWizard() {
   const {
@@ -37,6 +39,7 @@ export function ProjectCreationWizard() {
     saveEdits,
     clearDraft,
     hasDraft,
+    hasUnsavedChanges,
     navigate,
   } = useProjectWizard();
 
@@ -66,6 +69,17 @@ export function ProjectCreationWizard() {
         );
       case 1:
         return (
+          <ProjectOverviewForm
+            projectData={projectData}
+            onUpdate={(updates) => {
+              Object.entries(updates).forEach(([field, value]) => {
+                handleProjectChange(field as keyof ProjectFormData, value);
+              });
+            }}
+          />
+        );
+      case 2:
+        return (
           <OutcomesForm
             outcomes={outcomes}
             onAddOutcome={addOutcome}
@@ -73,7 +87,7 @@ export function ProjectCreationWizard() {
             onRemoveOutcome={removeOutcome}
           />
         );
-      case 2:
+      case 3:
         return (
           <ActivitiesForm
             outcomes={outcomes}
@@ -83,7 +97,7 @@ export function ProjectCreationWizard() {
             onRemoveActivity={removeActivity}
           />
         );
-      case 3:
+      case 4:
         return (
           <KPIsForm
             outcomes={outcomes}
@@ -93,7 +107,7 @@ export function ProjectCreationWizard() {
             onRemoveKPI={removeKPI}
           />
         );
-      case 4:
+      case 5:
         return (
           <ProjectReview
             projectData={projectData}
@@ -192,6 +206,7 @@ export function ProjectCreationWizard() {
             onClearDraft={clearDraft}
             hasDraft={hasDraft()}
             isEditMode={isEditMode}
+            hasUnsavedChanges={hasUnsavedChanges()}
           />
         </div>
       </div>

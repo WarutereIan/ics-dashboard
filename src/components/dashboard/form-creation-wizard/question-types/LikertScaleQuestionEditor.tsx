@@ -23,8 +23,10 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
   const { question, onUpdate } = props;
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
 
-  const getScaleOptions = (scaleType: '3_POINT' | '5_POINT' | '7_POINT', customLabels?: any) => {
-    switch (scaleType) {
+  const getScaleOptions = (scaleType: '3_POINT' | '5_POINT' | '7_POINT' | undefined, customLabels?: any) => {
+    const safeScaleType = scaleType || '5_POINT';
+    
+    switch (safeScaleType) {
       case '3_POINT':
         return [
           { value: '1', label: customLabels?.negative || question.defaultLabels.negative },
@@ -64,7 +66,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
     const newStatement: LikertScaleStatement = {
       id: uuidv4(),
       text: `Statement ${question.statements.length + 1}`,
-      scaleType: question.defaultScaleType
+      scaleType: question.defaultScaleType || '5_POINT'
     };
     onUpdate({
       statements: [...question.statements, newStatement]
@@ -331,7 +333,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
           <Label className="text-sm font-medium mb-4 block text-blue-600">Preview</Label>
                      <div className="space-y-6">
              {question.statements.map((statement: LikertScaleStatement, index: number) => {
-              const scaleOptions = getScaleOptions(statement.scaleType, statement.customLabels);
+              const scaleOptions = getScaleOptions(statement.scaleType || '5_POINT', statement.customLabels);
               
               return (
                 <div key={statement.id} className="space-y-4">
@@ -343,7 +345,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
                   {/* Scale Type Badge */}
                   <div className="flex justify-center">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {statement.scaleType.replace('_', '-')} Scale
+                      {(statement.scaleType || '5_POINT').replace('_', '-')} Scale
                     </span>
                   </div>
                   

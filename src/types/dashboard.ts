@@ -20,6 +20,29 @@ export interface Project {
   progress: number;
   budget: number;
   spent: number;
+  // New fields for project overview
+  backgroundInformation?: string;
+  mapData?: ProjectMapData;
+  theoryOfChange?: TheoryOfChange;
+}
+
+export interface ProjectMapData {
+  type: 'data-visualization';
+  title: string;
+  description: string;
+  mapProvider: 'openstreetmap' | 'google-maps';
+  visualizationType: 'markers' | 'heatmap' | 'choropleth';
+  center?: { lat: number; lng: number };
+  zoom?: number;
+  // Map data will be dynamically generated from form responses
+  dataSource: 'form-responses';
+}
+
+export interface TheoryOfChange {
+  type: 'image' | 'text';
+  content: string; // URL for image, or text content
+  description?: string;
+  lastUpdated?: Date;
 }
 
 export interface Outcome {

@@ -1,5 +1,40 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { Form, FormResponse } from '../components/dashboard/form-creation-wizard/types';
+import { 
+  StoredMediaFile, 
+  MediaMetadata,
+  storeMediaFile,
+  getStoredMediaFiles,
+  getMediaFilesByProject,
+  getMediaFilesByForm,
+  deleteMediaFile,
+  updateMediaFileMetadata,
+  searchMediaFiles,
+  exportMediaFiles,
+  importMediaFiles,
+  getProjectMediaStats,
+  createMediaMetadata
+} from '../lib/mediaStorage';
+import { Project } from '../types/dashboard';
+
+// Offline queue types
+interface OfflineQueueItem {
+  id: string;
+  type: 'form_response' | 'form_create' | 'form_update' | 'form_delete' | 'media_upload' | 'media_delete';
+  data: any;
+  timestamp: number;
+  retryCount: number;
+  maxRetries: number;
+}
+
+interface OfflineSyncStatus {
+  isOnline: boolean;
+  isSyncing: boolean;
+  lastSyncTime: Date | null;
+  pendingItems: number;
+  failedItems: number;
+  syncProgress: number;
+}
 
 interface FormContextType {
   // Current form being edited/created
@@ -30,6 +65,40 @@ interface FormContextType {
   addFormResponseToStorage: (response: FormResponse) => void;
   deleteFormResponse: (formId: string, responseId: string) => void;
   getProjectForms: (projectId: string) => Form[];
+  
+  // Media management
+  uploadMediaFile: (
+    file: File,
+    project: Project,
+    form: Form,
+    questionId: string,
+    questionTitle: string,
+    uploadedBy: string,
+    mediaType: 'image' | 'video' | 'audio' | 'file',
+    location?: { latitude: number; longitude: number; accuracy?: number; address?: string },
+    tags?: string[],
+    description?: string
+  ) => Promise<StoredMediaFile>;
+  getMediaFiles: (projectId?: string, formId?: string) => StoredMediaFile[];
+  getProjectMediaFiles: (projectId: string) => StoredMediaFile[];
+  getFormMediaFiles: (formId: string) => StoredMediaFile[];
+  searchMediaFiles: (query: string) => StoredMediaFile[];
+  removeMediaFile: (fileId: string) => boolean;
+  updateMediaFileMetadata: (fileId: string, updates: Partial<MediaMetadata>) => StoredMediaFile | null;
+  getProjectMediaStats: (projectId: string) => any;
+  exportProjectMedia: (projectId?: string) => string;
+  importProjectMedia: (importData: string) => boolean;
+  refreshMediaFiles: () => void;
+  
+  // Offline support
+  isOnline: boolean;
+  syncStatus: OfflineSyncStatus;
+  addToOfflineQueue: (type: OfflineQueueItem['type'], data: any) => void;
+  processOfflineQueue: () => Promise<void>;
+  retryFailedItems: () => Promise<void>;
+  clearOfflineQueue: () => void;
+  getOfflineQueue: () => OfflineQueueItem[];
+  getFailedItems: () => OfflineQueueItem[];
 }
 
 const FormContext = createContext<FormContextType | undefined>(undefined);
@@ -48,6 +117,22 @@ export function FormProvider({ children }: FormProviderProps) {
   // Form response management state
   const [allFormResponses, setAllFormResponses] = useState<Record<string, FormResponse[]>>({});
   const [projectForms, setProjectForms] = useState<Record<string, Form[]>>({});
+  
+  // Media management state
+  const [mediaFiles, setMediaFiles] = useState<StoredMediaFile[]>([]);
+  const [isMediaLoading, setIsMediaLoading] = useState(false);
+  
+  // Offline support state
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [offlineQueue, setOfflineQueue] = useState<OfflineQueueItem[]>([]);
+  const [syncStatus, setSyncStatus] = useState<OfflineSyncStatus>({
+    isOnline: navigator.onLine,
+    isSyncing: false,
+    lastSyncTime: null,
+    pendingItems: 0,
+    failedItems: 0,
+    syncProgress: 0
+  });
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -127,9 +212,59 @@ export function FormProvider({ children }: FormProviderProps) {
       }
       
       setProjectForms(processedForms);
+
+      // Load media files
+      try {
+        const storedMediaFiles = getStoredMediaFiles();
+        setMediaFiles(storedMediaFiles);
+      } catch (error) {
+        console.error('Error loading media files:', error);
+      }
+
+      // Load offline queue
+      try {
+        const storedQueue = localStorage.getItem('offlineQueue');
+        if (storedQueue) {
+          const parsedQueue = JSON.parse(storedQueue);
+          setOfflineQueue(parsedQueue);
+          // Update sync status manually to avoid circular dependency
+          const pendingItems = parsedQueue.filter((item: any) => item.retryCount < item.maxRetries).length;
+          const failedItems = parsedQueue.filter((item: any) => item.retryCount >= item.maxRetries).length;
+          setSyncStatus(prev => ({
+            ...prev,
+            pendingItems,
+            failedItems
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading offline queue:', error);
+      }
     } catch (error) {
       console.error('Error loading form data from localStorage:', error);
     }
+  }, []);
+
+  // Online/offline event listeners
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setSyncStatus(prev => ({ ...prev, isOnline: true }));
+      // Process offline queue when coming back online
+      // We'll handle this in a separate useEffect after methods are defined
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setSyncStatus(prev => ({ ...prev, isOnline: false }));
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const setCurrentForm = useCallback((form: Form | Partial<Form> | null) => {
@@ -216,7 +351,34 @@ export function FormProvider({ children }: FormProviderProps) {
       
       return updated;
     });
-  }, []);
+
+    // Add to offline queue if offline
+    if (!isOnline) {
+      // Create queue item directly to avoid circular dependency
+      const queueItem = {
+        id: `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'form_response' as const,
+        data: response,
+        timestamp: Date.now(),
+        retryCount: 0,
+        maxRetries: 3
+      };
+
+      setOfflineQueue(prev => {
+        const newQueue = [...prev, queueItem];
+        localStorage.setItem('offlineQueue', JSON.stringify(newQueue));
+        // Update sync status manually to avoid circular dependency
+        const pendingItems = newQueue.filter(item => item.retryCount < item.maxRetries).length;
+        const failedItems = newQueue.filter(item => item.retryCount >= item.maxRetries).length;
+        setSyncStatus(prevStatus => ({
+          ...prevStatus,
+          pendingItems,
+          failedItems
+        }));
+        return newQueue;
+      });
+    }
+  }, [isOnline]);
 
   const deleteFormResponse = useCallback((formId: string, responseId: string) => {
     setAllFormResponses(prev => {
@@ -264,6 +426,319 @@ export function FormProvider({ children }: FormProviderProps) {
     return projectForms[projectId] || [];
   }, [projectForms]);
 
+  // Media management methods
+  const uploadMediaFile = useCallback(async (
+    file: File,
+    project: Project,
+    form: Form,
+    questionId: string,
+    questionTitle: string,
+    uploadedBy: string,
+    mediaType: 'image' | 'video' | 'audio' | 'file',
+    location?: { latitude: number; longitude: number; accuracy?: number; address?: string },
+    tags?: string[],
+    description?: string
+  ): Promise<StoredMediaFile> => {
+    setIsMediaLoading(true);
+    try {
+      const metadata = createMediaMetadata(
+        file,
+        project,
+        form,
+        questionId,
+        questionTitle,
+        uploadedBy,
+        mediaType,
+        location,
+        tags,
+        description
+      );
+      
+      const storedFile = await storeMediaFile(file, metadata);
+      
+      // Update local state
+      setMediaFiles(prev => [...prev, storedFile]);
+      
+      // Add to offline queue if offline
+      if (!isOnline) {
+        // Create queue item directly to avoid circular dependency
+        const queueItem = {
+          id: `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          type: 'media_upload' as const,
+          data: {
+            file: storedFile,
+            metadata,
+            project,
+            form
+          },
+          timestamp: Date.now(),
+          retryCount: 0,
+          maxRetries: 3
+        };
+
+        setOfflineQueue(prev => {
+          const newQueue = [...prev, queueItem];
+          localStorage.setItem('offlineQueue', JSON.stringify(newQueue));
+          // Update sync status manually to avoid circular dependency
+          const pendingItems = newQueue.filter(item => item.retryCount < item.maxRetries).length;
+          const failedItems = newQueue.filter(item => item.retryCount >= item.maxRetries).length;
+          setSyncStatus(prevStatus => ({
+            ...prevStatus,
+            pendingItems,
+            failedItems
+          }));
+          return newQueue;
+        });
+      }
+      
+      return storedFile;
+    } catch (error) {
+      console.error('Error uploading media file:', error);
+      throw error;
+    } finally {
+      setIsMediaLoading(false);
+    }
+  }, [isOnline]);
+
+  const getMediaFiles = useCallback((projectId?: string, formId?: string): StoredMediaFile[] => {
+    if (projectId && formId) {
+      return mediaFiles.filter(file => 
+        file.metadata.projectId === projectId && file.metadata.formId === formId
+      );
+    } else if (projectId) {
+      return getMediaFilesByProject(projectId);
+    } else if (formId) {
+      return getMediaFilesByForm(formId);
+    }
+    return mediaFiles;
+  }, [mediaFiles]);
+
+  const getProjectMediaFiles = useCallback((projectId: string): StoredMediaFile[] => {
+    return getMediaFilesByProject(projectId);
+  }, []);
+
+  const getFormMediaFiles = useCallback((formId: string): StoredMediaFile[] => {
+    return getMediaFilesByForm(formId);
+  }, []);
+
+  const searchMediaFiles = useCallback((query: string): StoredMediaFile[] => {
+    return searchMediaFiles(query);
+  }, []);
+
+  const removeMediaFile = useCallback((fileId: string): boolean => {
+    const success = deleteMediaFile(fileId);
+    if (success) {
+      setMediaFiles(prev => prev.filter(file => file.id !== fileId));
+    }
+    return success;
+  }, []);
+
+  const updateMediaFileMetadata = useCallback((fileId: string, updates: Partial<MediaMetadata>): StoredMediaFile | null => {
+    const updatedFile = updateMediaFileMetadata(fileId, updates);
+    if (updatedFile) {
+      setMediaFiles(prev => prev.map(file => 
+        file.id === fileId ? updatedFile : file
+      ));
+    }
+    return updatedFile;
+  }, []);
+
+  const getProjectMediaStats = useCallback((projectId: string) => {
+    return getProjectMediaStats(projectId);
+  }, []);
+
+  const exportProjectMedia = useCallback((projectId?: string): string => {
+    return exportMediaFiles(projectId);
+  }, []);
+
+  const importProjectMedia = useCallback((importData: string): boolean => {
+    const success = importMediaFiles(importData);
+    if (success) {
+      // Reload media files after import
+      const storedMediaFiles = getStoredMediaFiles();
+      setMediaFiles(storedMediaFiles);
+    }
+    return success;
+  }, []);
+
+  const refreshMediaFiles = useCallback(() => {
+    const storedMediaFiles = getStoredMediaFiles();
+    setMediaFiles(storedMediaFiles);
+  }, []);
+
+  // Offline support methods - moved up to avoid circular dependencies
+  const updateSyncStatus = useCallback((queue: OfflineQueueItem[]) => {
+    const pendingItems = queue.filter(item => item.retryCount < item.maxRetries).length;
+    const failedItems = queue.filter(item => item.retryCount >= item.maxRetries).length;
+    
+    setSyncStatus(prev => ({
+      ...prev,
+      pendingItems,
+      failedItems
+    }));
+  }, []);
+
+  const saveOfflineQueue = useCallback((queue: OfflineQueueItem[]) => {
+    localStorage.setItem('offlineQueue', JSON.stringify(queue));
+    updateSyncStatus(queue);
+  }, [updateSyncStatus]);
+
+  const addToOfflineQueue = useCallback((type: OfflineQueueItem['type'], data: any) => {
+    const queueItem: OfflineQueueItem = {
+      id: `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      data,
+      timestamp: Date.now(),
+      retryCount: 0,
+      maxRetries: 3
+    };
+
+    setOfflineQueue(prev => {
+      const newQueue = [...prev, queueItem];
+      saveOfflineQueue(newQueue);
+      return newQueue;
+    });
+  }, [saveOfflineQueue]);
+
+  const processOfflineQueue = useCallback(async () => {
+    if (!isOnline || syncStatus.isSyncing) return;
+
+    setSyncStatus(prev => ({ ...prev, isSyncing: true, syncProgress: 0 }));
+
+    try {
+      const itemsToProcess = offlineQueue.filter(item => item.retryCount < item.maxRetries);
+      
+      for (let i = 0; i < itemsToProcess.length; i++) {
+        const item = itemsToProcess[i];
+        
+        try {
+          // Simulate API call based on item type
+          await simulateApiCall(item);
+          
+          // Remove successful item from queue
+          setOfflineQueue(prev => {
+            const newQueue = prev.filter(qItem => qItem.id !== item.id);
+            saveOfflineQueue(newQueue);
+            return newQueue;
+          });
+          
+          // Update progress
+          setSyncStatus(prev => ({ 
+            ...prev, 
+            syncProgress: ((i + 1) / itemsToProcess.length) * 100 
+          }));
+          
+        } catch (error) {
+          console.error(`Failed to process offline item ${item.id}:`, error);
+          
+          // Increment retry count
+          setOfflineQueue(prev => {
+            const newQueue = prev.map(qItem => 
+              qItem.id === item.id 
+                ? { ...qItem, retryCount: qItem.retryCount + 1 }
+                : qItem
+            );
+            saveOfflineQueue(newQueue);
+            return newQueue;
+          });
+        }
+      }
+      
+      setSyncStatus(prev => ({ 
+        ...prev, 
+        isSyncing: false, 
+        lastSyncTime: new Date(),
+        syncProgress: 100
+      }));
+      
+    } catch (error) {
+      console.error('Error processing offline queue:', error);
+      setSyncStatus(prev => ({ ...prev, isSyncing: false }));
+    }
+  }, [isOnline, syncStatus.isSyncing, offlineQueue, saveOfflineQueue]);
+
+  const simulateApiCall = useCallback(async (item: OfflineQueueItem): Promise<void> => {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+    
+    // Simulate occasional failures
+    if (Math.random() < 0.1) {
+      throw new Error('Simulated API failure');
+    }
+    
+    // Process based on item type
+    switch (item.type) {
+      case 'form_response':
+        // Simulate form response submission
+        console.log('Submitting form response:', item.data);
+        break;
+      case 'form_create':
+        // Simulate form creation
+        console.log('Creating form:', item.data);
+        break;
+      case 'form_update':
+        // Simulate form update
+        console.log('Updating form:', item.data);
+        break;
+      case 'form_delete':
+        // Simulate form deletion
+        console.log('Deleting form:', item.data);
+        break;
+      case 'media_upload':
+        // Simulate media upload
+        console.log('Uploading media:', item.data);
+        break;
+      case 'media_delete':
+        // Simulate media deletion
+        console.log('Deleting media:', item.data);
+        break;
+      default:
+        console.log('Unknown offline item type:', item.type);
+    }
+  }, []);
+
+  const retryFailedItems = useCallback(async () => {
+    const failedItems = offlineQueue.filter(item => item.retryCount >= item.maxRetries);
+    
+    setOfflineQueue(prev => {
+      const newQueue = prev.map(item => 
+        failedItems.some(failed => failed.id === item.id)
+          ? { ...item, retryCount: 0 }
+          : item
+      );
+      saveOfflineQueue(newQueue);
+      return newQueue;
+    });
+    
+    // Process queue again
+    await processOfflineQueue();
+  }, [offlineQueue, processOfflineQueue, saveOfflineQueue]);
+
+  const clearOfflineQueue = useCallback(() => {
+    setOfflineQueue([]);
+    localStorage.removeItem('offlineQueue');
+    setSyncStatus(prev => ({ 
+      ...prev, 
+      pendingItems: 0, 
+      failedItems: 0 
+    }));
+  }, []);
+
+  const getOfflineQueue = useCallback(() => {
+    return offlineQueue;
+  }, [offlineQueue]);
+
+  const getFailedItems = useCallback(() => {
+    return offlineQueue.filter(item => item.retryCount >= item.maxRetries);
+  }, [offlineQueue]);
+
+  // Handle online event to process queue after methods are defined
+  useEffect(() => {
+    if (isOnline && offlineQueue.length > 0 && !syncStatus.isSyncing) {
+      processOfflineQueue();
+    }
+  }, [isOnline, offlineQueue.length, syncStatus.isSyncing, processOfflineQueue]);
+
   // Utility function to clean up duplicate forms
   const cleanupDuplicateForms = useCallback(() => {
     setProjectForms(prev => {
@@ -300,6 +775,27 @@ export function FormProvider({ children }: FormProviderProps) {
     addFormResponseToStorage,
     deleteFormResponse,
     getProjectForms,
+    // Media management
+    uploadMediaFile,
+    getMediaFiles,
+    getProjectMediaFiles,
+    getFormMediaFiles,
+    searchMediaFiles,
+    removeMediaFile,
+    updateMediaFileMetadata,
+    getProjectMediaStats,
+    exportProjectMedia,
+    importProjectMedia,
+    refreshMediaFiles,
+    // Offline support
+    isOnline,
+    syncStatus,
+    addToOfflineQueue,
+    processOfflineQueue,
+    retryFailedItems,
+    clearOfflineQueue,
+    getOfflineQueue,
+    getFailedItems,
   };
 
   return (

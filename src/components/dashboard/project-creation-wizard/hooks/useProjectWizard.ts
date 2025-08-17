@@ -29,6 +29,9 @@ export function useProjectWizard() {
   const { addProject, updateProject, getProjectById, projects } = useProjects();
   const isEditMode = Boolean(projectId);
   
+  // Store original project data for comparison in edit mode
+  const [originalProjectData, setOriginalProjectData] = useState<any>(null);
+  
   const [wizardState, setWizardState] = useState<WizardState>({
     currentStep: 0,
     projectData: {
@@ -40,6 +43,9 @@ export function useProjectWizard() {
       startDate: undefined,
       endDate: undefined,
       budget: 0,
+      backgroundInformation: '',
+      mapData: undefined,
+      theoryOfChange: undefined,
     },
     outcomes: [],
     activities: [],
@@ -48,6 +54,7 @@ export function useProjectWizard() {
 
   const steps: WizardStep[] = [
     { id: 'project', title: 'Project Details', description: 'Basic project information' },
+    { id: 'overview', title: 'Project Overview', description: 'Background, map, and theory of change' },
     { id: 'outcomes', title: 'Outcomes', description: 'Define project outcomes' },
     { id: 'activities', title: 'Activities', description: 'Add activities for each outcome' },
     { id: 'kpis', title: 'KPIs', description: 'Define key performance indicators' },
@@ -60,7 +67,15 @@ export function useProjectWizard() {
       const project = getProjectById(projectId);
       
       if (project) {
-        // Load project basic info
+        // Store original project data for comparison
+        setOriginalProjectData({
+          project: { ...project },
+          outcomes: [],
+          activities: [],
+          kpis: []
+        });
+        
+        // Load project basic info into local copy
         setWizardState(prev => ({
           ...prev,
           projectData: {
@@ -72,6 +87,9 @@ export function useProjectWizard() {
             startDate: project.startDate,
             endDate: project.endDate,
             budget: project.budget,
+            backgroundInformation: project.backgroundInformation || '',
+            mapData: project.mapData,
+            theoryOfChange: project.theoryOfChange,
           }
         }));
 
@@ -81,6 +99,15 @@ export function useProjectWizard() {
           const kpisData = getProjectKPIsData(projectId);
 
           if (projectData) {
+            // Store original data for comparison
+            setOriginalProjectData(prev => ({
+              ...prev,
+              outcomes: [...projectData.outcomes],
+              activities: [...projectData.activities],
+              kpis: [...kpisData]
+            }));
+            
+            // Load into local copy
             setWizardState(prev => ({
               ...prev,
               outcomes: projectData.outcomes.map((outcome: any) => ({
@@ -284,6 +311,20 @@ export function useProjectWizard() {
     }
   };
 
+  // Safe navigation that warns about unsaved changes
+  const safeNavigate = (path: string) => {
+    if (isEditMode && hasUnsavedChanges()) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.'
+      );
+      if (confirmed) {
+        navigate(path);
+      }
+    } else {
+      navigate(path);
+    }
+  };
+
   // Save project
   const saveProject = async () => {
     try {
@@ -298,6 +339,9 @@ export function useProjectWizard() {
         progress: 0,
         budget: wizardState.projectData.budget,
         spent: 0,
+        backgroundInformation: wizardState.projectData.backgroundInformation,
+        mapData: wizardState.projectData.mapData,
+        theoryOfChange: wizardState.projectData.theoryOfChange,
       };
 
       // Convert form data to the expected format for project data manager
@@ -388,7 +432,33 @@ export function useProjectWizard() {
     });
   };
 
-  // Save edits (for edit mode)
+  // Check if there are unsaved changes in edit mode
+  const hasUnsavedChanges = () => {
+    if (!isEditMode || !originalProjectData) return false;
+    
+    // Compare project data
+    const originalProject = originalProjectData.project;
+    const currentProject = wizardState.projectData;
+    
+    const projectChanged = 
+      originalProject.name !== currentProject.name ||
+      originalProject.description !== currentProject.description ||
+      originalProject.country !== currentProject.country ||
+      originalProject.status !== currentProject.status ||
+      originalProject.budget !== currentProject.budget ||
+      originalProject.backgroundInformation !== currentProject.backgroundInformation ||
+      JSON.stringify(originalProject.mapData) !== JSON.stringify(currentProject.mapData) ||
+      JSON.stringify(originalProject.theoryOfChange) !== JSON.stringify(currentProject.theoryOfChange);
+    
+    // Compare outcomes, activities, and KPIs
+    const outcomesChanged = JSON.stringify(originalProjectData.outcomes) !== JSON.stringify(wizardState.outcomes);
+    const activitiesChanged = JSON.stringify(originalProjectData.activities) !== JSON.stringify(wizardState.activities);
+    const kpisChanged = JSON.stringify(originalProjectData.kpis) !== JSON.stringify(wizardState.kpis);
+    
+    return projectChanged || outcomesChanged || activitiesChanged || kpisChanged;
+  };
+
+  // Save edits (for edit mode) - now only saves when user completes the process
   const saveEdits = async () => {
     try {
       const projectData = {
@@ -402,6 +472,9 @@ export function useProjectWizard() {
         progress: 0,
         budget: wizardState.projectData.budget,
         spent: 0,
+        backgroundInformation: wizardState.projectData.backgroundInformation,
+        mapData: wizardState.projectData.mapData,
+        theoryOfChange: wizardState.projectData.theoryOfChange,
       };
 
       // Convert form data to the expected format for project data manager
@@ -445,6 +518,14 @@ export function useProjectWizard() {
       const success = saveProjectData(projectData, outcomes, activities, kpis);
 
       if (success) {
+        // Update original data to reflect saved state
+        setOriginalProjectData({
+          project: { ...projectData },
+          outcomes: [...outcomes],
+          activities: [...activities],
+          kpis: [...kpis]
+        });
+        
         toast({
           title: "Edits Saved",
           description: `Your project changes have been saved successfully with ${outcomes.length} outcomes, ${activities.length} activities, and ${kpis.length} KPIs.`,
@@ -476,6 +557,9 @@ export function useProjectWizard() {
         startDate: undefined,
         endDate: undefined,
         budget: 0,
+        backgroundInformation: '',
+        mapData: undefined,
+        theoryOfChange: undefined,
       },
       outcomes: [],
       activities: [],
@@ -487,27 +571,28 @@ export function useProjectWizard() {
     });
   };
 
-  return {
-    wizardState,
-    steps,
-    isEditMode,
-    handleProjectChange,
-    addOutcome,
-    updateOutcome,
-    removeOutcome,
-    addActivity,
-    updateActivity,
-    removeActivity,
-    addKPI,
-    updateKPI,
-    removeKPI,
-    nextStep,
-    prevStep,
-    saveProject,
-    saveDraft,
-    saveEdits,
-    clearDraft,
-    hasDraft: hasWizardDraft,
-    navigate,
-  };
+      return {
+      wizardState,
+      steps,
+      isEditMode,
+      handleProjectChange,
+      addOutcome,
+      updateOutcome,
+      removeOutcome,
+      addActivity,
+      updateActivity,
+      removeActivity,
+      addKPI,
+      updateKPI,
+      removeKPI,
+      nextStep,
+      prevStep,
+      saveProject,
+      saveDraft,
+      saveEdits,
+      clearDraft,
+      hasDraft: hasWizardDraft,
+      hasUnsavedChanges,
+      navigate: safeNavigate,
+    };
 }
