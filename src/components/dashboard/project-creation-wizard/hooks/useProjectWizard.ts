@@ -100,7 +100,7 @@ export function useProjectWizard() {
 
           if (projectData) {
             // Store original data for comparison
-            setOriginalProjectData(prev => ({
+            setOriginalProjectData((prev: any) => ({
               ...prev,
               outcomes: [...projectData.outcomes],
               activities: [...projectData.activities],

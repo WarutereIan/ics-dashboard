@@ -241,7 +241,7 @@ export function ProjectOverview() {
             </div>
             <div className="text-center">
               <Badge className={getStatusColor(currentProject?.status || 'active')}>
-                {currentProject?.status?.charAt(0).toUpperCase() + currentProject?.status?.slice(1) || 'Active'}
+                {(currentProject?.status?.charAt(0)?.toUpperCase() || 'A') + (currentProject?.status?.slice(1) || 'ctive')}
               </Badge>
               <div className="text-sm text-gray-600 mt-1">Project Status</div>
             </div>

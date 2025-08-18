@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { Form, FormResponse } from '../components/dashboard/form-creation-wizard/types';
+import { Form, FormResponse, FormQuestion } from '../components/dashboard/form-creation-wizard/types';
 import { 
   StoredMediaFile, 
   MediaMetadata,
@@ -99,6 +99,12 @@ interface FormContextType {
   clearOfflineQueue: () => void;
   getOfflineQueue: () => OfflineQueueItem[];
   getFailedItems: () => OfflineQueueItem[];
+  
+  // Conditional question utilities
+  getConditionalQuestions: (form: Form) => FormQuestion[];
+  getConditionalResponses: (response: FormResponse, questionId: string) => Record<string, any>;
+  validateConditionalQuestions: (form: Form, responses: Record<string, any>) => Record<string, string>;
+  getFormStatistics: (form: Form) => { totalQuestions: number; conditionalQuestions: number; totalOptions: number };
 }
 
 const FormContext = createContext<FormContextType | undefined>(undefined);
@@ -163,16 +169,36 @@ export function FormProvider({ children }: FormProviderProps) {
       if (storedForms) {
         const parsedForms = JSON.parse(storedForms);
         Object.keys(parsedForms).forEach(projectId => {
-          processedForms[projectId] = parsedForms[projectId].map((form: any) => ({
-            ...form,
-            createdAt: new Date(form.createdAt),
-            updatedAt: new Date(form.updatedAt),
-            lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
-            settings: {
-              ...form.settings,
-              expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
-            },
-          }));
+          processedForms[projectId] = parsedForms[projectId].map((form: any) => {
+            // Migrate form structure to include conditional question properties
+            const migratedForm = {
+              ...form,
+              createdAt: new Date(form.createdAt),
+              updatedAt: new Date(form.updatedAt),
+              lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
+              settings: {
+                ...form.settings,
+                expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
+              },
+              sections: form.sections?.map((section: any) => ({
+                ...section,
+                questions: section.questions?.map((question: any) => {
+                                  if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+                  return {
+                    ...question,
+                    options: question.options.map((option: any) => ({
+                      ...option,
+                      hasConditionalQuestions: option.hasConditionalQuestions ?? false,
+                      conditionalQuestions: option.conditionalQuestions ?? []
+                    }))
+                  };
+                }
+                  return question;
+                }) || []
+              })) || []
+            };
+            return migratedForm;
+          });
         });
       }
       
@@ -189,6 +215,22 @@ export function FormProvider({ children }: FormProviderProps) {
               ...form.settings,
               expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
             },
+            sections: form.sections?.map((section: any) => ({
+              ...section,
+              questions: section.questions?.map((question: any) => {
+                if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+                  return {
+                    ...question,
+                    options: question.options.map((option: any) => ({
+                      ...option,
+                      hasConditionalQuestions: option.hasConditionalQuestions ?? false,
+                      conditionalQuestions: option.conditionalQuestions ?? []
+                    }))
+                  };
+                }
+                return question;
+              }) || []
+            })) || []
           };
           
           // Group by projectId
@@ -732,6 +774,122 @@ export function FormProvider({ children }: FormProviderProps) {
     return offlineQueue.filter(item => item.retryCount >= item.maxRetries);
   }, [offlineQueue]);
 
+  // Conditional question utilities
+  const getConditionalQuestions = useCallback((form: Form): FormQuestion[] => {
+    const conditionalQuestions: FormQuestion[] = [];
+    
+    form.sections.forEach(section => {
+      section.questions.forEach(question => {
+        if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+          question.options.forEach(option => {
+            if (option.hasConditionalQuestions && option.conditionalQuestions) {
+              conditionalQuestions.push(...option.conditionalQuestions);
+            }
+          });
+        }
+      });
+    });
+    
+    return conditionalQuestions;
+  }, []);
+
+  const getConditionalResponses = useCallback((response: FormResponse, questionId: string): Record<string, any> => {
+    const conditionalResponses: Record<string, any> = {};
+    
+    // Find the parent question
+    const parentQuestion = response.data[questionId];
+    if (!parentQuestion) return conditionalResponses;
+    
+    // Find the form to get question structure
+    const form = Object.values(projectForms).flat().find(f => f.id === response.formId);
+    if (!form) return conditionalResponses;
+    
+    // Find the question and its options
+    const question = form.sections.flatMap(s => s.questions).find(q => q.id === questionId);
+    if (!question || (question.type !== 'SINGLE_CHOICE' && question.type !== 'MULTIPLE_CHOICE') || !question.options) return conditionalResponses;
+    
+    // Find the selected option
+    const selectedOption = question.options.find(opt => opt.value.toString() === parentQuestion.toString());
+    if (!selectedOption || !selectedOption.hasConditionalQuestions || !selectedOption.conditionalQuestions) {
+      return conditionalResponses;
+    }
+    
+    // Extract conditional responses
+    selectedOption.conditionalQuestions.forEach(conditionalQuestion => {
+      const conditionalValue = response.data[conditionalQuestion.id];
+      if (conditionalValue !== undefined) {
+        conditionalResponses[conditionalQuestion.id] = conditionalValue;
+      }
+    });
+    
+    return conditionalResponses;
+  }, [projectForms]);
+
+  const validateConditionalQuestions = useCallback((form: Form, responses: Record<string, any>): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    
+    form.sections.forEach(section => {
+      section.questions.forEach(question => {
+        if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+          const selectedValue = responses[question.id];
+          
+          question.options.forEach(option => {
+            if (option.hasConditionalQuestions && option.conditionalQuestions) {
+              let shouldValidate = false;
+              
+              if (question.type === 'SINGLE_CHOICE') {
+                // For single choice, validate if this option is selected
+                shouldValidate = option.value.toString() === selectedValue?.toString();
+              } else if (question.type === 'MULTIPLE_CHOICE') {
+                // For multiple choice, validate if this option is in the selected array
+                shouldValidate = Array.isArray(selectedValue) && selectedValue.includes(option.value.toString());
+              }
+              
+              if (shouldValidate) {
+                // Validate conditional questions
+                option.conditionalQuestions.forEach(conditionalQuestion => {
+                  if (conditionalQuestion.isRequired) {
+                    const conditionalValue = responses[conditionalQuestion.id];
+                    if (conditionalValue === undefined || conditionalValue === '' || conditionalValue === null ||
+                        (Array.isArray(conditionalValue) && conditionalValue.length === 0)) {
+                      errors[conditionalQuestion.id] = 'This field is required';
+                    }
+                  }
+                });
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    return errors;
+  }, []);
+
+  const getFormStatistics = useCallback((form: Form) => {
+    let totalQuestions = 0;
+    let conditionalQuestions = 0;
+    let totalOptions = 0;
+    
+    form.sections.forEach(section => {
+      section.questions.forEach(question => {
+        totalQuestions++;
+        
+        if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+          totalOptions += question.options.length;
+          
+          question.options.forEach(option => {
+            if (option.hasConditionalQuestions && option.conditionalQuestions) {
+              conditionalQuestions += option.conditionalQuestions.length;
+            }
+          });
+        }
+      });
+    });
+    
+    return { totalQuestions, conditionalQuestions, totalOptions };
+  }, []);
+
   // Handle online event to process queue after methods are defined
   useEffect(() => {
     if (isOnline && offlineQueue.length > 0 && !syncStatus.isSyncing) {
@@ -796,6 +954,11 @@ export function FormProvider({ children }: FormProviderProps) {
     clearOfflineQueue,
     getOfflineQueue,
     getFailedItems,
+    // Conditional question utilities
+    getConditionalQuestions,
+    getConditionalResponses,
+    validateConditionalQuestions,
+    getFormStatistics,
   };
 
   return (

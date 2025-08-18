@@ -116,7 +116,7 @@ export function NumberQuestionEditor(props: NumberQuestionEditorProps) {
         )}
 
         {/* Data Information */}
-        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+       {/*  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
           <div>
             <p className="text-sm font-medium">Database Storage</p>
             <p className="text-xs text-gray-600">
@@ -129,7 +129,7 @@ export function NumberQuestionEditor(props: NumberQuestionEditorProps) {
           <Badge variant="outline">
             {question.step && question.step !== 1 ? 'DECIMAL' : 'INTEGER'}
           </Badge>
-        </div>
+        </div> */}
       </div>
     </BaseQuestionEditor>
   );

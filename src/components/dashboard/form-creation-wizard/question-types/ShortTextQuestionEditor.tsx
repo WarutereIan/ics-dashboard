@@ -56,7 +56,7 @@ export function ShortTextQuestionEditor(props: ShortTextQuestionEditorProps) {
         </div>
 
         {/* Data Information */}
-        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+      {/*   <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
           <div>
             <p className="text-sm font-medium">Database Storage</p>
             <p className="text-xs text-gray-600">
@@ -64,7 +64,7 @@ export function ShortTextQuestionEditor(props: ShortTextQuestionEditorProps) {
             </p>
           </div>
           <Badge variant="outline">TEXT</Badge>
-        </div>
+        </div> */}
       </div>
     </BaseQuestionEditor>
   );

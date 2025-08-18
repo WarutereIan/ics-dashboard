@@ -226,7 +226,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                 className="flex items-center gap-2"
               >
                 <Save className="w-4 h-4" />
-                Save Draft
+                Save Edits
               </Button>
 
               {form.status === 'PUBLISHED' && form.id && (

@@ -282,16 +282,36 @@ export const loadForms = (): Form[] => {
     if (!data) return [];
 
     const parsedForms = JSON.parse(data);
-    const forms = parsedForms.map((form: any) => ({
-      ...form,
-      createdAt: form.createdAt ? new Date(form.createdAt) : new Date(),
-      updatedAt: form.updatedAt ? new Date(form.updatedAt) : new Date(),
-      lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
-      settings: {
-        ...form.settings,
-        expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
-      },
-    }));
+    const forms = parsedForms.map((form: any) => {
+      // Migrate form structure to include conditional question properties
+      const migratedForm = {
+        ...form,
+        createdAt: form.createdAt ? new Date(form.createdAt) : new Date(),
+        updatedAt: form.updatedAt ? new Date(form.updatedAt) : new Date(),
+        lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
+        settings: {
+          ...form.settings,
+          expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
+        },
+        sections: form.sections?.map((section: any) => ({
+          ...section,
+          questions: section.questions?.map((question: any) => {
+                            if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+                  return {
+                    ...question,
+                    options: question.options.map((option: any) => ({
+                      ...option,
+                      hasConditionalQuestions: option.hasConditionalQuestions ?? false,
+                      conditionalQuestions: option.conditionalQuestions ?? []
+                    }))
+                  };
+                }
+            return question;
+          }) || []
+        })) || []
+      };
+      return migratedForm;
+    });
 
     // Remove duplicates based on form ID (keep the most recent one)
     const uniqueForms = forms.reduce((acc: Form[], form: Form) => {

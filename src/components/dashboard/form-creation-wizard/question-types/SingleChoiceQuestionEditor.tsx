@@ -6,10 +6,139 @@ import { Badge } from '@/components/ui/badge';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
 import { BaseQuestionEditor } from './BaseQuestionEditor';
-import { SingleChoiceQuestion, ActivityKPIMapping, ChoiceOption, FormQuestion } from '../types';
+import { ConditionalQuestionsEditor } from './ConditionalQuestionsEditor';
+import { SingleChoiceQuestion, ActivityKPIMapping, ChoiceOption, FormQuestion, QuestionType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+
+// Helper function to create questions with proper defaults
+function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionType): FormQuestion {
+  switch (questionType) {
+    case 'SHORT_TEXT':
+      return {
+        ...baseQuestion,
+        placeholder: 'Enter your response...',
+      };
+    
+    case 'NUMBER':
+      return {
+        ...baseQuestion,
+        placeholder: 'Enter a number',
+        step: 1,
+      };
+    
+    case 'SINGLE_CHOICE':
+      return {
+        ...baseQuestion,
+        options: [
+          { id: uuidv4(), label: 'Option 1', value: 'option1', hasConditionalQuestions: false, conditionalQuestions: [] },
+          { id: uuidv4(), label: 'Option 2', value: 'option2', hasConditionalQuestions: false, conditionalQuestions: [] },
+        ],
+        displayType: 'RADIO',
+      };
+    
+    case 'MULTIPLE_CHOICE':
+      return {
+        ...baseQuestion,
+        options: [
+          { id: uuidv4(), label: 'Option 1', value: 'option1' },
+          { id: uuidv4(), label: 'Option 2', value: 'option2' },
+        ],
+      };
+    
+    case 'LIKERT_SCALE':
+      return {
+        ...baseQuestion,
+        statements: [
+          {
+            id: uuidv4(),
+            text: 'Statement 1',
+            scaleType: '5_POINT'
+          }
+        ],
+        defaultScaleType: '5_POINT',
+        defaultLabels: {
+          negative: 'Strongly Disagree',
+          neutral: 'Neutral',
+          positive: 'Strongly Agree',
+        },
+      };
+    
+    case 'YES_NO':
+      return {
+        ...baseQuestion,
+        type: 'SINGLE_CHOICE',
+        options: [
+          { id: uuidv4(), label: 'Yes', value: 'yes', hasConditionalQuestions: false, conditionalQuestions: [] },
+          { id: uuidv4(), label: 'No', value: 'no', hasConditionalQuestions: false, conditionalQuestions: [] },
+        ],
+        displayType: 'RADIO',
+      };
+    
+    case 'DATE':
+    case 'DATETIME':
+      return {
+        ...baseQuestion,
+      };
+    
+    case 'LOCATION':
+      return {
+        ...baseQuestion,
+        enableHighAccuracy: true,
+        timeout: 10000, // 10 seconds
+        allowManualInput: true,
+        captureAddress: false,
+        showMap: false,
+      };
+
+    case 'IMAGE_UPLOAD':
+      return {
+        ...baseQuestion,
+        maxFiles: 10,
+        maxFileSize: 5 * 1024 * 1024, // 5MB
+        allowedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        allowMultiple: true,
+        previewSize: 'medium',
+        compressionQuality: 80,
+      };
+
+    case 'VIDEO_UPLOAD':
+      return {
+        ...baseQuestion,
+        maxFiles: 4,
+        maxFileSize: 100 * 1024 * 1024, // 100MB
+        allowedFormats: ['mp4', 'avi', 'mov', 'wmv', 'webm'],
+        allowMultiple: true,
+        quality: 'medium',
+        autoCompress: true,
+      };
+
+    case 'AUDIO_UPLOAD':
+      return {
+        ...baseQuestion,
+        maxFiles: 3,
+        maxFileSize: 50 * 1024 * 1024, // 50MB
+        allowedFormats: ['mp3', 'wav', 'aac', 'ogg', 'm4a'],
+        allowMultiple: true,
+        quality: 'medium',
+        autoCompress: true,
+      };
+
+    case 'FILE_UPLOAD':
+      return {
+        ...baseQuestion,
+        maxFiles: 5,
+        maxFileSize: 25 * 1024 * 1024, // 25MB
+        allowedFormats: ['pdf', 'doc', 'docx', 'txt', 'rtf'],
+        allowMultiple: true,
+        showPreview: true,
+      };
+    
+    default:
+      return baseQuestion;
+  }
+}
 
 interface SingleChoiceQuestionEditorProps {
   question: SingleChoiceQuestion;
@@ -101,16 +230,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
             <div>
               <div className="flex justify-between items-center mb-3">
                 <Label>Answer Options</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addOption}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Option
-                </Button>
+               
               </div>
 
               <div className="space-y-2">
@@ -161,6 +281,76 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Conditional Questions Section */}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-4">
+                <Label className="text-sm font-medium">Conditional Questions (Optional)</Label>
+                <Badge variant="outline" className="text-xs">
+                  Add questions that appear when specific options are selected
+                </Badge>
+              </div>
+              
+              <div className="space-y-4">
+                {question.options.map((option) => (
+                  <div key={option.id} className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        When "{option.label}" is selected:
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {(option.conditionalQuestions?.length || 0)} question{(option.conditionalQuestions?.length || 0) !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                    
+                    <ConditionalQuestionsEditor
+                      optionId={option.id}
+                      optionLabel={option.label}
+                      conditionalQuestions={option.conditionalQuestions || []}
+                      availableActivities={props.availableActivities}
+                      onUpdateConditionalQuestions={(questions) => {
+                        updateOption(option.id, { 
+                          conditionalQuestions: questions,
+                          hasConditionalQuestions: questions.length > 0
+                        });
+                      }}
+                      onLinkQuestionToActivity={(questionId, activityMapping) => {
+                        // This would need to be handled at the form level
+                        // For now, we'll just update the question directly
+                        const updatedQuestions = (option.conditionalQuestions || []).map(q =>
+                          q.id === questionId ? { ...q, linkedActivity: activityMapping } : q
+                        );
+                        updateOption(option.id, { 
+                          conditionalQuestions: updatedQuestions,
+                          hasConditionalQuestions: updatedQuestions.length > 0
+                        });
+                      }}
+                      sectionId={`conditional-${option.id}`}
+                      onAddQuestion={(sectionId, questionType) => {
+                        // Add the new question to the conditional questions
+                        const newQuestion = createQuestionWithDefaults({
+                          id: uuidv4(),
+                          type: questionType,
+                          title: '',
+                          description: '',
+                          isRequired: false,
+                          validationRules: [],
+                          dataType: 'TEXT',
+                          order: (option.conditionalQuestions || []).length,
+                          linkedActivity: undefined,
+                        }, questionType);
+                        
+                        const updatedQuestions = [...(option.conditionalQuestions || []), newQuestion];
+                        updateOption(option.id, { 
+                          conditionalQuestions: updatedQuestions,
+                          hasConditionalQuestions: updatedQuestions.length > 0
+                        });
+                      }}
+                    />
                   </div>
                 ))}
               </div>
@@ -229,7 +419,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
         </div>
 
         {/* Data Information */}
-        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+       {/*  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
           <div>
             <p className="text-sm font-medium">Database Storage</p>
             <p className="text-xs text-gray-600">
@@ -237,7 +427,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
             </p>
           </div>
           <Badge variant="outline">TEXT</Badge>
-        </div>
+        </div> */}
       </div>
     </BaseQuestionEditor>
   );

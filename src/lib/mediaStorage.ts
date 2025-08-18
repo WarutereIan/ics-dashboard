@@ -260,10 +260,6 @@ export function createMediaMetadata(
   description?: string
 ): Omit<MediaMetadata, 'id' | 'fileName' | 'originalFileName' | 'fileSize' | 'fileType' | 'uploadedAt'> {
   return {
-    fileName: file.name,
-    originalFileName: file.name,
-    fileSize: file.size,
-    fileType: file.type,
     mediaType,
     countryCode: project.country,
     projectCode: project.id,

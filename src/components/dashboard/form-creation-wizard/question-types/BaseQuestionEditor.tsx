@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Trash2, Copy, Settings, Link, ChevronDown, ChevronRight } from 'lucide-react';
-import { FormQuestion, ActivityKPIMapping } from '../types';
+import { FormQuestion, ActivityKPIMapping, QuestionType } from '../types';
+import { AddNextQuestionModal } from '../AddNextQuestionModal';
 
 interface BaseQuestionEditorProps {
   question: FormQuestion;
@@ -19,6 +20,8 @@ interface BaseQuestionEditorProps {
   availableActivities: ActivityKPIMapping[];
   onLinkToActivity: (activityMapping: ActivityKPIMapping) => void;
   children?: React.ReactNode; // Question-specific configuration
+  sectionId?: string; // Section ID for adding next question
+  onAddQuestion?: (sectionId: string, questionType: QuestionType) => void; // Function to add next question
 }
 
 export function BaseQuestionEditor({
@@ -29,6 +32,8 @@ export function BaseQuestionEditor({
   availableActivities,
   onLinkToActivity,
   children,
+  sectionId,
+  onAddQuestion,
 }: BaseQuestionEditorProps) {
   const [isOpen, setIsOpen] = useState(true);
   const linkedActivity = availableActivities.find(
@@ -180,10 +185,23 @@ export function BaseQuestionEditor({
                   Linking questions to activities helps track progress toward your project KPIs.
                 </p>
               </div>
-            </div>
-          </CardContent>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
-  );
-}
+
+                           </div>
+           </CardContent>
+         </CollapsibleContent>
+
+         {/* Add Next Question Button - Always visible */}
+         {sectionId && onAddQuestion && (
+           <div className="relative">
+             <div className="flex justify-center -mt-6">
+               <AddNextQuestionModal 
+                 sectionId={sectionId} 
+                 onAddQuestion={onAddQuestion} 
+               />
+             </div>
+           </div>
+         )}
+       </Card>
+     </Collapsible>
+   );
+ }

@@ -237,7 +237,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
         )}
 
         {/* Data Information */}
-        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+      {/*   <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
           <div>
             <p className="text-sm font-medium">Database Storage</p>
             <p className="text-xs text-gray-600">
@@ -250,7 +250,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
           <Badge variant="outline">
             {question.type === 'DATETIME' ? 'TIMESTAMP' : 'DATE'}
           </Badge>
-        </div>
+        </div> */}
       </div>
     </BaseQuestionEditor>
   );

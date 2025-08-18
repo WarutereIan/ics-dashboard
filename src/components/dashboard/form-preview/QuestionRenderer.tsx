@@ -19,6 +19,8 @@ interface QuestionRendererProps {
   onChange?: (value: any) => void;
   error?: string;
   isPreviewMode?: boolean;
+  conditionalValues?: Record<string, any>; // Values for conditional questions
+  onConditionalChange?: (questionId: string, value: any) => void; // Handler for conditional question changes
 }
 
 export function QuestionRenderer({
@@ -26,7 +28,9 @@ export function QuestionRenderer({
   value,
   onChange,
   error,
-  isPreviewMode = false
+  isPreviewMode = false,
+  conditionalValues = {},
+  onConditionalChange
 }: QuestionRendererProps) {
   switch (question.type) {
     case 'SHORT_TEXT':
@@ -59,6 +63,8 @@ export function QuestionRenderer({
           onChange={onChange}
           error={error}
           isPreviewMode={isPreviewMode}
+          conditionalValues={conditionalValues}
+          onConditionalChange={onConditionalChange}
         />
       );
 
@@ -70,6 +76,8 @@ export function QuestionRenderer({
           onChange={onChange}
           error={error}
           isPreviewMode={isPreviewMode}
+          conditionalValues={conditionalValues}
+          onConditionalChange={onConditionalChange}
         />
       );
 

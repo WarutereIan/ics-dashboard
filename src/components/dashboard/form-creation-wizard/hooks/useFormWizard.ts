@@ -37,7 +37,7 @@ export interface WizardStep {
 
 export function useFormWizard(formId?: string) {
   const navigate = useNavigate();
-  const { user } = useDashboard();
+  const { user, currentProject } = useDashboard();
   
   const [wizardState, setWizardState] = useState<FormWizardState>({
     currentStep: 0,
@@ -82,36 +82,49 @@ export function useFormWizard(formId?: string) {
   useEffect(() => {
     const loadProjectData = async () => {
       try {
-        const projects = getAllProjectsData();
-        const availableProjects = projects.map(p => ({ id: p.id, name: p.name }));
+        // Only use the current project from the dashboard context
+        if (!currentProject) {
+          toast({
+            title: "No Project Selected",
+            description: "Please select a project before creating a form.",
+            variant: "destructive",
+          });
+          navigate('/dashboard');
+          return;
+        }
+
+        const availableProjects = [{ id: currentProject.id, name: currentProject.name }];
         
-        // Load activities for all projects
+        // Load activities for the current project only
         const allActivities: ActivityKPIMapping[] = [];
-        for (const project of projects) {
-          const projectData = getProjectData(project.id);
-          if (projectData) {
-            projectData.outcomes.forEach(outcome => {
-              projectData.activities
-                .filter(activity => activity.outcomeId === outcome.id)
-                .forEach(activity => {
-                  allActivities.push({
-                    projectId: project.id,
-                    outcomeId: outcome.id,
-                    activityId: activity.id,
-                    activityName: activity.title,
-                    outcomeName: outcome.title,
-                    projectName: project.name,
-                    availableKPIs: [], // Will be loaded from KPI data
-                  });
+        const projectData = getProjectData(currentProject.id);
+        if (projectData) {
+          projectData.outcomes.forEach(outcome => {
+            projectData.activities
+              .filter(activity => activity.outcomeId === outcome.id)
+              .forEach(activity => {
+                allActivities.push({
+                  projectId: currentProject.id,
+                  outcomeId: outcome.id,
+                  activityId: activity.id,
+                  activityName: activity.title,
+                  outcomeName: outcome.title,
+                  projectName: currentProject.name,
+                  availableKPIs: [], // Will be loaded from KPI data
                 });
-            });
-          }
+              });
+          });
         }
 
         setWizardState(prev => ({
           ...prev,
           availableProjects,
           availableActivities: allActivities,
+          // Always ensure the current project is set
+          form: {
+            ...prev.form,
+            projectId: currentProject.id,
+          },
         }));
       } catch (error) {
         console.error('Error loading project data:', error);
@@ -124,7 +137,7 @@ export function useFormWizard(formId?: string) {
     };
 
     loadProjectData();
-  }, []);
+  }, [currentProject, navigate]);
 
   // Load draft for new form creation or existing form for editing
   useEffect(() => {
@@ -132,7 +145,16 @@ export function useFormWizard(formId?: string) {
       // Load draft for new form creation
       const draft = loadFormWizardDraft();
       if (draft) {
-        setWizardState(draft);
+        // Ensure we preserve the current project context even when loading a draft
+        setWizardState(prev => ({
+          ...draft,
+          availableProjects: prev.availableProjects, // Keep current project context
+          availableActivities: prev.availableActivities, // Keep current project activities
+          form: {
+            ...draft.form,
+            projectId: currentProject?.id || draft.form.projectId, // Ensure current project is set
+          },
+        }));
       }
     } else if (formId) {
       // Load existing form for editing
@@ -152,7 +174,7 @@ export function useFormWizard(formId?: string) {
         navigate('/dashboard');
       }
     }
-  }, [wizardState.isEditing, formId, navigate]);
+  }, [wizardState.isEditing, formId, navigate, currentProject]);
 
   // Auto-save draft when wizard state changes (only for new forms)
   useEffect(() => {
@@ -735,8 +757,8 @@ function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionTyp
       return {
         ...baseQuestion,
         options: [
-          { id: uuidv4(), label: 'Option 1', value: 'option1' },
-          { id: uuidv4(), label: 'Option 2', value: 'option2' },
+          { id: uuidv4(), label: 'Option 1', value: 'option1', hasConditionalQuestions: false, conditionalQuestions: [] },
+          { id: uuidv4(), label: 'Option 2', value: 'option2', hasConditionalQuestions: false, conditionalQuestions: [] },
         ],
         displayType: 'RADIO',
       };
@@ -745,8 +767,8 @@ function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionTyp
       return {
         ...baseQuestion,
         options: [
-          { id: uuidv4(), label: 'Option 1', value: 'option1' },
-          { id: uuidv4(), label: 'Option 2', value: 'option2' },
+          { id: uuidv4(), label: 'Option 1', value: 'option1', hasConditionalQuestions: false, conditionalQuestions: [] },
+          { id: uuidv4(), label: 'Option 2', value: 'option2', hasConditionalQuestions: false, conditionalQuestions: [] },
         ],
       };
     
@@ -776,8 +798,8 @@ function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionTyp
         ...baseQuestion,
         type: 'SINGLE_CHOICE',
         options: [
-          { id: uuidv4(), label: 'Yes', value: 'yes' },
-          { id: uuidv4(), label: 'No', value: 'no' },
+          { id: uuidv4(), label: 'Yes', value: 'yes', hasConditionalQuestions: false, conditionalQuestions: [] },
+          { id: uuidv4(), label: 'No', value: 'no', hasConditionalQuestions: false, conditionalQuestions: [] },
         ],
         displayType: 'RADIO',
       };

@@ -157,47 +157,47 @@ export function FormManagement() {
         const sampleForms: Form[] = [
           {
             id: `sample-form-1-${projectId}`,
-            title: 'Baseline Survey - Education Project',
-            description: 'Initial data collection for the education improvement project',
+    title: 'Baseline Survey - Education Project',
+    description: 'Initial data collection for the education improvement project',
             projectId: projectId,
             createdBy: user?.id || 'user-1',
-            createdAt: new Date('2024-01-15'),
-            updatedAt: new Date('2024-01-20'),
-            status: 'PUBLISHED',
-            version: 1,
-            sections: [],
-            settings: {
-              requireAuthentication: false,
-              thankYouMessage: 'Thank you for your response!',
-              notificationEmails: [],
-            },
-            responseCount: 127,
-            lastResponseAt: new Date('2024-01-25'),
-            tags: ['baseline', 'education'],
-            category: 'Survey',
-          },
-          {
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-01-20'),
+    status: 'PUBLISHED',
+    version: 1,
+    sections: [],
+    settings: {
+      requireAuthentication: false,
+      thankYouMessage: 'Thank you for your response!',
+      notificationEmails: [],
+    },
+    responseCount: 127,
+    lastResponseAt: new Date('2024-01-25'),
+    tags: ['baseline', 'education'],
+    category: 'Survey',
+  },
+  {
             id: `sample-form-2-${projectId}`,
-            title: 'Monthly Progress Monitoring',
-            description: 'Monthly check-in on project activities and outcomes',
+    title: 'Monthly Progress Monitoring',
+    description: 'Monthly check-in on project activities and outcomes',
             projectId: projectId,
             createdBy: user?.id || 'user-1',
-            createdAt: new Date('2024-02-01'),
-            updatedAt: new Date('2024-02-01'),
-            status: 'DRAFT',
-            version: 1,
-            sections: [],
-            settings: {
-              requireAuthentication: true,
-              thankYouMessage: 'Thank you for your response!',
-              notificationEmails: [],
-            },
-            responseCount: 0,
-            tags: ['monitoring', 'monthly'],
-            category: 'Monitoring',
-          },
-        ];
-        
+    createdAt: new Date('2024-02-01'),
+    updatedAt: new Date('2024-02-01'),
+    status: 'DRAFT',
+    version: 1,
+    sections: [],
+    settings: {
+      requireAuthentication: true,
+      thankYouMessage: 'Thank you for your response!',
+      notificationEmails: [],
+    },
+    responseCount: 0,
+    tags: ['monitoring', 'monthly'],
+    category: 'Monitoring',
+  },
+];
+
         sampleForms.forEach(form => addForm(form));
         setForms(sampleForms);
         localStorage.setItem(`ics_forms_initialized_${projectId}`, 'true');
@@ -551,16 +551,16 @@ export function FormManagement() {
                           {new Date(form.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                                                      <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
                                 <Button 
                                   variant="ghost" 
                                   className="h-8 w-8 p-0"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewForm(form.id); }}>
                                 <Eye className="mr-2 h-4 w-4" />
@@ -579,9 +579,9 @@ export function FormManagement() {
                               <DropdownMenuSeparator />
                               {form.status === 'PUBLISHED' && (
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareForm(form); }}>
-                                  <Share2 className="mr-2 h-4 w-4" />
-                                  Share Link
-                                </DropdownMenuItem>
+                                <Share2 className="mr-2 h-4 w-4" />
+                                Share Link
+                              </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
                                 <Copy className="mr-2 h-4 w-4" />
@@ -647,9 +647,9 @@ export function FormManagement() {
                               <DropdownMenuSeparator />
                               {form.status === 'PUBLISHED' && (
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareForm(form); }}>
-                                  <Share2 className="mr-2 h-4 w-4" />
-                                  Share Link
-                                </DropdownMenuItem>
+                                <Share2 className="mr-2 h-4 w-4" />
+                                Share Link
+                              </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
                                 <Copy className="mr-2 h-4 w-4" />

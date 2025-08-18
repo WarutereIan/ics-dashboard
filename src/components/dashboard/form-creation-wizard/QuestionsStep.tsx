@@ -20,6 +20,7 @@ import {
   LocationQuestionEditor,
   MediaUploadQuestionEditor,
 } from './question-types';
+import { AddNextQuestionModal } from './AddNextQuestionModal';
 
 interface QuestionsStepProps {
   sections: FormSection[];
@@ -53,6 +54,8 @@ export function QuestionsStep({
       availableActivities,
       onLinkToActivity: (activityMapping: ActivityKPIMapping) => 
         onLinkQuestionToActivity(sectionId, question.id, activityMapping),
+      sectionId,
+      onAddQuestion,
     };
 
     switch (question.type) {
@@ -91,8 +94,8 @@ export function QuestionsStep({
         <div className="space-y-4">
           <div className="text-center">
             <Plus className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-            <h4 className="font-medium text-blue-900">Add a Question</h4>
-            <p className="text-sm text-blue-700">Choose a question type to add to this section</p>
+            <h4 className="font-medium text-blue-900">Add a Question to This Section</h4>
+          
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -130,7 +133,7 @@ export function QuestionsStep({
             </div>
           </div>
 
-          {selectedQuestionType && (
+         {/*  {selectedQuestionType && (
             <div className="p-3 bg-white rounded border">
               <p className="text-sm font-medium text-gray-900">
                 {QUESTION_TYPE_LABELS[selectedQuestionType]}
@@ -139,7 +142,7 @@ export function QuestionsStep({
                 {QUESTION_TYPE_DESCRIPTIONS[selectedQuestionType]}
               </p>
             </div>
-          )}
+          )} */}
         </div>
       </CardContent>
     </Card>

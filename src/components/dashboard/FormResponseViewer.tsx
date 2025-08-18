@@ -41,9 +41,10 @@ interface ResponseCellProps {
   attachments: MediaAttachment[];
   isEditable?: boolean;
   onValueChange?: (value: any) => void;
+  responseData?: Record<string, any>; // Full response data for conditional questions
 }
 
-function ResponseCell({ question, value, attachments, isEditable = false, onValueChange }: ResponseCellProps) {
+function ResponseCell({ question, value, attachments, isEditable = false, onValueChange, responseData }: ResponseCellProps) {
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -97,15 +98,85 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
       );
 
     case 'SINGLE_CHOICE':
-   
+      if (isEditable) {
+        return (
+          <Select value={value || ''} onValueChange={onValueChange}>
+            <SelectTrigger className="text-xs h-6 px-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {question.options?.map((option) => (
+                <SelectItem key={option.id} value={option.value.toString()}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      }
+      
+      const selectedOption = question.options?.find(opt => opt.value.toString() === value?.toString());
+      const selectedLabel = selectedOption?.label || value || '-';
+      
+      // Check if this option has conditional questions and if there are responses for them
+      const conditionalResponses = selectedOption?.hasConditionalQuestions && selectedOption?.conditionalQuestions && responseData ? 
+        selectedOption.conditionalQuestions.map(conditionalQuestion => {
+          const conditionalValue = responseData[conditionalQuestion.id];
+          return {
+            question: conditionalQuestion,
+            value: conditionalValue
+          };
+        }).filter(item => item.value !== undefined) : [];
+      
+      return (
+        <div className="text-xs leading-tight space-y-1">
+          <div className="font-medium">{selectedLabel}</div>
+          {conditionalResponses.length > 0 && (
+            <div className="ml-2 pl-2 border-l-2 border-blue-200 space-y-1">
+              {conditionalResponses.map(({ question: conditionalQuestion, value: conditionalValue }) => (
+                <div key={conditionalQuestion.id} className="text-gray-600">
+                  <span className="font-medium">{conditionalQuestion.title}:</span>{' '}
+                  <span>{conditionalValue || '-'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+
     case 'MULTIPLE_CHOICE':
       if (Array.isArray(value) && question.options) {
         const selectedLabels = value
           .map(v => question.options?.find(opt => opt.value === v)?.label || v)
           .join(', ');
+        
+        // Check for conditional questions
+        const conditionalResponses = question.options
+          .filter(option => 
+            option.hasConditionalQuestions && 
+            option.conditionalQuestions && 
+            value.includes(option.value.toString())
+          )
+          .flatMap(option => 
+            option.conditionalQuestions!.map(conditionalQuestion => {
+              const conditionalValue = responseData?.[conditionalQuestion.id];
+              return { question: conditionalQuestion, value: conditionalValue };
+            }).filter(item => item.value !== undefined)
+          );
+        
         return (
-          <div className="text-xs max-w-[200px] truncate leading-tight" title={selectedLabels}>
-            {selectedLabels || '-'}
+          <div className="text-xs leading-tight space-y-1">
+            <div className="font-medium">{selectedLabels || '-'}</div>
+            {conditionalResponses.length > 0 && (
+              <div className="ml-2 pl-2 border-l-2 border-blue-200 space-y-1">
+                {conditionalResponses.map(({ question: conditionalQuestion, value: conditionalValue }) => (
+                  <div key={conditionalQuestion.id} className="text-gray-600">
+                    <span className="font-medium">{conditionalQuestion.title}:</span>{' '}
+                    <span>{conditionalValue || '-'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       }
@@ -1018,6 +1089,7 @@ export function FormResponseViewer() {
                                       attachments={attachments}
                                       isEditable={!row.isExisting}
                                       onValueChange={(value) => handleManualDataChange(row.rowIndex, question.id, value)}
+                                      responseData={row.data}
                                     />
                                   </TableCell>
                                 );

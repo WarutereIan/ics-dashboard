@@ -7,6 +7,7 @@ export { DateQuestionEditor } from './DateQuestionEditor';
 export { LikertScaleQuestionEditor } from './LikertScaleQuestionEditor';
 export { LocationQuestionEditor } from './LocationQuestionEditor';
 export { MediaUploadQuestionEditor } from './MediaUploadQuestionEditor';
+export { ConditionalQuestionsEditor } from './ConditionalQuestionsEditor';
 
 // Question type mapping for dynamic rendering
 import { QuestionType } from '../types';

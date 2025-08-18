@@ -35,11 +35,12 @@ export function FormPreview({
 }: FormPreviewProps) {
   const { projectId, formId } = useParams();
   const navigate = useNavigate();
-  const { currentForm, addFormResponse } = useForm();
+  const { currentForm, addFormResponse, validateConditionalQuestions } = useForm();
   
   const [form, setForm] = useState<Form | null>(providedForm || null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, any>>({});
+  const [conditionalResponses, setConditionalResponses] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
@@ -138,12 +139,21 @@ export function FormPreview({
     }
   };
 
+  // Handle conditional question response
+  const handleConditionalChange = (questionId: string, value: any) => {
+    setConditionalResponses(prev => ({
+      ...prev,
+      [questionId]: value
+    }));
+  };
+
   // Validate current section
   const validateCurrentSection = () => {
-    if (!currentSection) return true;
+    if (!currentSection || !form) return true;
     
     const newErrors: Record<string, string> = {};
     
+    // Validate main questions
     currentSection.questions.forEach(question => {
       if (question.isRequired) {
         const response = responses[question.id];
@@ -153,6 +163,10 @@ export function FormPreview({
         }
       }
     });
+
+    // Validate conditional questions
+    const conditionalErrors = validateConditionalQuestions(form, { ...responses, ...conditionalResponses });
+    Object.assign(newErrors, conditionalErrors);
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -207,7 +221,10 @@ export function FormPreview({
         startedAt: new Date(),
         submittedAt: new Date(),
         isComplete: true,
-        data: responses
+        data: {
+          ...responses,
+          ...conditionalResponses
+        }
       };
 
       if (onSubmit) {
@@ -375,6 +392,8 @@ export function FormPreview({
                     onChange={(value) => handleQuestionChange(question.id, value)}
                     error={errors[question.id]}
                     isPreviewMode={isPreviewMode}
+                    conditionalValues={conditionalResponses}
+                    onConditionalChange={handleConditionalChange}
                   />
                 </div>
               ))}

@@ -76,8 +76,8 @@ export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoSt
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="project-select">Select Project *</Label>
-            <Select value={form.projectId || ''} onValueChange={(value) => onUpdate('projectId', value)}>
+            <Label htmlFor="project-select">Project *</Label>
+            <Select value={form.projectId || ''} onValueChange={(value) => onUpdate('projectId', value)} disabled={availableProjects.length === 1}>
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Choose which project this form belongs to..." />
               </SelectTrigger>
@@ -90,7 +90,10 @@ export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoSt
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500 mt-1">
-              Forms are associated with projects to enable activity linking and KPI tracking
+              {availableProjects.length === 1 
+                ? "Form will be associated with the current project"
+                : "Forms are associated with projects to enable activity linking and KPI tracking"
+              }
             </p>
           </div>
 
@@ -158,7 +161,10 @@ export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoSt
               <div>
                 <p className="text-sm font-medium text-orange-900">Required Information</p>
                 <p className="text-sm text-orange-700">
-                  Please provide a form title and select a project to continue.
+                  {availableProjects.length === 1 
+                    ? "Please provide a form title to continue."
+                    : "Please provide a form title and select a project to continue."
+                  }
                 </p>
               </div>
             </div>

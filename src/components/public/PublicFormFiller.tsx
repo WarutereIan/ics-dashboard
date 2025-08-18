@@ -35,13 +35,14 @@ interface PublicFormFillerProps {
 export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) {
   const { formId } = useParams<{ formId: string }>();
   const navigate = useNavigate();
-  const { addFormResponseToStorage } = useForm();
+  const { addFormResponseToStorage, validateConditionalQuestions } = useForm();
   
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, any>>({});
+  const [conditionalResponses, setConditionalResponses] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [showProgress, setShowProgress] = useState(true);
@@ -119,6 +120,34 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     }));
   };
 
+  const handleConditionalChange = (questionId: string, value: any) => {
+    setConditionalResponses(prev => ({
+      ...prev,
+      [questionId]: value
+    }));
+  };
+
+  // Validate current section including conditional questions
+  const validateCurrentSection = () => {
+    if (!form || !currentSection) return true;
+    
+    const allResponses = { ...responses, ...conditionalResponses };
+    const errors = validateConditionalQuestions(form, allResponses);
+    
+    // Also validate main questions
+    currentSection.questions.forEach(question => {
+      if (question.isRequired) {
+        const response = responses[question.id];
+        if (response === undefined || response === '' || response === null ||
+            (Array.isArray(response) && response.length === 0)) {
+          errors[question.id] = 'This field is required';
+        }
+      }
+    });
+    
+    return Object.keys(errors).length === 0;
+  };
+
   const handleNextSection = () => {
     if (form && currentSectionIndex < form.sections.length - 1) {
       setCurrentSectionIndex(prev => prev + 1);
@@ -145,7 +174,10 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
         startedAt: new Date(),
         submittedAt: new Date(),
         isComplete: true,
-        data: responses,
+        data: {
+          ...responses,
+          ...conditionalResponses
+        },
         ipAddress: 'Unknown', // In a real app, this would be captured from the request
         userAgent: navigator.userAgent,
         source: isEmbedded ? 'embed' : 'direct'
@@ -347,6 +379,8 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                   onChange={(value) => handleResponseChange(question.id, value)}
                   error={undefined}
                   isPreviewMode={false}
+                  conditionalValues={conditionalResponses}
+                  onConditionalChange={handleConditionalChange}
                 />
               ))}
             </div>
@@ -379,9 +413,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
             {!isLastSection ? (
               <Button 
                 onClick={handleNextSection}
-                disabled={!currentSection.questions.every(q => 
-                  !q.isRequired || responses[q.id] !== undefined
-                )}
+                disabled={!validateCurrentSection()}
               >
                 Next
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -389,11 +421,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
             ) : (
               <Button 
                 onClick={handleSubmit}
-                disabled={isSubmitting || !form.sections.every(section =>
-                  section.questions.every(q => 
-                    !q.isRequired || responses[q.id] !== undefined
-                  )
-                )}
+                disabled={isSubmitting || !validateCurrentSection()}
               >
                 {isSubmitting ? (
                   <>

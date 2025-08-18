@@ -101,6 +101,8 @@ export interface ChoiceOption {
   label: string;
   value: string | number;
   isOther?: boolean; // Allows custom text input
+  hasConditionalQuestions?: boolean; // Whether this option has conditional questions
+  conditionalQuestions?: FormQuestion[]; // Questions that appear when this option is selected
 }
 
 export interface SingleChoiceQuestion extends BaseQuestion {

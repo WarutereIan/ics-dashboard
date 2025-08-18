@@ -3,11 +3,14 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { BaseQuestionRenderer, BaseQuestionRendererProps } from './BaseQuestionRenderer';
 import { MultipleChoiceQuestion } from '../../form-creation-wizard/types';
+import { QuestionRenderer } from '../QuestionRenderer';
 
 interface MultipleChoiceQuestionRendererProps extends BaseQuestionRendererProps {
   question: MultipleChoiceQuestion;
   value?: string[];
   onChange?: (value: string[]) => void;
+  conditionalValues?: Record<string, any>; // Values for conditional questions
+  onConditionalChange?: (questionId: string, value: any) => void; // Handler for conditional question changes
 }
 
 export function MultipleChoiceQuestionRenderer({
@@ -15,7 +18,9 @@ export function MultipleChoiceQuestionRenderer({
   value = [],
   onChange,
   error,
-  isPreviewMode
+  isPreviewMode,
+  conditionalValues = {},
+  onConditionalChange
 }: MultipleChoiceQuestionRendererProps) {
   const [otherText, setOtherText] = useState('');
 
@@ -105,23 +110,48 @@ export function MultipleChoiceQuestionRenderer({
           );
           
           return (
-            <div key={option.id} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id={`${question.id}-${option.id}`}
-                checked={isSelected}
-                onChange={(e) => handleOptionChange(option.value.toString(), e.target.checked)}
-                disabled={isDisabled}
-                className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              />
-              <Label 
-                htmlFor={`${question.id}-${option.id}`}
-                className={`text-sm ${
-                  isPreviewMode || isDisabled ? 'text-gray-500' : 'cursor-pointer'
-                }`}
-              >
-                {option.label}
-              </Label>
+            <div key={option.id} className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={`${question.id}-${option.id}`}
+                  checked={isSelected}
+                  onChange={(e) => handleOptionChange(option.value.toString(), e.target.checked)}
+                  disabled={isDisabled}
+                  className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                />
+                <Label 
+                  htmlFor={`${question.id}-${option.id}`}
+                  className={`text-sm ${
+                    isPreviewMode || isDisabled ? 'text-gray-500' : 'cursor-pointer'
+                  }`}
+                >
+                  {option.label}
+                </Label>
+              </div>
+              
+              {/* Conditional Questions */}
+              {option.hasConditionalQuestions && 
+               option.conditionalQuestions && 
+               isSelected && (
+                <div className="ml-6 mt-3 p-4 border-l-4 border-l-blue-500 bg-blue-50 rounded-r-lg">
+                  <div className="text-sm font-medium text-blue-700 mb-3">
+                    Additional questions for "{option.label}":
+                  </div>
+                  <div className="space-y-4">
+                    {option.conditionalQuestions.map((conditionalQuestion) => (
+                      <QuestionRenderer
+                        key={conditionalQuestion.id}
+                        question={conditionalQuestion}
+                        value={conditionalValues[conditionalQuestion.id]}
+                        onChange={(value) => onConditionalChange?.(conditionalQuestion.id, value)}
+                        error={undefined}
+                        isPreviewMode={isPreviewMode}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
