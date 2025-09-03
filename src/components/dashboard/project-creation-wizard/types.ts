@@ -3,7 +3,7 @@ export interface ProjectFormData {
   name: string;
   description: string;
   country: string;
-  status: 'planning' | 'active' | 'completed' | 'on-hold';
+  status: 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD';
   startDate: Date | undefined;
   endDate: Date | undefined;
   budget: number;
@@ -49,6 +49,7 @@ export interface ActivityFormData {
 }
 
 export interface KPIFormData {
+  id?: string; // Optional, used for frontend tracking but not sent to backend
   outcomeId: string;
   name: string;
   target: number;

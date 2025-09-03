@@ -1,0 +1,335 @@
+import { apiClient } from './client';
+import { Form, FormResponse, FormTemplate } from '@/components/dashboard/form-creation-wizard/types';
+
+// DTO interfaces that match backend expectations
+export interface CreateFormDto {
+  title: string;
+  description?: string;
+  projectId: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
+  tags?: string[];
+  category?: string;
+  sections?: any[];
+  settings?: any;
+}
+
+export interface UpdateFormDto {
+  title?: string;
+  description?: string;
+  status?: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
+  tags?: string[];
+  category?: string;
+  sections?: any[];
+  settings?: any;
+}
+
+export interface CreateFormResponseDto {
+  formId: string;
+  respondentId?: string;
+  respondentEmail?: string;
+  isComplete?: boolean;
+  ipAddress?: string;
+  userAgent?: string;
+  source?: string;
+  data: Record<string, any>;
+}
+
+export interface CreateFormTemplateDto {
+  name: string;
+  description: string;
+  category: string;
+  tags?: string[];
+  previewImage?: string;
+  isPublic?: boolean;
+  sections: any[];
+  settings: any;
+}
+
+export const formsApi = {
+  // ========================================
+  // PROJECT FORM MANAGEMENT
+  // ========================================
+
+  async createForm(projectId: string, formData: CreateFormDto): Promise<Form> {
+    const response = await apiClient.post(`/forms/projects/${projectId}/forms`, formData);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to create form');
+  },
+
+  async getProjectForms(projectId: string): Promise<Form[]> {
+    const response = await apiClient.get(`/forms/projects/${projectId}/forms`);
+    if (response.success && response.data) {
+      return response.data as Form[];
+    }
+    throw new Error(response.error || 'Failed to fetch project forms');
+  },
+
+  async getForm(projectId: string, formId: string): Promise<Form> {
+    const response = await apiClient.get(`/forms/projects/${projectId}/forms/${formId}`);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to fetch form');
+  },
+
+  async updateForm(projectId: string, formId: string, updates: UpdateFormDto): Promise<Form> {
+    const response = await apiClient.patch(`/forms/projects/${projectId}/forms/${formId}`, updates);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to update form');
+  },
+
+  async deleteForm(projectId: string, formId: string): Promise<void> {
+    const response = await apiClient.delete(`/forms/projects/${projectId}/forms/${formId}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete form');
+    }
+  },
+
+  async duplicateForm(projectId: string, formId: string): Promise<Form> {
+    const response = await apiClient.post(`/forms/projects/${projectId}/forms/${formId}/duplicate`);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to duplicate form');
+  },
+
+  // ========================================
+  // FORM RESPONSES
+  // ========================================
+
+  async submitResponse(responseData: CreateFormResponseDto): Promise<FormResponse> {
+    const response = await apiClient.post('/forms/responses', responseData);
+    if (response.success && response.data) {
+      return response.data as FormResponse;
+    }
+    throw new Error(response.error || 'Failed to submit response');
+  },
+
+  async getFormResponses(projectId: string, formId: string): Promise<FormResponse[]> {
+    const response = await apiClient.get(`/forms/projects/${projectId}/forms/${formId}/responses`);
+    if (response.success && response.data) {
+      return response.data as FormResponse[];
+    }
+    throw new Error(response.error || 'Failed to fetch form responses');
+  },
+
+  async getFormResponse(projectId: string, formId: string, responseId: string): Promise<FormResponse> {
+    const response = await apiClient.get(`/forms/projects/${projectId}/forms/${formId}/responses/${responseId}`);
+    if (response.success && response.data) {
+      return response.data as FormResponse;
+    }
+    throw new Error(response.error || 'Failed to fetch form response');
+  },
+
+  async deleteFormResponse(projectId: string, formId: string, responseId: string): Promise<void> {
+    const response = await apiClient.delete(`/forms/projects/${projectId}/forms/${formId}/responses/${responseId}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete form response');
+    }
+  },
+
+  // ========================================
+  // FORM ANALYTICS
+  // ========================================
+
+  async getFormAnalytics(projectId: string, formId: string): Promise<any> {
+    const response = await apiClient.get(`/forms/projects/${projectId}/forms/${formId}/analytics`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to fetch form analytics');
+  },
+
+  // ========================================
+  // FORM TEMPLATES
+  // ========================================
+
+  async createTemplate(templateData: CreateFormTemplateDto): Promise<FormTemplate> {
+    const response = await apiClient.post('/forms/templates', templateData);
+    if (response.success && response.data) {
+      return response.data as FormTemplate;
+    }
+    throw new Error(response.error || 'Failed to create template');
+  },
+
+  async getPublicTemplates(): Promise<FormTemplate[]> {
+    const response = await apiClient.get('/forms/templates');
+    if (response.success && response.data) {
+      return response.data as FormTemplate[];
+    }
+    throw new Error(response.error || 'Failed to fetch public templates');
+  },
+
+  async getUserTemplates(): Promise<FormTemplate[]> {
+    const response = await apiClient.get('/forms/templates/my');
+    if (response.success && response.data) {
+      return response.data as FormTemplate[];
+    }
+    throw new Error(response.error || 'Failed to fetch user templates');
+  },
+
+  async createFormFromTemplate(projectId: string, templateId: string, title: string): Promise<Form> {
+    const response = await apiClient.post(`/forms/projects/${projectId}/forms/from-template/${templateId}`, { title });
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to create form from template');
+  },
+
+  // ========================================
+  // MEDIA ATTACHMENTS
+  // ========================================
+
+  async uploadMediaFile(
+    projectId: string,
+    formId: string,
+    file: File,
+    questionId: string,
+    responseId: string,
+    metadata: {
+      tags?: string[];
+      description?: string;
+      location?: {
+        latitude: number;
+        longitude: number;
+        accuracy?: number;
+        address?: string;
+      };
+    }
+  ): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('questionId', questionId);
+    if (responseId) formData.append('responseId', responseId);
+    formData.append('metadata', JSON.stringify(metadata));
+
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/v1/forms/projects/${projectId}/forms/${formId}/media`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload media file');
+    }
+
+    return response.json();
+  },
+
+  async getFormMediaFiles(projectId: string, formId: string): Promise<any[]> {
+    const response = await apiClient.get(`/forms/projects/${projectId}/forms/${formId}/media`);
+    if (response.success && response.data) {
+      return response.data as any[];
+    }
+    return [];
+  },
+
+  async getProjectMediaFiles(projectId: string, search?: string, mediaType?: string): Promise<any[]> {
+    let url = `/forms/projects/${projectId}/media`;
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (mediaType) params.append('mediaType', mediaType);
+    if (params.toString()) url += `?${params.toString()}`;
+
+    const response = await apiClient.get(url);
+    if (response.success && response.data) {
+      return response.data as any[];
+    }
+    return [];
+  },
+
+  async deleteMediaFile(projectId: string, formId: string, mediaId: string): Promise<void> {
+    const response = await apiClient.delete(`/forms/projects/${projectId}/forms/${formId}/media/${mediaId}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete media file');
+    }
+  },
+
+  async updateMediaFileMetadata(projectId: string, formId: string, mediaId: string, updates: any): Promise<any> {
+    const response = await apiClient.patch(`/forms/projects/${projectId}/forms/${formId}/media/${mediaId}`, updates);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to update media file metadata');
+  },
+
+  // ========================================
+  // PUBLIC FORM ACCESS
+  // ========================================
+
+  async getPublicForm(formId: string): Promise<Form> {
+    const response = await apiClient.get(`/forms/public/${formId}`);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to fetch public form');
+  },
+
+  // ========================================
+  // UTILITY METHODS
+  // ========================================
+
+  async getFormByIdOnly(formId: string): Promise<Form | null> {
+    try {
+      // Try to fetch as public form first
+      return await this.getPublicForm(formId);
+    } catch (error) {
+      console.error('Error fetching form:', error);
+      return null;
+    }
+  },
+
+  async getAllUserForms(): Promise<Form[]> {
+    try {
+      // This would require an endpoint that returns all forms for the current user across all projects
+      // For now, return empty array - this method needs to be implemented
+      return [];
+    } catch (error) {
+      console.error('Error fetching user forms:', error);
+      return [];
+    }
+  },
+
+  // ========================================
+  // OFFLINE SUPPORT UTILITIES
+  // ========================================
+
+  async syncOfflineData(offlineQueue: any[]): Promise<{ success: boolean; failedItems: any[] }> {
+    const failedItems: any[] = [];
+    
+    for (const item of offlineQueue) {
+      try {
+        switch (item.type) {
+          case 'form_create':
+            await this.createForm(item.data.projectId, item.data);
+            break;
+          case 'form_update':
+            await this.updateForm(item.data.projectId, item.data.id, item.data);
+            break;
+          case 'form_response':
+            await this.submitResponse(item.data);
+            break;
+          case 'form_delete':
+            await this.deleteForm(item.data.projectId, item.data.id);
+            break;
+          default:
+            console.warn('Unknown offline queue item type:', item.type);
+        }
+      } catch (error) {
+        console.error('Failed to sync offline item:', item, error);
+        failedItems.push(item);
+      }
+    }
+
+    return {
+      success: failedItems.length === 0,
+      failedItems
+    };
+  }
+};

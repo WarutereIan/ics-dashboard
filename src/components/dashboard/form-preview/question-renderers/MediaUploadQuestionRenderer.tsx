@@ -8,7 +8,7 @@ import { FormQuestion } from '../../form-creation-wizard/types';
 import { BaseQuestionRenderer } from './BaseQuestionRenderer';
 import { useForm } from '@/contexts/FormContext';
 import { useProjects } from '@/contexts/ProjectsContext';
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { generateMediaFileName, createMediaNamingData, getMediaTypeFromExtension } from '@/lib/mediaNamingConvention';
 
 interface MediaUploadQuestionRendererProps {
@@ -33,8 +33,19 @@ export function MediaUploadQuestionRenderer({
 }: MediaUploadQuestionRendererProps) {
   const { projectId } = useParams();
   const { currentForm, uploadMediaFile } = useForm();
-  const { projects } = useProjects();
-  const { user } = useDashboard();
+  const { user } = useAuth();
+  
+  // For public forms, useProjects might not be available
+  let projects: any[] = [];
+  let isPublicForm = false;
+  try {
+    const projectsContext = useProjects();
+    projects = projectsContext.projects || [];
+  } catch (error) {
+    // useProjects not available (e.g., public forms), continue with empty projects
+    isPublicForm = true;
+    console.log('📝 MediaUploadQuestionRenderer: Projects context not available, running in public form mode');
+  }
   const [dragActive, setDragActive] = useState(false);
   const [showCaptureOptions, setShowCaptureOptions] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -253,7 +264,7 @@ export function MediaUploadQuestionRenderer({
               currentForm,
               question.id,
               question.title,
-              user.name,
+              `${user.firstName} ${user.lastName}`,
               'video',
               locationData
             );
@@ -324,7 +335,7 @@ export function MediaUploadQuestionRenderer({
               currentForm,
               question.id,
               question.title,
-              user.name,
+              `${user.firstName} ${user.lastName}`,
               'audio',
               locationData
             );
@@ -419,7 +430,7 @@ export function MediaUploadQuestionRenderer({
               currentForm,
               question.id,
               question.title,
-              user.name,
+              `${user.firstName} ${user.lastName}`,
               'image',
               locationData
             );
@@ -496,41 +507,84 @@ export function MediaUploadQuestionRenderer({
     if (validFiles.length > 0) {
       try {
         // Store files with metadata
-        const storedFiles = [];
+        const storedFileData = [];
         for (const file of validFiles) {
           const mediaType = getMediaTypeFromExtension(file.name);
           const renamedFile = generateProperFileName(file, mediaType);
           
-          // Store with metadata if we have context
-          if (projectId && currentForm && user) {
+          // Store with metadata if we have context (authenticated forms)
+          if (projectId && currentForm && user && !isPublicForm) {
             const project = projects.find(p => p.id === projectId);
             if (project) {
-              await uploadMediaFile(
+              console.log('📝 Uploading media file to server...');
+              const uploadedFile = await uploadMediaFile(
                 renamedFile,
                 project,
                 currentForm,
                 question.id,
                 question.title,
-                user.name,
+                `${user.firstName} ${user.lastName}`,
                 mediaType,
                 locationData
               );
+              
+              // Store the file data with URL for form response
+              storedFileData.push({
+                id: uploadedFile.id,
+                name: uploadedFile.metadata.fileName,
+                originalName: uploadedFile.metadata.originalFileName,
+                size: uploadedFile.metadata.fileSize,
+                type: uploadedFile.metadata.fileType,
+                url: uploadedFile.url,
+                filePath: uploadedFile.filePath,
+                mediaType: uploadedFile.metadata.mediaType,
+                uploadedAt: uploadedFile.metadata.uploadedAt
+              });
+              console.log('✅ Media file uploaded, URL:', uploadedFile.url);
+            } else {
+              // Fallback if no project found
+              storedFileData.push({
+                name: renamedFile.name,
+                originalName: file.name,
+                size: file.size,
+                type: file.type,
+                mediaType,
+                file: renamedFile // Keep file object for local storage
+              });
             }
+          } else {
+            // Public form - store file data without server upload
+            console.log('📝 Public form: storing file data locally');
+            storedFileData.push({
+              name: renamedFile.name,
+              originalName: file.name,
+              size: file.size,
+              type: file.type,
+              mediaType,
+              file: renamedFile // Keep file object for form submission
+            });
           }
-          
-          storedFiles.push(renamedFile);
         }
 
-        const newFiles = [...value, ...storedFiles];
+        const newFiles = [...value, ...storedFileData];
         onChange(newFiles);
       } catch (error) {
         console.error('Error storing media files:', error);
-        // Fallback to just renaming without metadata storage
-        const renamedFiles = validFiles.map(file => {
+        // Fallback to basic file data storage
+        const fileData = validFiles.map(file => {
           const mediaType = getMediaTypeFromExtension(file.name);
-          return generateProperFileName(file, mediaType);
+          const renamedFile = generateProperFileName(file, mediaType);
+          return {
+            name: renamedFile.name,
+            originalName: file.name,
+            size: file.size,
+            type: file.type,
+            mediaType,
+            file: renamedFile,
+            uploadError: true
+          };
         });
-        const newFiles = [...value, ...renamedFiles];
+        const newFiles = [...value, ...fileData];
         onChange(newFiles);
       }
     }
@@ -772,9 +826,15 @@ export function MediaUploadQuestionRenderer({
                 {config.formats.length > 0 && (
                   <p>Accepted formats: {config.formats.join(', ')}</p>
                 )}
-                <p className="text-blue-600 font-medium">
-                  📝 Files will be automatically renamed with project and form prefixes
-                </p>
+                {isPublicForm ? (
+                  <p className="text-amber-600 font-medium">
+                    📝 Public form: Files will be stored temporarily for submission
+                  </p>
+                ) : (
+                  <p className="text-blue-600 font-medium">
+                    📝 Files will be automatically renamed with project and form prefixes
+                  </p>
+                )}
               </div>
 
               <Button
@@ -804,26 +864,56 @@ export function MediaUploadQuestionRenderer({
             <h4 className="text-sm font-medium text-gray-900">
               Selected Files ({value.length}/{config.maxFiles})
             </h4>
-            {value.map((file: File, index: number) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <IconComponent className="w-5 h-5 text-gray-500" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                    <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+            {value.map((fileData: any, index: number) => {
+              // Handle both File objects (legacy) and file data objects (new)
+              const fileName = fileData.name || fileData.fileName || 'Unknown file';
+              const fileSize = fileData.size || fileData.fileSize || 0;
+              const fileUrl = fileData.url;
+              const hasUploadError = fileData.uploadError;
+              
+              return (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <IconComponent className="w-5 h-5 text-gray-500" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{fileName}</p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>{formatFileSize(fileSize)}</span>
+                        {fileUrl && (
+                          <>
+                            <span>•</span>
+                            <a 
+                              href={fileUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline truncate max-w-[200px]"
+                              title={fileUrl}
+                            >
+                              View File
+                            </a>
+                          </>
+                        )}
+                        {hasUploadError && (
+                          <>
+                            <span>•</span>
+                            <span className="text-red-500">Upload failed</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile(index)}
+                    disabled={disabled}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeFile(index)}
-                  disabled={disabled}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

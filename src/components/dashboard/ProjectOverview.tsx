@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, DollarSign, Target, AlertTriangle, FileText, MapPin, Edit } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,15 +8,24 @@ import { Button } from '@/components/ui/button';
 import { RadialGauge } from '@/components/visualizations/RadialGauge';
 import { BulletChart } from '@/components/visualizations/BulletChart';
 import { StackedBarChart } from '@/components/visualizations/StackedBarChart';
-import { useDashboard } from '@/contexts/DashboardContext';
-import { getProjectOutcomes, getProjectActivities, getProjectSubActivities } from '@/lib/icsData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProjects } from '@/contexts/ProjectsContext';
 import { format } from 'date-fns';
 import { ProjectMapVisualization } from './ProjectMapVisualization';
+import { Outcome, Activity } from '@/types/dashboard';
 
 export function ProjectOverview() {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { user, projects } = useDashboard();
+  const { user } = useAuth();
+  const { 
+    projects, 
+    getProjectById,
+    getProjectOutcomes, 
+    getProjectActivities, 
+    getProjectSubActivities,
+    dataRefreshTrigger
+  } = useProjects();
 
   if (!user) return null;
   if (!projectId) {
@@ -24,13 +33,37 @@ export function ProjectOverview() {
   }
 
   // Get project details for title and other info
-  const currentProject = projects.find(p => p.id === projectId);
+  const currentProject = getProjectById(projectId);
   const projectName = currentProject?.name || projectId.toUpperCase();
 
-  // Get project data for stats
-  const outcomes = user ? getProjectOutcomes(user, projectId) : [];
-  const activities = user ? getProjectActivities(user, projectId) : [];
-  const subactivities = user ? getProjectSubActivities(user, projectId) : [];
+  // Get project data for stats (these are now async functions, we'll need to handle them differently)
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [subactivities, setSubactivities] = useState<any[]>([]);
+
+  // Load project data
+  useEffect(() => {
+    const loadProjectData = async () => {
+      if (projectId && user) {
+        try {
+          console.log(`🔄 ProjectOverview: Loading data for project ${projectId} (refresh trigger: ${dataRefreshTrigger})`);
+          const [outcomesData, activitiesData, subactivitiesData] = await Promise.all([
+            getProjectOutcomes(projectId),
+            getProjectActivities(projectId),
+            getProjectSubActivities(projectId)
+          ]);
+          setOutcomes(outcomesData);
+          setActivities(activitiesData);
+          setSubactivities(subactivitiesData);
+          console.log(`✅ ProjectOverview: Loaded ${outcomesData.length} outcomes, ${activitiesData.length} activities, ${subactivitiesData.length} subactivities`);
+        } catch (error) {
+          console.error('Error loading project data:', error);
+        }
+      }
+    };
+
+    loadProjectData();
+  }, [projectId, user, getProjectOutcomes, getProjectActivities, getProjectSubActivities, dataRefreshTrigger]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -73,6 +106,15 @@ export function ProjectOverview() {
         >
           <FileText className="h-4 w-4" />
           Forms
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/dashboard/projects/${projectId}/financial`)}
+          className="flex items-center gap-2"
+        >
+          <DollarSign className="h-4 w-4" />
+          Financial
         </Button>
         <Button
           variant="outline"

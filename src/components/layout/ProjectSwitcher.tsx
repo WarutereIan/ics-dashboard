@@ -15,18 +15,21 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useDashboard } from '@/contexts/DashboardContext';
+import { useProjects } from '@/contexts/ProjectsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { getAllProjects } from '@/lib/icsData';
 
 export function ProjectSwitcher() {
-  const { currentProject, setCurrentProject, user, projects } = useDashboard();
+  const { currentProject, setCurrentProject } = useDashboard();
+  const { user } = useAuth();
+  const { projects, isLoading, getAllProjectsForUser } = useProjects();
   if (!user) return null;
   const [open, setOpen] = React.useState(false);
 
   // Use unified API for permission-aware project list
-  const accessibleProjects = user ? getAllProjects(user) : [];
+  const accessibleProjects = user ? getAllProjectsForUser() : [];
 
-  if (accessibleProjects.length <= 1) {
+  if (isLoading || accessibleProjects.length <= 1) {
     return null;
   }
 
@@ -54,7 +57,7 @@ export function ProjectSwitcher() {
                   key={project.id}
                   value={project.name}
                   onSelect={() => {
-                    // Find the full project object from DashboardContext.projects
+                    // Find the full project object from ProjectsContext
                     const fullProject = projects.find(p => p.id === project.id);
                     if (fullProject) setCurrentProject(fullProject);
                     setOpen(false);

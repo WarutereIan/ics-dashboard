@@ -23,6 +23,28 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
   const { question, onUpdate } = props;
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
 
+  // Ensure statements array exists and has at least one default statement
+  const safeStatements = question.statements || [
+    {
+      id: uuidv4(),
+      text: 'Statement 1',
+      scaleType: '5_POINT' as const
+    }
+  ];
+
+  // Initialize statements if they don't exist
+  if (!question.statements || question.statements.length === 0) {
+    onUpdate({
+      statements: safeStatements,
+      defaultScaleType: '5_POINT',
+      defaultLabels: {
+        negative: 'Strongly Disagree',
+        neutral: 'Neutral',
+        positive: 'Strongly Agree',
+      }
+    } as Partial<FormQuestion>);
+  }
+
   const getScaleOptions = (scaleType: '3_POINT' | '5_POINT' | '7_POINT' | undefined, customLabels?: any) => {
     const safeScaleType = scaleType || '5_POINT';
     
@@ -65,16 +87,16 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
   const addStatement = () => {
     const newStatement: LikertScaleStatement = {
       id: uuidv4(),
-      text: `Statement ${question.statements.length + 1}`,
+      text: `Statement ${safeStatements.length + 1}`,
       scaleType: question.defaultScaleType || '5_POINT'
     };
     onUpdate({
-      statements: [...question.statements, newStatement]
+      statements: [...safeStatements, newStatement]
     } as Partial<FormQuestion>);
   };
 
   const updateStatement = (index: number, value: string) => {
-    const newStatements = [...question.statements];
+    const newStatements = [...safeStatements];
     newStatements[index] = { ...newStatements[index], text: value };
     onUpdate({
       statements: newStatements
@@ -82,7 +104,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
   };
 
   const updateStatementScaleType = (index: number, scaleType: '3_POINT' | '5_POINT' | '7_POINT') => {
-    const newStatements = [...question.statements];
+    const newStatements = [...safeStatements];
     newStatements[index] = { ...newStatements[index], scaleType };
     onUpdate({
       statements: newStatements
@@ -90,7 +112,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
   };
 
   const updateStatementCustomLabels = (index: number, customLabels: any) => {
-    const newStatements = [...question.statements];
+    const newStatements = [...safeStatements];
     newStatements[index] = { 
       ...newStatements[index], 
       customLabels: { ...newStatements[index].customLabels, ...customLabels }
@@ -101,8 +123,8 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
   };
 
   const removeStatement = (index: number) => {
-    if (question.statements.length > 1) {
-      const newStatements = question.statements.filter((_, i) => i !== index);
+    if (safeStatements.length > 1) {
+      const newStatements = safeStatements.filter((_, i) => i !== index);
       onUpdate({
         statements: newStatements
       } as Partial<FormQuestion>);
@@ -115,7 +137,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
   };
 
   const moveStatement = (index: number, direction: 'up' | 'down') => {
-    const newStatements = [...question.statements];
+    const newStatements = [...safeStatements];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     
     if (targetIndex >= 0 && targetIndex < newStatements.length) {
@@ -224,7 +246,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
           </div>
 
                      <div className="space-y-4">
-             {question.statements.map((statement: LikertScaleStatement, index: number) => (
+             {safeStatements.map((statement: LikertScaleStatement, index: number) => (
               <div key={statement.id} className="p-4 border rounded bg-white space-y-3">
                 {/* Statement Header */}
                 <div className="flex items-center gap-2">
@@ -308,7 +330,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
                     variant="ghost"
                     size="sm"
                     onClick={() => moveStatement(index, 'down')}
-                                         disabled={index === question.statements.length - 1}
+                                         disabled={index === safeStatements.length - 1}
                   >
                     ↓
                   </Button>
@@ -317,7 +339,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
                     variant="ghost"
                     size="sm"
                     onClick={() => removeStatement(index)}
-                                         disabled={question.statements.length <= 1}
+                                         disabled={safeStatements.length <= 1}
                     className="text-red-600"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -332,7 +354,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
         <div className="p-4 border rounded-lg bg-white">
           <Label className="text-sm font-medium mb-4 block text-blue-600">Preview</Label>
                      <div className="space-y-6">
-             {question.statements.map((statement: LikertScaleStatement, index: number) => {
+             {safeStatements.map((statement: LikertScaleStatement, index: number) => {
               const scaleOptions = getScaleOptions(statement.scaleType || '5_POINT', statement.customLabels);
               
               return (

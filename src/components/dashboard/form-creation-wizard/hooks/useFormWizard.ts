@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { useDashboard } from '@/contexts/DashboardContext';
+import { useProjects } from '@/contexts/ProjectsContext';
 import { toast } from '@/hooks/use-toast';
 import { 
   saveFormWizardDraft, 
@@ -8,11 +10,9 @@ import {
   hasFormWizardDraft, 
   clearFormWizardDraft, 
   autoSaveFormWizardDraft, 
-  clearFormWizardAutoSaveTimeout,
-  addForm,
-  updateForm,
-  getFormById
+  clearFormWizardAutoSaveTimeout
 } from '@/lib/formLocalStorageUtils';
+import { useForm } from '@/contexts/FormContext';
 import { 
   Form, 
   FormSection, 
@@ -22,10 +22,6 @@ import {
   ActivityKPIMapping,
   QuestionType 
 } from '../types';
-import { 
-  getAllProjectsData, 
-  getProjectData 
-} from '@/lib/projectDataManager';
 import { v4 as uuidv4 } from 'uuid';
 
 // Wizard steps
@@ -37,7 +33,11 @@ export interface WizardStep {
 
 export function useFormWizard(formId?: string) {
   const navigate = useNavigate();
-  const { user, currentProject } = useDashboard();
+  const { user } = useAuth();
+  const { currentProject } = useDashboard();
+  const { getProjectOutcomes, getProjectActivities, getProjectKPIs } = useProjects();
+  const { createForm, updateForm, loadForm } = useForm();
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const [wizardState, setWizardState] = useState<FormWizardState>({
     currentStep: 0,
@@ -82,40 +82,51 @@ export function useFormWizard(formId?: string) {
   useEffect(() => {
     const loadProjectData = async () => {
       try {
-        // Only use the current project from the dashboard context
+        console.log('🔄 FormWizard: loadProjectData called with currentProject:', currentProject);
+        
         if (!currentProject) {
-          toast({
-            title: "No Project Selected",
-            description: "Please select a project before creating a form.",
-            variant: "destructive",
-          });
-          navigate('/dashboard');
+          console.log('🔄 FormWizard: No currentProject yet, waiting...');
           return;
         }
 
+        console.log('🔄 FormWizard: Loading project data for:', currentProject.id, currentProject.name);
         const availableProjects = [{ id: currentProject.id, name: currentProject.name }];
         
-        // Load activities for the current project only
+        // Load activities for the current project using ProjectsContext API
         const allActivities: ActivityKPIMapping[] = [];
-        const projectData = getProjectData(currentProject.id);
-        if (projectData) {
-          projectData.outcomes.forEach(outcome => {
-            projectData.activities
-              .filter(activity => activity.outcomeId === outcome.id)
-              .forEach(activity => {
-                allActivities.push({
-                  projectId: currentProject.id,
-                  outcomeId: outcome.id,
-                  activityId: activity.id,
-                  activityName: activity.title,
-                  outcomeName: outcome.title,
-                  projectName: currentProject.name,
-                  availableKPIs: [], // Will be loaded from KPI data
-                });
+        
+        try {
+          console.log('🔄 FormWizard: Fetching outcomes and activities via ProjectsContext...');
+          const [outcomes, activities] = await Promise.all([
+            getProjectOutcomes(currentProject.id),
+            getProjectActivities(currentProject.id)
+          ]);
+          
+          console.log(`🔄 FormWizard: Loaded ${outcomes.length} outcomes and ${activities.length} activities`);
+
+          // Map activities to outcomes and create activity mappings
+          outcomes.forEach(outcome => {
+            const outcomeActivities = activities.filter(activity => activity.outcomeId === outcome.id);
+            outcomeActivities.forEach(activity => {
+              allActivities.push({
+                projectId: currentProject.id,
+                outcomeId: outcome.id,
+                activityId: activity.id,
+                activityName: activity.title,
+                outcomeName: outcome.title,
+                projectName: currentProject.name,
+                availableKPIs: [], // Will be loaded from KPI data
               });
+            });
           });
+
+          console.log(`🔄 FormWizard: Created ${allActivities.length} activity mappings`);
+        } catch (dataError) {
+          console.error('🔄 FormWizard: Error fetching project data:', dataError);
+          // Continue with empty activities if data fetch fails
         }
 
+        console.log('🔄 FormWizard: Setting wizard state with availableProjects:', availableProjects);
         setWizardState(prev => ({
           ...prev,
           availableProjects,
@@ -126,8 +137,11 @@ export function useFormWizard(formId?: string) {
             projectId: currentProject.id,
           },
         }));
+        
+        setIsInitialized(true);
+        console.log('✅ FormWizard: Project data loaded successfully');
       } catch (error) {
-        console.error('Error loading project data:', error);
+        console.error('❌ FormWizard: Error loading project data:', error);
         toast({
           title: "Error Loading Data",
           description: "Failed to load project and activity data.",
@@ -137,7 +151,19 @@ export function useFormWizard(formId?: string) {
     };
 
     loadProjectData();
-  }, [currentProject, navigate]);
+  }, [currentProject, getProjectOutcomes, getProjectActivities]);
+
+  // Handle redirect after initialization if no project
+  useEffect(() => {
+    if (isInitialized && !currentProject) {
+      toast({
+        title: "No Project Selected",
+        description: "Please select a project before creating a form.",
+        variant: "destructive",
+      });
+      navigate('/dashboard');
+    }
+  }, [isInitialized, currentProject, navigate]);
 
   // Load draft for new form creation or existing form for editing
   useEffect(() => {
@@ -156,23 +182,24 @@ export function useFormWizard(formId?: string) {
           },
         }));
       }
-    } else if (formId) {
-      // Load existing form for editing
-      const existingForm = getFormById(formId);
-      if (existingForm) {
-        setWizardState(prev => ({
-          ...prev,
-          form: existingForm,
-          hasUnsavedChanges: false,
-        }));
-      } else {
-        toast({
-          title: "Form Not Found",
-          description: "The form you're trying to edit could not be found.",
-          variant: "destructive",
-        });
-        navigate('/dashboard');
-      }
+    } else if (formId && currentProject?.id) {
+      // Load existing form for editing via API
+      loadForm(currentProject.id, formId).then(existingForm => {
+        if (existingForm) {
+          setWizardState(prev => ({
+            ...prev,
+            form: existingForm,
+            hasUnsavedChanges: false,
+          }));
+        } else {
+          toast({
+            title: "Form Not Found",
+            description: "The form you're trying to edit could not be found.",
+            variant: "destructive",
+          });
+          navigate('/dashboard');
+        }
+      });
     }
   }, [wizardState.isEditing, formId, navigate, currentProject]);
 
@@ -459,34 +486,35 @@ export function useFormWizard(formId?: string) {
         updatedAt: new Date(),
       };
 
-      // Persist the draft form to localStorage
       console.log('Saving draft form:', { 
         formId: wizardState.form.id, 
         isEditing: wizardState.isEditing, 
         title: wizardState.form.title 
       });
+
+      if (!currentProject?.id) {
+        throw new Error('No project selected');
+      }
       
       if (wizardState.isEditing && wizardState.form.id) {
-        // Update existing form
-        console.log('Updating existing form');
-        updateForm(wizardState.form.id, {
-          ...draftForm,
-          updatedAt: new Date(),
-        });
+        // Update existing form via API
+        console.log('Updating existing form via API');
+        const updatedForm = await updateForm(currentProject.id, wizardState.form.id, draftForm);
+        if (updatedForm) {
+          setWizardState(prev => ({ ...prev, form: updatedForm }));
+        }
       } else {
-        // Check if form already exists to prevent duplicates
-        const existingForm = wizardState.form.id ? getFormById(wizardState.form.id) : null;
-        if (existingForm && wizardState.form.id) {
-          // Update existing form instead of creating duplicate
-          console.log('Form already exists, updating instead of creating duplicate');
-          updateForm(wizardState.form.id, {
-            ...draftForm,
-            updatedAt: new Date(),
-          });
-        } else {
-          // Add new form
-          console.log('Adding new form');
-          addForm(draftForm as Form);
+        // Create new form via API
+        console.log('Creating new form via API');
+        const newForm = await createForm(currentProject.id, {
+          title: draftForm.title || '',
+          description: draftForm.description || '',
+          projectId: currentProject.id,
+          sections: draftForm.sections || [],
+          settings: draftForm.settings
+        });
+        if (newForm) {
+          setWizardState(prev => ({ ...prev, form: newForm, isEditing: true }));
         }
       }
       
@@ -545,34 +573,49 @@ export function useFormWizard(formId?: string) {
         updatedAt: new Date(),
       };
 
-      // Persist the published form to localStorage
       console.log('Publishing form:', { 
         formId: wizardState.form.id, 
         isEditing: wizardState.isEditing, 
         title: wizardState.form.title 
       });
+
+      if (!currentProject?.id) {
+        throw new Error('No project selected');
+      }
       
       if (wizardState.isEditing && wizardState.form.id) {
-        // Update existing form
-        console.log('Updating existing form');
-        updateForm(wizardState.form.id, {
-          ...publishedForm,
-          updatedAt: new Date(),
-        });
+        // Update existing form via API - only send updatable fields
+        console.log('Publishing existing form via API');
+        const updateData = {
+          title: publishedForm.title,
+          description: publishedForm.description,
+          status: publishedForm.status,
+          tags: publishedForm.tags,
+          category: publishedForm.category,
+          sections: publishedForm.sections,
+          settings: publishedForm.settings
+        };
+        console.log('Update data being sent:', updateData);
+        const updatedForm = await updateForm(currentProject.id, wizardState.form.id, updateData);
+        if (updatedForm) {
+          setWizardState(prev => ({ ...prev, form: updatedForm }));
+        }
       } else {
-        // Check if form already exists to prevent duplicates
-        const existingForm = wizardState.form.id ? getFormById(wizardState.form.id) : null;
-        if (existingForm && wizardState.form.id) {
-          // Update existing form instead of creating duplicate
-          console.log('Form already exists, updating instead of creating duplicate');
-          updateForm(wizardState.form.id, {
-            ...publishedForm,
-            updatedAt: new Date(),
-          });
-        } else {
-          // Add new form
-          console.log('Adding new form');
-          addForm(publishedForm as Form);
+        // Create new form via API
+        console.log('Creating and publishing new form via API');
+        const newForm = await createForm(currentProject.id, {
+          title: publishedForm.title || '',
+          description: publishedForm.description || '',
+          projectId: currentProject.id,
+          sections: publishedForm.sections || [],
+          settings: publishedForm.settings
+        });
+        if (newForm) {
+          // Update to published status
+          const publishedNewForm = await updateForm(currentProject.id, newForm.id, { status: 'PUBLISHED' });
+          if (publishedNewForm) {
+            setWizardState(prev => ({ ...prev, form: publishedNewForm, isEditing: true }));
+          }
         }
       }
 

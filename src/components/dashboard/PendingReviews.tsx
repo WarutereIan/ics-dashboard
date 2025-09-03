@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge as BadgeComponent } from '@/components/ui/badge';
 import { Report } from '@/types/dashboard';
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 interface PendingReviewsProps {
@@ -23,7 +23,7 @@ interface PendingReviewsProps {
 }
 
 export function PendingReviews({ projectId }: PendingReviewsProps) {
-  const { user } = useDashboard();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   if (!user) return null;

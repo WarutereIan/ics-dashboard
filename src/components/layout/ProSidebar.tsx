@@ -1,35 +1,70 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
 import { Link, useLocation } from 'react-router-dom';
-import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText, Plus, ClipboardList, X } from 'lucide-react';
+import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText, Plus, ClipboardList, X, DollarSign } from 'lucide-react';
 import { useDashboard } from '@/contexts/DashboardContext';
+import { useProjects } from '@/contexts/ProjectsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import {
-  getProjectOutcomes,
-  getProjectOutputs,
-  getProjectActivities,
-  getProjectSubActivities,
-} from '@/lib/icsData';
+import { createPermissionManager } from '@/lib/permissions';
+
 
 export function ProSidebar() {
-  const { user, projects, refreshProjects, setSidebarOpen } = useDashboard();
-  if (!user) return null;
+  const { setSidebarOpen } = useDashboard();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const location = useLocation();
-
-  useEffect(() => {
-    refreshProjects();
-  }, []);
+  
+  // Always call hooks in the same order
+  const projectsContext = useProjects();
+  
+  // Create permission manager
+  const permissionManager = createPermissionManager({
+    user,
+    isAuthenticated,
+    isLoading: authLoading
+  });
+  
+  const { 
+    projects, 
+    isLoading,
+  } = projectsContext;
+  
+  // Early return if auth is loading
+  if (authLoading) {
+    return (
+      <div className="w-[270px] bg-gray-50 border-r border-gray-200 h-screen flex items-center justify-center">
+        <div className="text-center text-sm text-gray-500">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Early return if user is not loaded or doesn't exist
+  if (!user) {
+    return (
+      <div className="w-[270px] bg-gray-50 border-r border-gray-200 h-screen flex items-center justify-center">
+        <div className="text-center text-sm text-gray-500">
+          <p>Loading user...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Use centralized permission manager
+  const isAdmin = () => permissionManager.isGlobalAdmin();
 
   const handleCloseSidebar = () => {
     setSidebarOpen(false);
   };
 
-  return (
-    <Sidebar 
-      width="270px" 
-      backgroundColor="rgb(249,249,249,0.95)"
-      className="border-r border-gray-200 h-screen md:h-auto flex flex-col"
-    >
+  try {
+    return (
+      <Sidebar 
+        width="270px" 
+        backgroundColor="rgb(249,249,249,0.95)"
+        className="border-r border-gray-200 h-screen md:h-auto flex flex-col"
+      >
       {/* Mobile close button */}
       <div className="flex justify-end p-4 md:hidden flex-shrink-0">
         <Button
@@ -72,7 +107,7 @@ export function ProSidebar() {
             className="text-sm"
           >
             {/* Create Project option for admins */}
-            {user?.role?.includes('admin') && (
+            {isAdmin() && (
               <MenuItem 
                 icon={<Plus className="h-4 w-4" />} 
                 component={<Link to="/dashboard/projects/create" onClick={handleCloseSidebar} />}
@@ -82,12 +117,28 @@ export function ProSidebar() {
               </MenuItem>
             )}
             
-            {projects.map(project => (
-              <SubMenu 
-                key={project.id} 
-                label={project.name.toUpperCase()}
-                className="text-sm"
-              >
+            {isLoading ? (
+              <MenuItem className="text-sm text-gray-500">
+                Loading projects...
+              </MenuItem>
+            ) : projects.length === 0 ? (
+              <MenuItem className="text-sm text-gray-500">
+                No projects available
+              </MenuItem>
+            ) : (
+              projects.map(project => {
+                // Safety check for project object
+                if (!project || !project.id || !project.name) {
+                  console.warn('Invalid project object:', project);
+                  return null;
+                }
+                
+                return (
+                <SubMenu 
+                  key={project.id} 
+                  label={project.name.toUpperCase()}
+                  className="text-sm"
+                >
                 <MenuItem 
                   component={<Link to={`/dashboard/projects/${project.id}`} onClick={handleCloseSidebar} />}
                   className="text-sm"
@@ -102,7 +153,7 @@ export function ProSidebar() {
                 </MenuItem>
                 
                 {/* Outcomes */}
-                {user && getProjectOutcomes(user, project.id).length > 0 && (
+                {user && (
                   <MenuItem 
                     component={<Link to={`/dashboard/projects/${project.id}/outcomes`} onClick={handleCloseSidebar} />}
                     className="text-sm"
@@ -112,7 +163,7 @@ export function ProSidebar() {
                 )}
                 
                 {/* Outputs (conditional) */}
-                {user && getProjectOutputs(user, project.id).length > 0 && (
+                {user && (
                   <MenuItem 
                     component={<Link to={`/dashboard/projects/${project.id}/outputs`} onClick={handleCloseSidebar} />}
                     className="text-sm"
@@ -130,7 +181,7 @@ export function ProSidebar() {
                 </MenuItem>
                 
                 {/* Subactivities (conditional) */}
-                {user && getProjectSubActivities(user, project.id).length > 0 && (
+                {user && (
                   <MenuItem 
                     component={<Link to={`/dashboard/projects/${project.id}/subactivities`} onClick={handleCloseSidebar} />}
                     className="text-sm"
@@ -145,6 +196,14 @@ export function ProSidebar() {
                   className="text-sm"
                 >
                   Forms
+                </MenuItem>
+                
+                {/* Financial tracking */}
+                <MenuItem 
+                  component={<Link to={`/dashboard/projects/${project.id}/financial`} onClick={handleCloseSidebar} />}
+                  className="text-sm"
+                >
+                  Financial
                 </MenuItem>
                 
                 <MenuItem 
@@ -169,7 +228,7 @@ export function ProSidebar() {
                 </MenuItem>
                 
                 {/* Edit Project option for admins */}
-                {user?.role?.includes('admin') && (
+                {isAdmin() && (
                   <MenuItem 
                     component={<Link to={`/dashboard/projects/${project.id}/edit`} onClick={handleCloseSidebar} />}
                     className="text-sm"
@@ -178,11 +237,13 @@ export function ProSidebar() {
                   </MenuItem>
                 )}
               </SubMenu>
-            ))}
+                );
+              })
+            )}
           </SubMenu>
           
           {/* Admin section, if user is admin */}
-          {user?.role?.includes('admin') && (
+          {isAdmin() && (
             <SubMenu 
               label="Administration" 
               icon={<Settings className="h-4 w-4" />}
@@ -205,5 +266,21 @@ export function ProSidebar() {
         </Menu>
       </div>
     </Sidebar>
-  );
+    );
+  } catch (error) {
+    console.error('Error rendering ProSidebar:', error);
+    return (
+      <div className="w-[270px] bg-gray-50 border-r border-gray-200 h-screen flex items-center justify-center">
+        <div className="text-center text-sm text-gray-500">
+          <p>Error loading sidebar</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 text-blue-500 underline"
+          >
+            Refresh page
+          </button>
+        </div>
+      </div>
+    );
+  }
 } 

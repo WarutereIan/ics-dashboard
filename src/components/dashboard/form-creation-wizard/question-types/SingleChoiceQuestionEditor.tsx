@@ -152,41 +152,54 @@ interface SingleChoiceQuestionEditorProps {
 export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProps) {
   const { question, onUpdate } = props;
 
+  // Ensure options array exists and has at least default options
+  const safeOptions = question.options || [
+    { id: uuidv4(), label: 'Option 1', value: 'option1', hasConditionalQuestions: false, conditionalQuestions: [] },
+    { id: uuidv4(), label: 'Option 2', value: 'option2', hasConditionalQuestions: false, conditionalQuestions: [] },
+  ];
+
+  // Initialize options if they don't exist
+  if (!question.options || question.options.length === 0) {
+    onUpdate({
+      options: safeOptions
+    } as Partial<FormQuestion>);
+  }
+
   const addOption = () => {
     const newOption: ChoiceOption = {
       id: uuidv4(),
-      label: `Option ${question.options.length + 1}`,
-      value: `option_${question.options.length + 1}`,
+      label: `Option ${safeOptions.length + 1}`,
+      value: `option_${safeOptions.length + 1}`,
     };
     
     onUpdate({
-      options: [...question.options, newOption]
+      options: [...safeOptions, newOption]
     } as Partial<FormQuestion>);
   };
 
   const updateOption = (optionId: string, updates: Partial<ChoiceOption>) => {
     onUpdate({
-      options: question.options.map(option =>
+      options: safeOptions.map(option =>
         option.id === optionId ? { ...option, ...updates } : option
       )
     } as Partial<FormQuestion>);
   };
 
   const removeOption = (optionId: string) => {
-    if (question.options.length > 2) {
+    if (safeOptions.length > 2) {
       onUpdate({
-        options: question.options.filter(option => option.id !== optionId)
+        options: safeOptions.filter(option => option.id !== optionId)
       } as Partial<FormQuestion>);
     }
   };
 
   const moveOption = (optionId: string, direction: 'up' | 'down') => {
-    const currentIndex = question.options.findIndex(option => option.id === optionId);
+    const currentIndex = safeOptions.findIndex(option => option.id === optionId);
     if (
       (direction === 'up' && currentIndex > 0) ||
-      (direction === 'down' && currentIndex < question.options.length - 1)
+      (direction === 'down' && currentIndex < safeOptions.length - 1)
     ) {
-      const newOptions = [...question.options];
+      const newOptions = [...safeOptions];
       const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
       [newOptions[currentIndex], newOptions[targetIndex]] = [newOptions[targetIndex], newOptions[currentIndex]];
       onUpdate({ options: newOptions } as Partial<FormQuestion>);
@@ -234,7 +247,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
               </div>
 
               <div className="space-y-2">
-                {question.options.map((option, index) => (
+                {safeOptions.map((option, index) => (
                   <div key={option.id} className="flex items-center gap-2 p-2 border rounded">
                     <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
                     
@@ -266,7 +279,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                         variant="ghost"
                         size="sm"
                         onClick={() => moveOption(option.id, 'down')}
-                        disabled={index === question.options.length - 1}
+                        disabled={index === safeOptions.length - 1}
                       >
                         ↓
                       </Button>
@@ -275,7 +288,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                         variant="ghost"
                         size="sm"
                         onClick={() => removeOption(option.id)}
-                        disabled={question.options.length <= 2}
+                        disabled={safeOptions.length <= 2}
                         className="text-red-600"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -296,7 +309,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
               </div>
               
               <div className="space-y-4">
-                {question.options.map((option) => (
+                {safeOptions.map((option) => (
                   <div key={option.id} className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-700">
@@ -372,7 +385,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
             
                          {question.displayType === 'RADIO' ? (
                <div className="space-y-3">
-                 {question.options.map((option) => (
+                 {safeOptions.map((option) => (
                    <div key={option.id} className="flex items-center space-x-2">
                      <input
                        type="radio"
@@ -404,7 +417,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                    <SelectValue placeholder="Select an option..." />
                  </SelectTrigger>
                  <SelectContent>
-                   {question.options.map((option) => (
+                   {safeOptions.map((option) => (
                      <SelectItem key={option.id} value={String(option.value)}>
                        {option.label}
                      </SelectItem>

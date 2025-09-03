@@ -25,7 +25,7 @@ import {
   ArrowLeft,
   FolderOpen
 } from 'lucide-react';
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/contexts/FormContext';
 import { toast } from '@/hooks/use-toast';
 import { Form } from './form-creation-wizard/types';
@@ -44,39 +44,68 @@ import {
 export function FormManagement() {
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const { user } = useDashboard();
-  const { getProjectForms } = useForm();
+  const { user } = useAuth();
+  const { getProjectForms, loadProjectForms } = useForm();
   
   // Load forms from context for the current project
-  const [forms, setForms] = useState<Form[]>(() => {
-    if (projectId) {
-      const contextForms = getProjectForms(projectId);
-      // If no forms found in context, try loading from legacy storage
-      if (contextForms.length === 0) {
+  const [forms, setForms] = useState<Form[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load forms when component mounts or projectId changes
+  useEffect(() => {
+    const loadForms = async () => {
+      if (projectId) {
+        setIsLoading(true);
+        console.log('🔄 FormManagement: Loading fresh form data for project:', projectId);
+        
         try {
-          const legacyForms = localStorage.getItem('ics_forms_data');
-          if (legacyForms) {
-            const parsedForms = JSON.parse(legacyForms);
-            const projectForms = parsedForms.filter((form: any) => form.projectId === projectId);
-            return projectForms.map((form: any) => ({
-              ...form,
-              createdAt: form.createdAt ? new Date(form.createdAt) : new Date(),
-              updatedAt: form.updatedAt ? new Date(form.updatedAt) : new Date(),
-              lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
-              settings: {
-                ...form.settings,
-                expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
-              },
-            }));
+          // Always load fresh data from API instead of cached data
+          const freshForms = await loadProjectForms(projectId);
+          console.log('✅ FormManagement: Loaded', freshForms.length, 'fresh forms from API');
+          
+          // If no forms found in API, try loading from legacy storage as fallback
+          if (freshForms.length === 0) {
+            try {
+              const legacyForms = localStorage.getItem('ics_forms_data');
+              if (legacyForms) {
+                const parsedForms = JSON.parse(legacyForms);
+                const projectForms = parsedForms.filter((form: any) => form.projectId === projectId);
+                const mappedForms = projectForms.map((form: any) => ({
+                  ...form,
+                  createdAt: form.createdAt ? new Date(form.createdAt) : new Date(),
+                  updatedAt: form.updatedAt ? new Date(form.updatedAt) : new Date(),
+                  lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
+                  settings: {
+                    ...form.settings,
+                    expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
+                  },
+                }));
+                setForms(mappedForms);
+                console.log('📦 FormManagement: Loaded', mappedForms.length, 'forms from legacy storage');
+              } else {
+                console.log('⚠️ FormManagement: No forms found in legacy storage either');
+              }
+            } catch (error) {
+              console.error('❌ FormManagement: Error loading legacy forms:', error);
+            }
+          } else {
+            setForms(freshForms);
           }
         } catch (error) {
-          console.error('Error loading legacy forms:', error);
+          console.error('Error loading forms:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load forms",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoading(false);
         }
       }
-      return contextForms;
-    }
-    return [];
-  });
+    };
+
+    loadForms();
+  }, [projectId]); // Only depend on stable projectId, not functions
   
   // Load saved filters from localStorage
   const [filters, setFilters] = useState<FormManagementFilters>(() => {
@@ -96,13 +125,14 @@ export function FormManagement() {
 
   // Refresh forms when projectId changes or when component comes into focus
   useEffect(() => {
-    const refreshForms = () => {
+    const refreshForms = async () => {
       if (projectId) {
-        const contextForms = getProjectForms(projectId);
-        console.log('Refreshing forms for project:', projectId, 'Found forms in context:', contextForms.map((f: Form) => ({ id: f.id, title: f.title })));
+        console.log('🔄 FormManagement: Refreshing forms for project:', projectId);
+        const freshForms = await loadProjectForms(projectId);
+        console.log('✅ FormManagement: Refreshed with', freshForms.length, 'fresh forms:', freshForms.map((f: Form) => ({ id: f.id, title: f.title })));
         
-        // If no forms found in context, try loading from legacy storage
-        if (contextForms.length === 0) {
+        // If no forms found in API, try loading from legacy storage
+        if (freshForms.length === 0) {
           try {
             const legacyForms = localStorage.getItem('ics_forms_data');
             if (legacyForms) {
@@ -127,7 +157,7 @@ export function FormManagement() {
           }
         }
         
-        setForms(contextForms);
+        setForms(freshForms);
       } else {
         setForms([]);
       }
@@ -146,7 +176,7 @@ export function FormManagement() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, [projectId, getProjectForms]);
+  }, [projectId]); // Only depend on stable projectId, not functions
 
   // Initialize with sample data if no forms exist (for demonstration)
   useEffect(() => {

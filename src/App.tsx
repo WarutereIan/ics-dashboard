@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { DashboardProvider, useDashboard } from '@/contexts/DashboardContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { DashboardProvider } from '@/contexts/DashboardContext';
 import { FormProvider } from '@/contexts/FormContext';
 import { ReportProvider } from '@/contexts/ReportContext';
 import { ProjectsProvider } from '@/contexts/ProjectsContext';
@@ -14,6 +15,7 @@ import { OutputsDetails } from '@/components/dashboard/OutputsDetails';
 import { Reports } from '@/components/dashboard/Reports';
 import { Maps } from '@/components/dashboard/Maps';
 import { Media } from '@/components/dashboard/Media';
+import Financial from '@/components/dashboard/Financial';
 import { UserManagement } from '@/components/dashboard/UserManagement';
 import { Settings } from '@/components/dashboard/Settings';
 import { Activities } from '@/components/dashboard/Activities';
@@ -23,73 +25,106 @@ import { FormRoutes } from '@/components/dashboard/FormRoutes';
 import { GoalDetails } from '@/components/dashboard/GoalDetails';
 import { PublicFormFiller } from '@/components/public/PublicFormFiller';
 import { PublicLanding } from '@/components/public/PublicLanding';
+import { ProjectsApiTest } from '@/components/dashboard/ProjectsApiTest';
 // New all-outcomes and all-outputs pages will be created as OutcomesDetails and OutputsDetails
 
 function ProtectedRoute({ roles }: { roles?: string[] }) {
-  const { user } = useDashboard();
-  if (!user) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+  
+  if (roles && user?.roles) {
+    const userRoles = user.roles.map(r => r.roleName);
+    const hasRequiredRole = roles.some(role => userRoles.includes(role));
+    if (!hasRequiredRole) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
+  
   return <Outlet />;
 }
 
 function App() {
   return (
     <Router>
-      <DashboardProvider>
-        <ProjectsProvider>
-          <FormProvider>
-            <ReportProvider>
-              <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Login />} />
-        
-        {/* Public form filling routes */}
-        <Route path="/fill/:formId" element={<PublicFormFiller />} />
-        <Route path="/embed/:formId" element={<PublicFormFiller isEmbedded={true} />} />
-        
-        {/* General authenticated routes */}
-        <Route element={<ProtectedRoute />}>
-            <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<GlobalOverview />} />
-              {/* Organizational Goals routes */}
-              <Route path="/dashboard/goals/:goalId" element={<GoalDetails />} />
-              <Route path="/dashboard/goals/:goalId/subgoals/:subGoalId" element={<GoalDetails />} />
-              {/* Admin-only project creation */}
-              <Route path="/dashboard/projects/create" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}>
-                <Route index element={<ProjectCreationWizard />} />
-              </Route>
-              <Route path="/dashboard/projects/:projectId/edit" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}>
-                <Route index element={<ProjectCreationWizard />} />
-              </Route>
-              <Route path="/dashboard/projects/:projectId" element={<ProjectOverview />} />
-              <Route path="/dashboard/projects/:projectId/kpi" element={<KPIAnalytics />} />
-              <Route path="/dashboard/projects/:projectId/outcomes" element={<OutcomesDetails />} />
-              <Route path="/dashboard/projects/:projectId/outputs" element={<OutputsDetails />} />
-              <Route path="/dashboard/projects/:projectId/activities" element={<Activities />} />
-              <Route path="/dashboard/projects/:projectId/subactivities" element={<Subactivities />} />
-              <Route path="/dashboard/projects/:projectId/reports" element={<Reports />} />
-              <Route path="/dashboard/projects/:projectId/maps" element={<Maps />} />
-              <Route path="/dashboard/projects/:projectId/media" element={<Media />} />
-              {/* Project Forms - nested routing */}
-              <Route path="/dashboard/projects/:projectId/forms/*" element={<FormRoutes />} />
-              {/* Admin-only routes */}
-              <Route path="/dashboard/admin/users" element={<ProtectedRoute roles={['global-admin']} />}> 
-                <Route index element={<UserManagement />} />
-              </Route>
-              <Route path="/dashboard/admin/settings" element={<ProtectedRoute roles={['global-admin']} />}> 
-                <Route index element={<Settings />} />
-              </Route>
-            </Route>
-          </Route>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes - no context providers that require auth */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Login />} />
+          
+          {/* Public form filling routes - need FormProvider for form functionality */}
+          <Route path="/fill/:formId" element={
+            <FormProvider>
+              <PublicFormFiller />
+            </FormProvider>
+          } />
+          <Route path="/embed/:formId" element={
+            <FormProvider>
+              <PublicFormFiller isEmbedded={true} />
+            </FormProvider>
+          } />
+          
+          {/* Authenticated routes - wrapped in dashboard context providers */}
+          <Route path="/dashboard/*" element={
+            <DashboardProvider>
+              <ProjectsProvider>
+                <FormProvider>
+                  <ReportProvider>
+                    <Routes>
+                      <Route element={<ProtectedRoute />}>
+                        <Route element={<DashboardLayout />}>
+                          <Route index element={<GlobalOverview />} />
+                          <Route path="api-test" element={<ProjectsApiTest />} />
+                          {/* Organizational Goals routes */}
+                          <Route path="goals/:goalId" element={<GoalDetails />} />
+                          <Route path="goals/:goalId/subgoals/:subGoalId" element={<GoalDetails />} />
+                          {/* Admin-only project creation */}
+                          <Route path="projects/create" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}>
+                            <Route index element={<ProjectCreationWizard />} />
+                          </Route>
+                          <Route path="projects/:projectId/edit" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}>
+                            <Route index element={<ProjectCreationWizard />} />
+                          </Route>
+                          <Route path="projects/:projectId" element={<ProjectOverview />} />
+                          <Route path="projects/:projectId/kpi" element={<KPIAnalytics />} />
+                          <Route path="projects/:projectId/outcomes" element={<OutcomesDetails />} />
+                          <Route path="projects/:projectId/outputs" element={<OutputsDetails />} />
+                          <Route path="projects/:projectId/activities" element={<Activities />} />
+                          <Route path="projects/:projectId/subactivities" element={<Subactivities />} />
+                          <Route path="projects/:projectId/reports" element={<Reports />} />
+                          <Route path="projects/:projectId/maps" element={<Maps />} />
+                          <Route path="projects/:projectId/financial" element={<Financial />} />
+                          <Route path="projects/:projectId/media" element={<Media />} />
+                          {/* Project Forms - nested routing */}
+                          <Route path="projects/:projectId/forms/*" element={<FormRoutes />} />
+                          {/* Admin-only routes */}
+                          <Route path="admin/users" element={<ProtectedRoute roles={['global-admin']} />}> 
+                            <Route index element={<UserManagement />} />
+                          </Route>
+                          <Route path="admin/settings" element={<ProtectedRoute roles={['global-admin']} />}> 
+                            <Route index element={<Settings />} />
+                          </Route>
+                        </Route>
+                      </Route>
+                    </Routes>
+                  </ReportProvider>
+                </FormProvider>
+              </ProjectsProvider>
+            </DashboardProvider>
+          } />
         </Routes>
-            </ReportProvider>
-          </FormProvider>
-        </ProjectsProvider>
-      </DashboardProvider>
+      </AuthProvider>
     </Router>
   );
 }

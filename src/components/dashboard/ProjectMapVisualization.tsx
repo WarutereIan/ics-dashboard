@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { MapPin, Users, Calendar, Filter } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { Project, ProjectMapData } from '@/types/dashboard';
-import { FormResponse } from '@/components/dashboard/form-creation-wizard/types';
+import { FormResponse, Form } from '@/components/dashboard/form-creation-wizard/types';
 import { useForm } from '@/contexts/FormContext';
 import { useProjects } from '@/contexts/ProjectsContext';
 import { addSampleFormResponsesToStorage, hasSampleFormResponses } from '@/lib/sampleFormResponses';
@@ -47,79 +47,136 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
   const { projectId } = useParams();
   const { getFormResponses, getProjectForms } = useForm();
   const { projects } = useProjects();
+
+  // Debug render frequency
+  const renderCount = React.useRef(0);
+  renderCount.current += 1;
+  console.log('🗺️ ProjectMapVisualization render #', renderCount.current, 'for project:', projectId);
   
   const [locationData, setLocationData] = useState<LocationDataPoint[]>([]);
   const [filteredData, setFilteredData] = useState<LocationDataPoint[]>([]);
   const [selectedForm, setSelectedForm] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('all');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasSampleData, setHasSampleData] = useState(false);
+  const [projectForms, setProjectForms] = useState<Form[]>([]);
 
-  // Get all forms for this project
-  const projectForms = useMemo(() => {
-    return getProjectForms(projectId || '');
-  }, [getProjectForms, projectId]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Extract location data from form responses
+  // Get all forms for this project and extract location data
   useEffect(() => {
-    if (!projectId) return;
-
-    setIsLoading(true);
-    const allLocationData: LocationDataPoint[] = [];
-
-    // Process each form in the project
-    projectForms.forEach(form => {
-      const responses = getFormResponses(form.id);
-      
-      responses.forEach(response => {
-        // Look for location questions in the response data
-        Object.entries(response.data).forEach(([questionId, value]) => {
-          // Check if this is a location response
-          if (value && typeof value === 'object' && 'latitude' in value && 'longitude' in value) {
-            const locationValue = value as { latitude: number; longitude: number; accuracy?: number; address?: string };
-            
-            allLocationData.push({
-              id: `${response.id}-${questionId}`,
-              formId: form.id,
-              formTitle: form.title,
-              questionId,
-              questionTitle: form.sections
-                .flatMap(s => s.questions)
-                .find(q => q.id === questionId)?.title || 'Location',
-              coordinates: {
-                lat: locationValue.latitude,
-                lng: locationValue.longitude
-              },
-              accuracy: locationValue.accuracy,
-              address: locationValue.address,
-              submittedAt: response.submittedAt || response.startedAt,
-              responseData: response.data,
-              respondentId: response.respondentId
-            });
-          }
-        });
-      });
-    });
-
-    setLocationData(allLocationData);
-    setFilteredData(allLocationData);
-    setIsLoading(false);
+    let timeoutId: NodeJS.Timeout;
     
-    // Check if sample data exists
-    if (projectId) {
-      setHasSampleData(hasSampleFormResponses(projectId));
-    }
-  }, [projectId, projectForms, getFormResponses]);
+    const loadLocationData = async () => {
+      if (!projectId) return;
 
-  // Filter data based on selected criteria
-  useEffect(() => {
+      console.log('🗺️ Loading map location data for project:', projectId, 'trigger:', refreshTrigger);
+      
+      // Set loading state and clear previous data
+      setIsLoading(true);
+      setLocationData([]);
+      setFilteredData([]);
+      
+      // Set a timeout to prevent infinite loading
+      timeoutId = setTimeout(() => {
+        console.log('🗺️ Loading timeout - forcing completion');
+        setIsLoading(false);
+      }, 30000); // 30 second timeout
+      
+      const allLocationData: LocationDataPoint[] = [];
+
+      try {
+        // Get project forms
+        const forms = await getProjectForms(projectId);
+        setProjectForms(forms);
+        console.log('🗺️ Found forms:', forms.length);
+
+        // Process each form in the project
+        for (const form of forms) {
+          try {
+            const responses = await getFormResponses(projectId, form.id);
+            console.log(`🗺️ Processing ${responses.length} responses for form:`, form.title);
+            
+              responses.forEach(response => {
+                // Look for location questions in the response data
+                Object.entries(response.data).forEach(([questionId, value]) => {
+                  // Check if this is a location response
+                  if (value && typeof value === 'object' && 'latitude' in value && 'longitude' in value) {
+                    const locationValue = value as { latitude: number; longitude: number; accuracy?: number; address?: string };
+                    
+                    allLocationData.push({
+                      id: `${response.id}-${questionId}`,
+                      formId: form.id,
+                      formTitle: form.title,
+                      questionId,
+                      questionTitle: form.sections
+                        ?.flatMap(s => s.questions)
+                        ?.find(q => q.id === questionId)?.title || 'Location',
+                      coordinates: {
+                        lat: locationValue.latitude,
+                        lng: locationValue.longitude
+                      },
+                      accuracy: locationValue.accuracy,
+                      address: locationValue.address,
+                      submittedAt: (() => {
+                        const dateValue = response.submittedAt || response.startedAt;
+                        const date = new Date(dateValue);
+                        // Fallback to current date if invalid
+                        return isNaN(date.getTime()) ? new Date() : date;
+                      })(),
+                      responseData: response.data,
+                      respondentId: response.respondentId
+                    });
+                  }
+                });
+              });
+            } catch (error) {
+              console.error(`Error loading responses for form ${form.id}:`, error);
+            }
+          }
+
+          console.log('🗺️ Total location data points found:', allLocationData.length);
+          setLocationData(allLocationData);
+          
+          // Check if sample data exists
+          if (projectId) {
+            setHasSampleData(hasSampleFormResponses(projectId));
+          }
+        } catch (error) {
+          console.error('Error loading location data:', error);
+        } finally {
+          console.log('🗺️ Loading completed, setting isLoading to false');
+          clearTimeout(timeoutId);
+          setIsLoading(false);
+        }
+      };
+
+      loadLocationData();
+      
+      // Cleanup function
+      return () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      };
+    }, [projectId, refreshTrigger]); // Depend on projectId and refresh trigger
+
+  // Manual refresh function
+  const refreshMapData = useCallback(() => {
+    console.log('🗺️ Manual refresh triggered');
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+    // Filter data based on selected criteria with memoization
+  const filteredLocationData = useMemo(() => {
+    console.log('🗺️ Filtering location data...');
     let filtered = locationData;
-
+    
     // Filter by form
     if (selectedForm !== 'all') {
       filtered = filtered.filter(point => point.formId === selectedForm);
     }
-
+    
     // Filter by date range
     if (dateRange !== 'all') {
       const now = new Date();
@@ -146,8 +203,13 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
       filtered = filtered.filter(point => point.submittedAt >= cutoffDate);
     }
 
-    setFilteredData(filtered);
+    return filtered;
   }, [locationData, selectedForm, dateRange]);
+
+  // Update filtered data when memoized value changes
+  useEffect(() => {
+    setFilteredData(filteredLocationData);
+  }, [filteredLocationData]);
 
   // Calculate map center and bounds
   const mapCenter = useMemo(() => {
@@ -253,6 +315,15 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
             <SelectItem value="year">Last Year</SelectItem>
           </SelectContent>
         </Select>
+        
+        <Button 
+          variant="outline" 
+          onClick={refreshMapData}
+          disabled={isLoading}
+          className="w-full sm:w-auto"
+        >
+          {isLoading ? 'Loading...' : 'Refresh Data'}
+        </Button>
       </div>
 
       {/* Summary Stats */}
@@ -282,7 +353,23 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
           <CardContent>
             <div className="text-sm">
               {filteredData.length > 0 
-                ? new Date(Math.max(...filteredData.map(p => p.submittedAt.getTime()))).toLocaleDateString()
+                ? (() => {
+                    try {
+                      const validDates = filteredData
+                        .map(p => {
+                          const date = p.submittedAt instanceof Date ? p.submittedAt : new Date(p.submittedAt);
+                          return isNaN(date.getTime()) ? null : date.getTime();
+                        })
+                        .filter(time => time !== null);
+                      
+                      return validDates.length > 0 
+                        ? new Date(Math.max(...validDates)).toLocaleDateString()
+                        : 'Invalid dates';
+                    } catch (error) {
+                      console.error('Error calculating latest submission:', error);
+                      return 'Error';
+                    }
+                  })()
                 : 'No data'
               }
             </div>
@@ -334,7 +421,7 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
                           <h3 className="font-semibold text-sm mb-2">{point.formTitle}</h3>
                           <p className="text-xs text-muted-foreground mb-2">{point.questionTitle}</p>
                           <div className="space-y-1 text-xs">
-                            <p><strong>Submitted:</strong> {point.submittedAt.toLocaleDateString()}</p>
+                            <p><strong>Submitted:</strong> {(point.submittedAt instanceof Date ? point.submittedAt : new Date(point.submittedAt)).toLocaleDateString()}</p>
                             <p><strong>Coordinates:</strong> {point.coordinates.lat.toFixed(4)}, {point.coordinates.lng.toFixed(4)}</p>
                             {point.accuracy && <p><strong>Accuracy:</strong> ±{point.accuracy}m</p>}
                             {point.address && <p><strong>Address:</strong> {point.address}</p>}
@@ -355,7 +442,7 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
                           <h3 className="font-semibold text-sm mb-2">{point.formTitle}</h3>
                           <p className="text-xs text-muted-foreground mb-2">{point.questionTitle}</p>
                           <div className="space-y-1 text-xs">
-                            <p><strong>Submitted:</strong> {point.submittedAt.toLocaleDateString()}</p>
+                            <p><strong>Submitted:</strong> {(point.submittedAt instanceof Date ? point.submittedAt : new Date(point.submittedAt)).toLocaleDateString()}</p>
                             <p><strong>Coordinates:</strong> {point.coordinates.lat.toFixed(4)}, {point.coordinates.lng.toFixed(4)}</p>
                             {point.accuracy && <p><strong>Accuracy:</strong> ±{point.accuracy}m</p>}
                             {point.address && <p><strong>Address:</strong> {point.address}</p>}

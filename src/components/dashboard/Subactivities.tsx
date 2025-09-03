@@ -1,14 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useDashboard } from '@/contexts/DashboardContext';
-import { getProjectSubActivities } from '@/lib/icsData';
+import { useProjects } from '@/contexts/ProjectsContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
 export function Subactivities() {
-  const { user, currentProject } = useDashboard();
+  const { user } = useAuth();
+  const { currentProject } = useDashboard();
+  const { getProjectSubActivities } = useProjects();
+  const [subactivities, setSubactivities] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadSubactivities = async () => {
+      if (user && currentProject) {
+        try {
+          const subactivitiesData = await getProjectSubActivities(currentProject.id);
+          setSubactivities(subactivitiesData);
+        } catch (error) {
+          console.error('Error loading subactivities:', error);
+        }
+      }
+    };
+
+    loadSubactivities();
+  }, [user, currentProject, getProjectSubActivities]);
+
   if (!user || !currentProject) return null;
-  const subactivities = user ? getProjectSubActivities(user, currentProject.id) : [];
 
   if (!subactivities.length) {
     return (

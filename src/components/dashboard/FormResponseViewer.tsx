@@ -349,36 +349,64 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
     case 'VIDEO_UPLOAD':
     case 'AUDIO_UPLOAD':
     case 'FILE_UPLOAD':
-      if (attachments.length > 0) {
+      // Handle both attachments (from database) and direct file data (from responses)
+      const mediaFiles = attachments.length > 0 ? attachments : (Array.isArray(value) ? value : []);
+      
+      if (mediaFiles.length > 0) {
         return (
           <div className="space-y-1">
-            {attachments.map((attachment, index) => (
-              <div key={attachment.id} className="flex items-center gap-1 text-xs">
-                <span>{getMediaIcon(attachment.mimeType)}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="truncate leading-tight" title={attachment.fileName}>
-                    {attachment.fileName}
+            {mediaFiles.map((fileData, index) => {
+              // Handle both attachment objects and file data objects
+              const fileName = fileData.fileName || fileData.name || fileData.originalName || 'Unknown file';
+              const fileSize = fileData.fileSize || fileData.size || 0;
+              const fileUrl = fileData.url;
+              const mimeType = fileData.mimeType || fileData.type || '';
+              const fileId = fileData.id || index;
+              
+              return (
+                <div key={fileId} className="flex items-center gap-1 text-xs">
+                  <span>{getMediaIcon(mimeType)}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate leading-tight" title={fileName}>
+                      {fileName}
+                    </div>
+                    <div className="text-gray-500 text-[10px] leading-tight">
+                      {formatFileSize(fileSize)}
+                      {fileUrl && (
+                        <>
+                          <br />
+                          <a 
+                            href={fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                            title={fileUrl}
+                          >
+                            {fileUrl}
+                          </a>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-gray-500 text-[10px] leading-tight">
-                    {formatFileSize(attachment.fileSize)}
-                  </div>
+                  {fileUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-4 w-4 p-0"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = fileUrl;
+                        link.download = fileName;
+                        link.click();
+                      }}
+                      title="Download file"
+                    >
+                      <Download className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-4 w-4 p-0"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = attachment.url;
-                    link.download = attachment.fileName;
-                    link.click();
-                  }}
-                  title="Download file"
-                >
-                  <Download className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         );
       }
@@ -512,7 +540,7 @@ const mockResponses: FormResponse[] = [
 export function FormResponseViewer() {
   const { formId, projectId } = useParams();
   const navigate = useNavigate();
-  const { getFormResponses, deleteFormResponse, getProjectForms, addFormResponseToStorage } = useForm();
+  const { getFormResponses, deleteFormResponse, getProjectForms, loadProjectForms, addFormResponseToStorage } = useForm();
   
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -531,22 +559,55 @@ export function FormResponseViewer() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; questionId: string } | null>(null);
   const [manualData, setManualData] = useState<Record<number, Record<string, any>>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load form and responses
   useEffect(() => {
-    if (formId && projectId) {
-      // Load form data
-      const projectForms = getProjectForms(projectId);
-      const foundForm = projectForms.find(f => f.id === formId);
-      if (foundForm) {
-        setForm(foundForm);
-      }
+    const loadData = async () => {
+      if (formId && projectId) {
+        setIsLoading(true);
+        console.log('🔄 FormResponseViewer: Loading fresh data for form:', formId);
+        
+        try {
+          // Load fresh form data from API
+          const projectForms = await loadProjectForms(projectId);
+          console.log('✅ FormResponseViewer: Loaded', projectForms.length, 'fresh forms from API');
+          
+          const foundForm = projectForms.find((f: Form) => f.id === formId);
+          if (foundForm) {
+            setForm(foundForm);
+            console.log('📋 FormResponseViewer: Found target form:', foundForm.title);
+          } else {
+            console.log('⚠️ FormResponseViewer: Form not found in fresh data, trying cached data');
+            // Fallback to cached data if form not found in fresh load
+            const cachedForms = await getProjectForms(projectId);
+            const cachedForm = cachedForms.find((f: Form) => f.id === formId);
+            if (cachedForm) {
+              setForm(cachedForm);
+              console.log('📦 FormResponseViewer: Found target form in cache:', cachedForm.title);
+            }
+          }
 
-      // Load responses
-      const formResponses = getFormResponses(formId);
-      setResponses(formResponses);
-    }
-  }, [formId, projectId, getProjectForms, getFormResponses]);
+          // Always load fresh responses from API
+          console.log('🔄 FormResponseViewer: Loading fresh responses for form:', formId);
+          const formResponses = await getFormResponses(projectId, formId);
+          setResponses(formResponses);
+          console.log('✅ FormResponseViewer: Loaded', formResponses.length, 'fresh responses');
+        } catch (error) {
+          console.error('❌ FormResponseViewer: Error loading form data:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load form data",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadData();
+  }, [formId, projectId]); // Only depend on stable values, not functions
 
   // Filter responses
   const filteredResponses = responses.filter((response) => {
@@ -626,16 +687,19 @@ export function FormResponseViewer() {
     averageCompletionTime: responses
       .filter(r => r.isComplete && r.submittedAt && r.startedAt)
       .reduce((acc, r) => {
-        const timeMs = r.submittedAt!.getTime() - r.startedAt.getTime();
+        // Convert string dates to Date objects if necessary
+        const submittedAt = r.submittedAt instanceof Date ? r.submittedAt : new Date(r.submittedAt!);
+        const startedAt = r.startedAt instanceof Date ? r.startedAt : new Date(r.startedAt);
+        const timeMs = submittedAt.getTime() - startedAt.getTime();
         return acc + timeMs / (1000 * 60); // Convert to minutes
       }, 0) / responses.filter(r => r.isComplete).length || 0,
   };
 
   const handleDeleteResponse = async (responseId: string) => {
     try {
-      if (!formId) return;
+      if (!formId || !projectId) return;
       
-      deleteFormResponse(formId, responseId);
+      await deleteFormResponse(projectId, formId, responseId);
       setResponses(prev => prev.filter(r => r.id !== responseId));
       
       toast({
@@ -722,14 +786,14 @@ export function FormResponseViewer() {
       headers.join(','),
       ...filteredResponses.map(response => {
         const completionTime = response.submittedAt && response.startedAt
-          ? Math.round((response.submittedAt.getTime() - response.startedAt.getTime()) / (1000 * 60))
+          ? Math.round(((new Date(response.submittedAt)).getTime() - (new Date(response.startedAt)).getTime()) / (1000 * 60))
           : '';
 
         const row = [
           response.id,
           response.respondentEmail || 'Anonymous',
           response.isComplete ? 'Complete' : 'Incomplete',
-          response.submittedAt?.toISOString() || 'Not submitted',
+          response.submittedAt ? (new Date(response.submittedAt)).toISOString() : 'Not submitted',
           completionTime
         ];
         
@@ -868,12 +932,17 @@ export function FormResponseViewer() {
     );
   };
 
-  if (!form) {
+  if (isLoading || !form) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading form data...</p>
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {isLoading ? 'Loading Fresh Data' : 'Form Not Found'}
+          </h3>
+          <p className="text-gray-600">
+            {isLoading ? 'Fetching latest form and response data from API...' : 'The requested form could not be found.'}
+          </p>
         </div>
       </div>
     );
@@ -1063,7 +1132,7 @@ export function FormResponseViewer() {
                   <TableBody>
                       {tableRows.map((row) => {
                         const completionTime = row.submittedAt && row.startedAt
-                          ? Math.round(((row.submittedAt as Date).getTime() - (row.startedAt as Date).getTime()) / (1000 * 60))
+                          ? Math.round(((new Date(row.submittedAt)).getTime() - (new Date(row.startedAt)).getTime()) / (1000 * 60))
                         : null;
 
                       return (
@@ -1105,7 +1174,7 @@ export function FormResponseViewer() {
                             <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
                               <div className="text-xs">
                                 {row.isExisting && row.submittedAt
-                                  ? (row.submittedAt as Date).toLocaleDateString()
+                                  ? (new Date(row.submittedAt)).toLocaleDateString()
                                   : row.isExisting ? 'Not submitted' : 'Not saved'
                               }
                             </div>
@@ -1267,7 +1336,7 @@ export function FormResponseViewer() {
                     </div>
                     <div className="text-center p-4 bg-orange-50 rounded-lg">
                       <p className="text-2xl font-bold text-orange-600">
-                        {responses.filter(r => r.startedAt.getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length}
+                        {responses.filter(r => r.startedAt && (new Date(r.startedAt)).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length}
                       </p>
                       <p className="text-sm text-orange-700">This Week</p>
                     </div>

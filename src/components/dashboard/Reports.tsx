@@ -10,8 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { useDashboard } from '@/contexts/DashboardContext';
-import { getProjectActivities, getProjectOutputs, getProjectOutcomes } from '@/lib/icsData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProjects } from '@/contexts/ProjectsContext';
 import { Report } from '@/types/dashboard';
 import { ReportUpload } from './ReportUpload';
 import { NamingConventionForm } from './NamingConventionForm';
@@ -22,7 +22,8 @@ import { listReportFiles, downloadStoredFile, deleteReportFile, StoredFileData }
 import { useToast } from '@/hooks/use-toast';
 
 export function Reports() {
-  const { user } = useDashboard();
+  const { user } = useAuth();
+  const { getProjectActivities, getProjectOutputs, getProjectOutcomes } = useProjects();
   const { reports: contextReports } = useReport();
   const { toast } = useToast();
   const { projectId } = useParams();
@@ -47,9 +48,30 @@ export function Reports() {
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
   // Get project data for report creation
-  const activities = projectId && user ? getProjectActivities(user, projectId) : [];
-  const outputs = projectId && user ? getProjectOutputs(user, projectId) : [];
-  const outcomes = projectId && user ? getProjectOutcomes(user, projectId) : [];
+  const [activities, setActivities] = useState<any[]>([]);
+  const [outputs, setOutputs] = useState<any[]>([]);
+  const [outcomes, setOutcomes] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadProjectData = async () => {
+      if (projectId && user) {
+        try {
+          const [activitiesData, outputsData, outcomesData] = await Promise.all([
+            getProjectActivities(projectId),
+            getProjectOutputs(projectId),
+            getProjectOutcomes(projectId)
+          ]);
+          setActivities(activitiesData);
+          setOutputs(outputsData);
+          setOutcomes(outcomesData);
+        } catch (error) {
+          console.error('Error loading project data:', error);
+        }
+      }
+    };
+
+    loadProjectData();
+  }, [projectId, user, getProjectActivities, getProjectOutputs, getProjectOutcomes]);
 
   const getFileIcon = (type: string) => {
     switch (type) {

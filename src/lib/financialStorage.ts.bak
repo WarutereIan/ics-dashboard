@@ -1,0 +1,258 @@
+import { ProjectFinancialData, ActivityFinancialData, FinancialSummary } from '../types/dashboard';
+
+const FINANCIAL_STORAGE_KEY = 'ics-dashboard-financial-data';
+
+/**
+ * Store financial data for a project
+ */
+export function storeProjectFinancialData(financialData: ProjectFinancialData): void {
+  try {
+    const existingData = getAllFinancialData();
+    const projectIndex = existingData.findIndex(data => data.projectId === financialData.projectId && data.year === financialData.year);
+    
+    if (projectIndex >= 0) {
+      existingData[projectIndex] = financialData;
+    } else {
+      existingData.push(financialData);
+    }
+    
+    localStorage.setItem(FINANCIAL_STORAGE_KEY, JSON.stringify(existingData));
+  } catch (error) {
+    console.error('Error storing financial data:', error);
+  }
+}
+
+/**
+ * Get financial data for a specific project and year
+ */
+export function getProjectFinancialData(projectId: string, year: number): ProjectFinancialData | null {
+  try {
+    const allData = getAllFinancialData();
+    return allData.find(data => data.projectId === projectId && data.year === year) || null;
+  } catch (error) {
+    console.error('Error getting project financial data:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all financial data for a project across all years
+ */
+export function getProjectFinancialDataAllYears(projectId: string): ProjectFinancialData[] {
+  try {
+    const allData = getAllFinancialData();
+    return allData.filter(data => data.projectId === projectId);
+  } catch (error) {
+    console.error('Error getting project financial data for all years:', error);
+    return [];
+  }
+}
+
+/**
+ * Get all stored financial data
+ */
+export function getAllFinancialData(): ProjectFinancialData[] {
+  try {
+    const stored = localStorage.getItem(FINANCIAL_STORAGE_KEY);
+    if (!stored) return [];
+    
+    const parsed = JSON.parse(stored);
+    return parsed.map((item: any) => ({
+      ...item,
+      lastUpdated: new Date(item.lastUpdated),
+      activities: item.activities.map((activity: any) => ({
+        ...activity,
+        lastUpdated: new Date(activity.lastUpdated)
+      }))
+    }));
+  } catch (error) {
+    console.error('Error loading financial data:', error);
+    return [];
+  }
+}
+
+/**
+ * Delete financial data for a project and year
+ */
+export function deleteProjectFinancialData(projectId: string, year: number): boolean {
+  try {
+    const allData = getAllFinancialData();
+    const filteredData = allData.filter(data => !(data.projectId === projectId && data.year === year));
+    localStorage.setItem(FINANCIAL_STORAGE_KEY, JSON.stringify(filteredData));
+    return true;
+  } catch (error) {
+    console.error('Error deleting financial data:', error);
+    return false;
+  }
+}
+
+/**
+ * Calculate financial summary for a project
+ */
+export function calculateFinancialSummary(projectId: string, year: number): FinancialSummary {
+  const financialData = getProjectFinancialData(projectId, year);
+  
+  if (!financialData) {
+    return {
+      totalBudget: 0,
+      totalSpent: 0,
+      totalVariance: 0,
+      byQuarter: {
+        q1: { budget: 0, spent: 0, variance: 0 },
+        q2: { budget: 0, spent: 0, variance: 0 },
+        q3: { budget: 0, spent: 0, variance: 0 },
+        q4: { budget: 0, spent: 0, variance: 0 }
+      },
+      byActivity: {}
+    };
+  }
+
+  const summary: FinancialSummary = {
+    totalBudget: financialData.totalBudget,
+    totalSpent: financialData.totalSpent,
+    totalVariance: financialData.totalVariance,
+    byQuarter: {
+      q1: { budget: 0, spent: 0, variance: 0 },
+      q2: { budget: 0, spent: 0, variance: 0 },
+      q3: { budget: 0, spent: 0, variance: 0 },
+      q4: { budget: 0, spent: 0, variance: 0 }
+    },
+    byActivity: {}
+  };
+
+  // Calculate by activity
+  financialData.activities.forEach(activity => {
+    summary.byActivity[activity.activityId] = {
+      budget: activity.totalAnnualBudget,
+      spent: activity.totalAnnualCost,
+      variance: activity.variance
+    };
+
+    // Aggregate quarterly data
+    summary.byQuarter.q1.spent += activity.quarterlyCosts.q1;
+    summary.byQuarter.q2.spent += activity.quarterlyCosts.q2;
+    summary.byQuarter.q3.spent += activity.quarterlyCosts.q3;
+    summary.byQuarter.q4.spent += activity.quarterlyCosts.q4;
+  });
+
+  // Calculate quarterly variances
+  summary.byQuarter.q1.variance = summary.byQuarter.q1.budget - summary.byQuarter.q1.spent;
+  summary.byQuarter.q2.variance = summary.byQuarter.q2.budget - summary.byQuarter.q2.spent;
+  summary.byQuarter.q3.variance = summary.byQuarter.q3.budget - summary.byQuarter.q3.spent;
+  summary.byQuarter.q4.variance = summary.byQuarter.q4.budget - summary.byQuarter.q4.spent;
+
+  return summary;
+}
+
+/**
+ * Generate unique financial data ID
+ */
+export function generateFinancialDataId(): string {
+  return `financial_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Create new financial data entry
+ */
+export function createFinancialData(
+  projectId: string,
+  year: number,
+  createdBy: string
+): ProjectFinancialData {
+  return {
+    id: generateFinancialDataId(),
+    projectId,
+    year,
+    totalBudget: 0,
+    totalSpent: 0,
+    totalVariance: 0,
+    activities: [],
+    lastUpdated: new Date(),
+    createdBy
+  };
+}
+
+/**
+ * Create new activity financial data entry
+ */
+export function createActivityFinancialData(
+  activityId: string,
+  activityTitle: string,
+  year: number,
+  createdBy: string
+): ActivityFinancialData {
+  return {
+    id: generateFinancialDataId(),
+    activityId,
+    activityTitle,
+    year,
+    quarterlyCosts: {
+      q1: 0,
+      q2: 0,
+      q3: 0,
+      q4: 0
+    },
+    totalAnnualBudget: 0,
+    totalAnnualCost: 0,
+    variance: 0,
+    notes: '',
+    lastUpdated: new Date(),
+    createdBy
+  };
+}
+
+/**
+ * Calculate activity totals from quarterly costs
+ */
+export function calculateActivityTotals(activity: ActivityFinancialData): {
+  totalAnnualCost: number;
+  variance: number;
+} {
+  const totalAnnualCost = activity.quarterlyCosts.q1 + activity.quarterlyCosts.q2 + 
+                         activity.quarterlyCosts.q3 + activity.quarterlyCosts.q4;
+  const variance = activity.totalAnnualBudget - totalAnnualCost;
+  
+  return { totalAnnualCost, variance };
+}
+
+/**
+ * Update activity financial data and recalculate totals
+ */
+export function updateActivityFinancialData(
+  projectId: string,
+  year: number,
+  activityId: string,
+  updates: Partial<ActivityFinancialData>
+): boolean {
+  try {
+    const financialData = getProjectFinancialData(projectId, year);
+    if (!financialData) return false;
+
+    const activityIndex = financialData.activities.findIndex(a => a.activityId === activityId);
+    if (activityIndex === -1) return false;
+
+    // Update activity data
+    financialData.activities[activityIndex] = {
+      ...financialData.activities[activityIndex],
+      ...updates,
+      lastUpdated: new Date()
+    };
+
+    // Recalculate activity totals
+    const { totalAnnualCost, variance } = calculateActivityTotals(financialData.activities[activityIndex]);
+    financialData.activities[activityIndex].totalAnnualCost = totalAnnualCost;
+    financialData.activities[activityIndex].variance = variance;
+
+    // Recalculate project totals
+    financialData.totalSpent = financialData.activities.reduce((sum, activity) => sum + activity.totalAnnualCost, 0);
+    financialData.totalVariance = financialData.totalBudget - financialData.totalSpent;
+    financialData.lastUpdated = new Date();
+
+    // Store updated data
+    storeProjectFinancialData(financialData);
+    return true;
+  } catch (error) {
+    console.error('Error updating activity financial data:', error);
+    return false;
+  }
+}

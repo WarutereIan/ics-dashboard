@@ -70,10 +70,8 @@ export function ReportProvider({ children }: ReportProviderProps) {
         console.error('Error loading reports from localStorage:', error);
       }
     } else {
-      // Initialize with mock data for testing
-      import('@/lib/mockReportData').then(({ mockReports }) => {
-        setReports(mockReports);
-      });
+      // No reports data available - will be loaded when reports API is implemented
+      setReports([]);
     }
   }, []);
 
@@ -247,8 +245,28 @@ export function ReportProvider({ children }: ReportProviderProps) {
     rejectReportStep,
     addCommentToReportStep,
     skipReportStep,
-    getPendingReviewsForUser: (userId: string, userRole: string) => 
-      getPendingReviewsForUser(reports, userId, userRole),
+    getPendingReviewsForUser: (userId: string, userRole: string) => {
+      // Create a minimal User object for compatibility
+      const mockUser: User = {
+        id: userId,
+        email: '',
+        firstName: '',
+        lastName: '',
+        isActive: true,
+        lastLoginAt: '',
+        createdAt: '',
+        updatedAt: '',
+        roles: [{ 
+          id: '1', 
+          roleName: userRole as any, 
+          level: 1, 
+          isActive: true 
+        }],
+        projectAccess: [],
+        permissions: []
+      };
+      return getPendingReviewsForUser(reports, mockUser);
+    },
     getSubmittedReportsPendingReview: (userId: string) => 
       getSubmittedReportsPendingReview(reports, userId),
     getReportById,

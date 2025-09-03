@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockUsers } from '@/lib/mockData';
-import { User } from '@/types/dashboard';
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
 
 interface LoginProps {}
 
@@ -17,51 +15,37 @@ export const Login: React.FC<LoginProps> = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { setUser } = useDashboard();
+  const { login, isAuthenticated, isLoading } = useAuth();
 
-  // Sample credentials for demo purposes
-  const sampleCredentials = [
-    { email: 'sarah.johnson@ics.org', password: 'admin123', role: 'Global Administrator' },
-    { email: 'james.kimani@ics.org', password: 'country123', role: 'Country Administrator' },
-    { email: 'mary.wanjiku@ics.org', password: 'project123', role: 'Project Administrator' },
-    { email: 'peter.ochieng@ics.org', password: 'branch123', role: 'Branch Administrator' },
-  ];
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
 
     try {
-      // Check credentials
-      const credential = sampleCredentials.find(c => c.email === email && c.password === password);
-      if (!credential) {
-        setError('Invalid email or password. Please try again.');
-        setIsLoading(false);
-        return;
+      const result = await login(email, password);
+      
+      if (result.success) {
+        // Redirect will happen automatically via useEffect when isAuthenticated changes
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Login failed. Please try again.');
       }
-
-      // Find the user in mock data
-      const user = mockUsers.find(u => u.email === email);
-      if (!user) {
-        setError('User not found in system.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Store user in localStorage and context
-      localStorage.setItem('ics-dashboard-user', JSON.stringify(user));
-      setUser(user);
-      navigate('/dashboard');
     } catch (error) {
-      setError('An error occurred during login. Please try again.');
-    } finally {
-      setIsLoading(false);
+      console.error('Login error:', error);
+      setError('Login failed. Please try again.');
     }
   };
 
@@ -69,6 +53,11 @@ export const Login: React.FC<LoginProps> = () => {
     setEmail(demoEmail);
     setPassword(demoPassword);
   };
+
+  // Demo credentials for testing
+  const demoCredentials = [
+    { email: 'admin@icsafrica.org', password: 'admin123', role: 'Global Administrator' },
+  ];
 
   return (
     <div className="min-h-screen w-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -138,7 +127,14 @@ export const Login: React.FC<LoginProps> = () => {
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </form>
           </CardContent>
@@ -151,7 +147,7 @@ export const Login: React.FC<LoginProps> = () => {
             <p className="text-sm text-gray-600">Click any account to auto-fill credentials</p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {sampleCredentials.map((credential, index) => (
+            {demoCredentials.map((credential, index) => (
               <Button
                 key={index}
                 variant="outline"

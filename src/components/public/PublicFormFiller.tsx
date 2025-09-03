@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Form } from '@/components/dashboard/form-creation-wizard/types';
 import { QuestionRenderer } from '@/components/dashboard/form-preview/QuestionRenderer';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { toast } from '@/hooks/use-toast';
 import {
   saveFormPreviewData,
@@ -25,8 +26,8 @@ import {
   clearFormPreviewData,
   FormPreviewData
 } from '@/lib/formLocalStorageUtils';
-import { getFormById } from '@/lib/formLocalStorageUtils';
 import { useForm } from '@/contexts/FormContext';
+import { formsApi } from '@/lib/api/formsApi';
 
 interface PublicFormFillerProps {
   isEmbedded?: boolean;
@@ -49,43 +50,39 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
 
   // Load form data
   useEffect(() => {
-    if (!formId) {
-      setError('Form ID is required');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // In a real implementation, this would be an API call
-      // For now, we'll use our utility function to find the form by ID
-      const foundForm = getFormById(formId);
-      
-      if (!foundForm) {
-        setError('Form not found');
+    const loadForm = async () => {
+      if (!formId) {
+        setError('Form ID is required');
         setLoading(false);
         return;
       }
 
-      // Check if form is published
-      if (foundForm.status !== 'PUBLISHED') {
-        setError('This form is not currently available');
+      try {
+        console.log('Loading public form:', formId);
+        const foundForm = await formsApi.getPublicForm(formId);
+        
+        console.log('Public form loaded successfully:', foundForm);
+        setForm(foundForm);
         setLoading(false);
-        return;
-      }
-
-      // Check form expiry
-      if (foundForm.settings?.expiryDate && new Date() > foundForm.settings.expiryDate) {
-        setError('This form has expired and is no longer accepting responses');
+      } catch (err: any) {
+        console.error('Failed to load public form:', err);
+        
+        // Handle specific error cases
+        if (err.message?.includes('requires authentication')) {
+          setError('This form requires login to access. Please contact the form owner.');
+        } else if (err.message?.includes('expired')) {
+          setError('This form has expired and is no longer accepting responses');
+        } else if (err.message?.includes('not found') || err.message?.includes('not published')) {
+          setError('Form not found or not available');
+        } else {
+          setError('Failed to load form. Please try again later.');
+        }
+        
         setLoading(false);
-        return;
       }
+    };
 
-      setForm(foundForm);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to load form');
-      setLoading(false);
-    }
+    loadForm();
   }, [formId]);
 
   // Load saved draft data
@@ -161,13 +158,16 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   };
 
   const handleSubmit = async () => {
-    if (!form) return;
+    if (!form || isSubmitting) return; // Prevent double submissions
 
     setIsSubmitting(true);
     
     try {
-      // Create the response object
-      const response = {
+      console.log('📤 Submitting form response for form:', form.id);
+      
+      // Create the response object and submit via addFormResponseToStorage 
+      // (which handles online/offline scenarios and API submission)
+      const responseData = {
         id: `response-${Date.now()}`,
         formId: form.id,
         formVersion: form.version || 1,
@@ -178,26 +178,34 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           ...responses,
           ...conditionalResponses
         },
-        ipAddress: 'Unknown', // In a real app, this would be captured from the request
+        ipAddress: 'Unknown',
         userAgent: navigator.userAgent,
         source: isEmbedded ? 'embed' : 'direct'
       };
 
-      // Save the response using context
-      addFormResponseToStorage(response);
+      console.log('📊 Response data:', responseData);
+      
+      // Submit via context (handles API call + local storage + offline queue)
+      await addFormResponseToStorage(responseData);
       
       // Clear draft data
       clearFormPreviewData(form.id);
       
       setIsComplete(true);
-      toast({
-        title: "Form Submitted Successfully!",
-        description: form.settings?.thankYouMessage || "Thank you for your response.",
-      });
-    } catch (err) {
+      
+      // Success toast is already handled by addFormResponseToStorage
+      // Only show custom thank you message if different from default
+      if (form.settings?.thankYouMessage && form.settings.thankYouMessage !== "Thank you for your response.") {
+        toast({
+          title: "Form Submitted Successfully!",
+          description: form.settings.thankYouMessage,
+        });
+      }
+    } catch (err: any) {
+      console.error('Form submission failed:', err);
       toast({
         title: "Submission Failed",
-        description: "Please try again or contact support if the problem persists.",
+        description: err.message || "Please try again or contact support if the problem persists.",
         variant: "destructive",
       });
     } finally {
@@ -372,16 +380,27 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           <CardContent>
             <div className="space-y-6">
               {currentSection.questions.map((question) => (
-                <QuestionRenderer
+                <ErrorBoundary
                   key={question.id}
-                  question={question}
-                  value={responses[question.id]}
-                  onChange={(value) => handleResponseChange(question.id, value)}
-                  error={undefined}
-                  isPreviewMode={false}
-                  conditionalValues={conditionalResponses}
-                  onConditionalChange={handleConditionalChange}
-                />
+                  fallback={
+                    <Alert variant="destructive" className="my-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Error loading question: {question.title}. Please refresh the page or contact support.
+                      </AlertDescription>
+                    </Alert>
+                  }
+                >
+                  <QuestionRenderer
+                    question={question}
+                    value={responses[question.id]}
+                    onChange={(value) => handleResponseChange(question.id, value)}
+                    error={undefined}
+                    isPreviewMode={false}
+                    conditionalValues={conditionalResponses}
+                    onConditionalChange={handleConditionalChange}
+                  />
+                </ErrorBoundary>
               ))}
             </div>
           </CardContent>

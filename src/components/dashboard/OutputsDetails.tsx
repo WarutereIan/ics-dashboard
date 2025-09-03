@@ -1,33 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { RadialGauge } from '@/components/visualizations/RadialGauge';
 import { StackedBarChart } from '@/components/visualizations/StackedBarChart';
-import { useDashboard } from '@/contexts/DashboardContext';
-import { getProjectOutputs, getProjectKPIs } from '@/lib/icsData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProjects } from '@/contexts/ProjectsContext';
 
 export function OutputsDetails() {
   const { projectId } = useParams();
-  const { user } = useDashboard();
-  if (!user) return <div>No user found</div>; // or redirect, or null
+  const { user } = useAuth();
+  const { getProjectOutputs, getProjectKPIs, dataRefreshTrigger } = useProjects();
+  const [outputs, setOutputs] = useState<any[]>([]);
+  const [allKPIs, setAllKPIs] = useState<any[]>([]);
+  const [selectedOutput, setSelectedOutput] = useState<string | undefined>(undefined);
+
+  if (!user) return null;
   if (!projectId) {
     return <div>No project selected</div>;
   }
-  let outputs = getProjectOutputs(user, projectId);
-  // Inject mock values for vacis-ke
-  if (projectId === 'vacis-ke') {
-    outputs = outputs.map((o: any, idx: number) => ({
-      ...o,
-      current: typeof o.current === 'number' ? o.current : Math.floor(Math.random() * 1000),
-      target: typeof o.target === 'number' && o.target > 0 ? o.target : 1000 + idx * 100,
-      unit: o.unit || 'units',
-      description: o.description || 'Simulated output for demonstration.'
-    }));
-  }
-  const allKPIs = getProjectKPIs(user, projectId);
-  const [selectedOutput, setSelectedOutput] = useState<string | undefined>(undefined);
+
+  // Load project data
+  useEffect(() => {
+    const loadData = async () => {
+      if (projectId && user) {
+        try {
+          const [outputsData, kpisData] = await Promise.all([
+            getProjectOutputs(projectId),
+            getProjectKPIs(projectId)
+          ]);
+          
+          // Inject mock values for vacis-ke (maintaining existing functionality)
+          let processedOutputs = outputsData;
+          if (projectId === 'vacis-ke') {
+            processedOutputs = outputsData.map((o: any, idx: number) => ({
+              ...o,
+              current: typeof o.current === 'number' ? o.current : Math.floor(Math.random() * 1000),
+              target: typeof o.target === 'number' && o.target > 0 ? o.target : 1000 + idx * 100,
+              unit: o.unit || 'units',
+              description: o.description || 'Simulated output for demonstration.'
+            }));
+          }
+          
+          setOutputs(processedOutputs);
+          setAllKPIs(kpisData);
+        } catch (error) {
+          console.error('Error loading outputs data:', error);
+        }
+      }
+    };
+
+    loadData();
+  }, [projectId, user, getProjectOutputs, getProjectKPIs, dataRefreshTrigger]);
 
   const filteredOutputs = selectedOutput
     ? outputs.filter((o: any) => o.id === selectedOutput)

@@ -1,23 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { RadialGauge } from '@/components/visualizations/RadialGauge';
 import { StackedBarChart } from '@/components/visualizations/StackedBarChart';
-import { useDashboard } from '@/contexts/DashboardContext';
-import { getProjectOutcomes, getProjectKPIs } from '@/lib/icsData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProjects } from '@/contexts/ProjectsContext';
+import { Outcome } from '@/types/dashboard';
 
 export function OutcomesDetails() {
   const { projectId } = useParams();
-  const { user } = useDashboard();
+  const { user } = useAuth();
+  const { getProjectOutcomes, getProjectKPIs, dataRefreshTrigger } = useProjects();
+  const [selectedOutcome, setSelectedOutcome] = useState<string | undefined>(undefined);
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
+  const [allKPIs, setAllKPIs] = useState<any[]>([]);
+
   if (!user) return null;
   if (!projectId) {
     return <div>No project selected</div>;
   }
-  const outcomes = user ? getProjectOutcomes(user, projectId) : [];
-  const allKPIs = user ? getProjectKPIs(user, projectId) : [];
-  const [selectedOutcome, setSelectedOutcome] = useState<string | undefined>(undefined);
+
+  // Load project data
+  useEffect(() => {
+    const loadData = async () => {
+      if (projectId && user) {
+        try {
+          console.log(`🔄 OutcomesDetails: Loading data for project ${projectId} (refresh trigger: ${dataRefreshTrigger})`);
+          const [outcomesData, kpisData] = await Promise.all([
+            getProjectOutcomes(projectId),
+            getProjectKPIs(projectId)
+          ]);
+          setOutcomes(outcomesData);
+          setAllKPIs(kpisData);
+          console.log(`✅ OutcomesDetails: Loaded ${outcomesData.length} outcomes, ${kpisData.length} KPIs`);
+        } catch (error) {
+          console.error('Error loading outcomes data:', error);
+        }
+      }
+    };
+
+    loadData();
+  }, [projectId, user, getProjectOutcomes, getProjectKPIs, dataRefreshTrigger]);
 
   const filteredOutcomes = selectedOutcome
     ? outcomes.filter((o: any) => o.id === selectedOutcome)
@@ -74,12 +99,12 @@ export function OutcomesDetails() {
                       </CardHeader>
                       <CardContent className="break-words whitespace-normal w-full max-w-full min-w-0">
                         {kpi.type === 'radialGauge' && (
-                          <RadialGauge value={kpi.value} size={120} unit={kpi.unit} primaryColor="#3B82F6" />
+                          <RadialGauge value={kpi.current || kpi.value} size={120} unit={kpi.unit} primaryColor="#3B82F6" />
                         )}
                         {kpi.type === 'bar' && (
                           <StackedBarChart
                             data={[
-                              { name: kpi.name, Actual: kpi.value, Target: kpi.target }
+                              { name: kpi.name, Actual: kpi.current || kpi.value, Target: kpi.target }
                             ]}
                             height={120}
                             colors={["#3B82F6", "#E5E7EB"]}
@@ -87,8 +112,8 @@ export function OutcomesDetails() {
                         )}
                         {kpi.type === 'progress' && (
                           <div className="w-full max-w-full min-w-0">
-                            <div className="mb-2 text-sm font-medium">{kpi.value} / {kpi.target} {kpi.unit}</div>
-                            <Progress value={(kpi.value / kpi.target) * 100} />
+                            <div className="mb-2 text-sm font-medium">{kpi.current || kpi.value} / {kpi.target} {kpi.unit}</div>
+                            <Progress value={((kpi.current || kpi.value) / kpi.target) * 100} />
                           </div>
                         )}
                       </CardContent>

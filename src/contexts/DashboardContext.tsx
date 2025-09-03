@@ -1,17 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Project } from '@/types/dashboard';
-import { mockUser, mockProjects } from '@/lib/mockData';
+import { Project } from '@/types/dashboard';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+import { projectsApi } from '@/lib/api/projectsApi';
 
 interface DashboardContextType {
-  user: User | null;
-  setUser: (user: User | null) => void;
   currentProject: Project | null;
-  projects: Project[];
   setCurrentProject: (project: Project | null) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
-  refreshProjects: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -19,91 +16,52 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const storedUser = localStorage.getItem('ics-dashboard-user');
-  const [user, setUser] = useState<User | null>(
-    storedUser ? JSON.parse(storedUser) : null
-  );
+  const { user, isAuthenticated } = useAuth();
   
-  // Initialize with mock projects, will be updated by ProjectsContext
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
-  
-  const [currentProject, setCurrentProject] = useState<Project | null>(
-    projects[0] || null
-  );
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Update current project based on URL
+  // Load and set current project based on URL
   useEffect(() => {
-    const pathMatch = location.pathname.match(/\/dashboard\/projects\/([^\/]+)/);
-    if (pathMatch) {
-      const projectIdFromUrl = pathMatch[1];
-      const projectFromUrl = projects.find(p => p.id === projectIdFromUrl);
-      if (projectFromUrl && currentProject?.id !== projectFromUrl.id) {
-        console.log('Updating current project from URL:', projectIdFromUrl, 'to:', projectFromUrl.name);
-        setCurrentProject(projectFromUrl);
-      }
-    }
-  }, [location.pathname, projects, currentProject?.id]);
-
-  // Function to refresh projects from localStorage
-  const refreshProjects = () => {
-    const storedProjects = localStorage.getItem('ics-dashboard-projects');
-    if (storedProjects) {
-      try {
-        const parsed = JSON.parse(storedProjects);
-        const projectsWithDates = parsed.map((project: any) => ({
-          ...project,
-          startDate: new Date(project.startDate),
-          endDate: new Date(project.endDate)
-        }));
-        setProjects(projectsWithDates);
-      } catch (error) {
-        console.error('Error refreshing projects:', error);
-      }
-    }
-  };
-
-  // Listen for localStorage changes from ProjectsContext
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'ics-dashboard-projects' && e.newValue) {
+    const loadCurrentProject = async () => {
+      const pathMatch = location.pathname.match(/\/dashboard\/projects\/([^\/]+)/);
+      if (pathMatch) {
+        const projectIdFromUrl = pathMatch[1];
+        console.log('Project ID from URL:', projectIdFromUrl);
+        
         try {
-          const parsed = JSON.parse(e.newValue);
-          const projectsWithDates = parsed.map((project: any) => ({
-            ...project,
-            startDate: new Date(project.startDate),
-            endDate: new Date(project.endDate)
-          }));
-          setProjects(projectsWithDates);
+          // Load the project data from API
+          const projectData = await projectsApi.getProjectById(projectIdFromUrl);
+          console.log('Loaded project data:', projectData);
+          setCurrentProject(projectData);
         } catch (error) {
-          console.error('Error parsing storage change:', error);
+          console.error('Error loading project:', error);
+          setCurrentProject(null);
         }
+      } else {
+        // No project in URL, clear current project
+        setCurrentProject(null);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    loadCurrentProject();
+  }, [location.pathname]);
 
-  // Redirect to login if user is undefined (after logout)
+  // Redirect to login if not authenticated and user is trying to access dashboard
   useEffect(() => {
-    if (!user) {
+    if (!isAuthenticated && location.pathname.startsWith('/dashboard')) {
       navigate('/login');
     }
-  }, [user, navigate]);
+  }, [isAuthenticated, navigate, location.pathname]);
 
 
 
   return (
     <DashboardContext.Provider value={{
-      user,
-      setUser,
       currentProject,
-      projects,
       setCurrentProject,
       sidebarOpen,
       setSidebarOpen,
-      refreshProjects,
     }}>
       {children}
     </DashboardContext.Provider>

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { getProjectOutcomes } from '@/lib/icsData';
-import { User } from '@/types/dashboard';
+import { useProjects } from '@/contexts/ProjectsContext';
+import { User, Outcome } from '@/types/dashboard';
 
 interface OutcomeSelectorProps {
   user: User;
@@ -11,7 +11,24 @@ interface OutcomeSelectorProps {
 }
 
 export function OutcomeSelector({ user, projectId, value, onSelect }: OutcomeSelectorProps) {
-  const outcomes = getProjectOutcomes(user, projectId);
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
+  const { getProjectOutcomes } = useProjects();
+
+  useEffect(() => {
+    const loadOutcomes = async () => {
+      if (projectId) {
+        try {
+          const outcomesData = await getProjectOutcomes(projectId);
+          setOutcomes(outcomesData);
+        } catch (error) {
+          console.error('Error loading outcomes:', error);
+        }
+      }
+    };
+
+    loadOutcomes();
+  }, [projectId, getProjectOutcomes]);
+
   if (!outcomes || outcomes.length <= 1) return null;
   return (
     <Select value={value} onValueChange={onSelect}>

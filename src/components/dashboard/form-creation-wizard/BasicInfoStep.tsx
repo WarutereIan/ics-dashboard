@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,20 @@ interface BasicInfoStepProps {
 
 export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoStepProps) {
   const selectedProject = availableProjects.find(p => p.id === form.projectId);
+
+  // Debug logging
+  console.log('BasicInfoStep - availableProjects:', availableProjects);
+  console.log('BasicInfoStep - form.projectId:', form.projectId);
+  console.log('BasicInfoStep - selectedProject:', selectedProject);
+
+  // Auto-fill project when projects are available and no project is selected
+  useEffect(() => {
+    if (availableProjects.length > 0 && !form.projectId) {
+      console.log('Auto-filling project with:', availableProjects[0]);
+      // Always use the first (and likely only) available project
+      onUpdate('projectId', availableProjects[0].id);
+    }
+  }, [availableProjects, form.projectId, onUpdate]);
 
   return (
     <div className="space-y-6">
@@ -77,9 +91,15 @@ export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoSt
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="project-select">Project *</Label>
-            <Select value={form.projectId || ''} onValueChange={(value) => onUpdate('projectId', value)} disabled={availableProjects.length === 1}>
+            <Select value={form.projectId || ''} onValueChange={(value) => onUpdate('projectId', value)} disabled={availableProjects.length <= 1}>
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Choose which project this form belongs to..." />
+                <SelectValue placeholder={
+                  availableProjects.length === 0 
+                    ? "Loading projects..." 
+                    : availableProjects.length === 1
+                    ? selectedProject?.name || "Project selected"
+                    : "Choose which project this form belongs to..."
+                } />
               </SelectTrigger>
               <SelectContent>
                 {availableProjects.map((project) => (

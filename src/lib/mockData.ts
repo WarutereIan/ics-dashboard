@@ -2,13 +2,21 @@ import { User, Project, Outcome, Activity, KPI } from '@/types/dashboard';
 
 export const mockUser: User = {
   id: '1',
-  name: 'Sarah Johnson',
+  firstName: 'Sarah',
+  lastName: 'Johnson',
   email: 'sarah.johnson@ics.org',
-  role: 'global-admin',
-  accessibleProjects: ['mameb', 'vacis-ke', 'vacis-tz', 'cdw', 'kuimarisha', 'nppp', 'aacl'],
-  accessibleBranches: ['mameb-nairobi', 'mameb-mombasa'],
-  accessibleCountries: ['kenya', 'tanzania'],
-  avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2'
+  isActive: true,
+  lastLoginAt: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  roles: [{
+    id: '1',
+    roleName: 'GLOBAL_ADMIN',
+    level: 1,
+    isActive: true
+  }],
+  projectAccess: [],
+  permissions: []
 };
 
 export const mockProjects: Project[] = [
@@ -17,7 +25,7 @@ export const mockProjects: Project[] = [
     name: 'MaMeb',
     description: 'Maternal and Neonatal Health Project',
     country: 'Kenya',
-    status: 'active',
+    status: 'ACTIVE',
     startDate: new Date('2023-01-01'),
     endDate: new Date('2027-12-31'),
     progress: 45,
@@ -74,7 +82,7 @@ IMPACT:
     name: 'VACIS Kenya',
     description: 'Violence Against Children in Schools - Kenya',
     country: 'Kenya',
-    status: 'active',
+    status: 'ACTIVE',
     startDate: new Date('2023-06-01'),
     endDate: new Date('2026-05-31'),
     progress: 42,
@@ -86,7 +94,7 @@ IMPACT:
     name: 'VACIS Tanzania',
     description: 'Violence Against Children in Schools - Tanzania',
     country: 'Tanzania',
-    status: 'active',
+    status: 'ACTIVE',
     startDate: new Date('2023-06-01'),
     endDate: new Date('2026-05-31'),
     progress: 38,
@@ -98,7 +106,7 @@ IMPACT:
     name: 'CDW',
     description: 'Community Development for Women',
     country: 'Kenya',
-    status: 'active',
+    status: 'ACTIVE',
     startDate: new Date('2023-03-01'),
     endDate: new Date('2026-02-28'),
     progress: 35,
@@ -110,7 +118,7 @@ IMPACT:
     name: 'Kuimarisha',
     description: 'Early Childhood Development Program',
     country: 'Kenya',
-    status: 'active',
+    status: 'ACTIVE',
     startDate: new Date('2023-01-15'),
     endDate: new Date('2025-12-31'),
     progress: 52,
@@ -122,7 +130,7 @@ IMPACT:
     name: 'NPPP',
     description: 'National Parenting Program Project',
     country: 'Kenya',
-    status: 'active',
+    status: 'ACTIVE',
     startDate: new Date('2023-04-01'),
     endDate: new Date('2026-03-31'),
     progress: 30,
@@ -134,7 +142,7 @@ IMPACT:
     name: 'AACL',
     description: 'Accelerated Action for Children Learning',
     country: 'Kenya',
-    status: 'active',
+    status: 'ACTIVE',
     startDate: new Date('2023-02-01'),
     endDate: new Date('2025-01-31'),
     progress: 60,
@@ -1288,46 +1296,5 @@ export const getStatusColor = (status: string) => {
   }
 };
 
-export const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@ics.org',
-    role: 'global-admin',
-    accessibleProjects: ['mameb', 'vacis'],
-    accessibleBranches: ['mameb-nairobi', 'mameb-mombasa'],
-    accessibleCountries: ['kenya', 'tanzania'],
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2'
-  },
-  {
-    id: '2',
-    name: 'James Kimani',
-    email: 'james.kimani@ics.org',
-    role: 'country-admin',
-    accessibleProjects: ['mameb'],
-    accessibleBranches: ['mameb-nairobi', 'mameb-mombasa'],
-    accessibleCountries: ['kenya'],
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg'
-  },
-  {
-    id: '3',
-    name: 'Mary Wanjiku',
-    email: 'mary.wanjiku@ics.org',
-    role: 'project-admin',
-    accessibleProjects: ['mameb'], // Only MaMeb project
-    accessibleBranches: ['mameb-nairobi'],
-    accessibleCountries: ['kenya'],
-    avatar: 'https://randomuser.me/api/portraits/women/44.jpg'
-  },
-  {
-    id: '4',
-    name: 'Peter Ochieng',
-    email: 'peter.ochieng@ics.org',
-    role: 'branch-admin',
-    accessibleProjects: ['mameb'], // Only MaMeb project
-    accessibleBranches: ['mameb-nairobi'],
-    accessibleCountries: ['kenya'],
-    avatar: 'https://randomuser.me/api/portraits/men/45.jpg'
-  },
- 
-];
+// TODO: Replace with actual user management API calls
+export const mockUsers: User[] = [];

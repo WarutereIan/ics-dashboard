@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useDashboard } from '@/contexts/DashboardContext';
-import { getProjectActivities, getProjectOutcomes } from '@/lib/icsData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProjects } from '@/contexts/ProjectsContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Outcome, Activity } from '@/types/dashboard';
 
 export function Activities() {
   const { projectId } = useParams();
-  const { user, projects } = useDashboard();
+  const { user } = useAuth();
+  const { getProjectById, getProjectOutcomes, getProjectActivities, dataRefreshTrigger } = useProjects();
   const [selectedOutcome, setSelectedOutcome] = useState<string | undefined>(undefined);
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
+  const [allActivities, setAllActivities] = useState<Activity[]>([]);
 
   if (!user) return null;
   if (!projectId) {
@@ -17,12 +21,30 @@ export function Activities() {
   }
 
   // Get project details for title
-  const project = projects.find(p => p.id === projectId);
+  const project = getProjectById(projectId);
   const projectName = project?.name || projectId.toUpperCase();
 
-  // Get data for the current project using projectId from URL
-  const outcomes = getProjectOutcomes(user, projectId);
-  const allActivities = getProjectActivities(user, projectId);
+  // Load project data
+  useEffect(() => {
+    const loadData = async () => {
+      if (projectId && user) {
+        try {
+          console.log(`🔄 Activities: Loading data for project ${projectId} (refresh trigger: ${dataRefreshTrigger})`);
+          const [outcomesData, activitiesData] = await Promise.all([
+            getProjectOutcomes(projectId),
+            getProjectActivities(projectId)
+          ]);
+          setOutcomes(outcomesData);
+          setAllActivities(activitiesData);
+          console.log(`✅ Activities: Loaded ${outcomesData.length} outcomes, ${activitiesData.length} activities`);
+        } catch (error) {
+          console.error('Error loading activities data:', error);
+        }
+      }
+    };
+
+    loadData();
+  }, [projectId, user, getProjectOutcomes, getProjectActivities, dataRefreshTrigger]);
 
   // Filter activities by selected outcome if one is selected
   const filteredActivities = selectedOutcome

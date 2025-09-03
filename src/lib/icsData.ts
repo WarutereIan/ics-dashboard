@@ -1,4 +1,4 @@
-import { User, Outcome, Activity, Report } from '@/types/dashboard';
+/* import { User, Outcome, Activity, Report } from '@/types/dashboard';
 import { aaclOutcomes, aaclActivities, aaclKPIs } from './aaclData';
 import { cdwOutcomes, cdwActivities, cdwKPIs } from './cdwData';
 import { kuimarishaOutcomes, kuimarishaActivities, kuimarishaKPIs } from './kuimarishaData';
@@ -412,4 +412,4 @@ const projectReports: Record<string, Report[]> = {
 export function getProjectReports(user: User, projectId: string): Report[] {
   if (!getAccessibleProjectIds(user).includes(projectId)) return [];
   return projectReports[projectId] || [];
-} 
+}  */

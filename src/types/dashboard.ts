@@ -1,12 +1,34 @@
 export interface User {
   id: string;
-  name: string;
   email: string;
-  role: 'global-admin' | 'country-admin' | 'project-admin' | 'branch-admin' | 'viewer';
-  accessibleProjects: string[];
-  accessibleBranches: string[];
-  accessibleCountries: string[];
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  roles: UserRole[];
+  projectAccess: ProjectAccess[];
+  permissions: string[];
   avatar?: string;
+}
+
+export interface UserRole {
+  id: string;
+  roleName: string;
+  roleDescription?: string;
+  level: number;
+  projectId?: string;
+  projectName?: string;
+  country?: string;
+  isActive: boolean;
+}
+
+export interface ProjectAccess {
+  projectId: string;
+  projectName?: string;
+  accessLevel: 'read' | 'write' | 'admin';
+  isActive: boolean;
 }
 
 export interface Project {
@@ -14,7 +36,7 @@ export interface Project {
   name: string;
   description: string;
   country: string;
-  status: 'planning' | 'active' | 'completed' | 'on-hold';
+  status: 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD';
   startDate: Date;
   endDate: Date;
   progress: number;
@@ -24,6 +46,105 @@ export interface Project {
   backgroundInformation?: string;
   mapData?: ProjectMapData;
   theoryOfChange?: TheoryOfChange;
+  // Financial tracking
+  financialData?: ProjectFinancialData;
+  // Database fields
+  createdAt?: Date;
+  updatedAt?: Date;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+export interface ProjectFinancialData {
+  id: string;
+  projectId: string;
+  year: number;
+  projectName: string;
+  totalBudget: number;
+  totalSpent: number;
+  variance: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ActivityFinancialData {
+  id: string;
+  activityId: string;
+  activityTitle: string;
+  year: number;
+  q1Cost: number;
+  q2Cost: number;
+  q3Cost: number;
+  q4Cost: number;
+  totalAnnualBudget: number;
+  totalAnnualCost: number;
+  variance: number;
+  notes?: string;
+  createdAt: Date;
+  lastUpdated: Date;
+}
+
+// Legacy interface for compatibility with existing Financial.tsx
+export interface LegacyProjectFinancialData {
+  id: string;
+  projectId: string;
+  year: number;
+  totalBudget: number;
+  totalSpent: number;
+  totalVariance: number;
+  activities: LegacyActivityFinancialData[];
+  lastUpdated: Date;
+  createdBy: string;
+}
+
+export interface LegacyActivityFinancialData {
+  id: string;
+  activityId: string;
+  activityTitle: string;
+  year: number;
+  quarterlyCosts: {
+    q1: number;
+    q2: number;
+    q3: number;
+    q4: number;
+  };
+  totalAnnualBudget: number;
+  totalAnnualCost: number;
+  variance: number;
+  notes?: string;
+  lastUpdated: Date;
+  createdBy: string;
+}
+
+export interface FinancialQuarter {
+  id: string;
+  quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  year: number;
+  cost: number;
+  budget: number;
+  variance: number;
+}
+
+export interface QuarterlyFinancialData {
+  budget: number;
+  spent: number;
+  variance: number;
+}
+
+export interface FinancialSummary {
+  projectId: string;
+  year: number;
+  totalBudget: number;
+  totalSpent: number;
+  totalVariance: number;
+  byQuarter: {
+    q1: QuarterlyFinancialData;
+    q2: QuarterlyFinancialData;
+    q3: QuarterlyFinancialData;
+    q4: QuarterlyFinancialData;
+  };
+  activityCount: number;
+  lastUpdated: Date;
 }
 
 export interface ProjectMapData {

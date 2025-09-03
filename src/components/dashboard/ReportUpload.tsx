@@ -43,9 +43,13 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { useReport } from '@/contexts/ReportContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useDashboard } from '@/contexts/DashboardContext';
-import { mockUsers } from '@/lib/mockReportData';
+import { useProjects } from '@/contexts/ProjectsContext';
+// Note: Report workflow users will be fetched from user management API when available
 import { storeReportFile, downloadStoredFile, base64ToBlob } from '@/lib/reportFileStorage';
+import { v4 as uuidv4 } from 'uuid';
+import { Report } from '@/types/dashboard';
 
 interface UploadedFile {
   id: string;
@@ -73,7 +77,9 @@ export function ReportUpload({
   maxFileSize = 50 // 50MB default
 }: ReportUploadProps) {
   const { createReportWithWorkflow } = useReport();
-  const { user, currentProject } = useDashboard();
+  const { user } = useAuth();
+  const { currentProject } = useDashboard();
+  const { projects } = useProjects();
   const { projectId } = useParams();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -94,28 +100,63 @@ export function ReportUpload({
   // Auto-fill country and project from current project context
   React.useEffect(() => {
     if (currentProject) {
+      console.log('🏗️ Auto-categorizing report for project:', currentProject);
+      
       // Map project country to country code
-      const countryCodeMap: Record<string, string> = {
+      const countryCodeMap: any = {
         'kenya': 'KE',
         'tanzania': 'TZ',
         'uganda': 'UG',
-        'ethiopia': 'ET'
+        'ethiopia': 'ET',
+        'south sudan': 'SS',
+        'sudan': 'SD'
       };
       
       const countryCode = countryCodeMap[currentProject.country.toLowerCase()];
       
-      // Find project code from project name
-      const projectCode = PROJECTS.find(p => 
-        p.name.toLowerCase() === currentProject.name.toLowerCase() ||
-        p.description.toLowerCase().includes(currentProject.name.toLowerCase())
-      )?.code;
+      // Generate project code from project ID or name
+      // Use project ID if it's already in a good format, otherwise generate from name
+      let projectCode = currentProject.id;
+      if (projectCode.length > 10) {
+        // If ID is too long (like CUID), generate from name
+        projectCode = currentProject.name
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+          .split(' ')
+          .map(word => word.substring(0, 3)) // Take first 3 letters of each word
+          .join('-')
+          .substring(0, 10); // Limit to 10 characters
+      }
       
-      if (countryCode && projectCode) {
+      // Auto-detect region from project description or name if available
+      let regionCode = 'W-UG';
+      const projectText = `${currentProject.name} ${currentProject.description || ''}`.toLowerCase();
+      
+      if (countryCode === 'KE'||"UG") {
+        if (projectText.includes('nairobi') || projectText.includes('central')) regionCode = 'KE-C';
+        else if (projectText.includes('coast') || projectText.includes('mombasa')) regionCode = 'KE-CO';
+        else if (projectText.includes('western')) regionCode = 'KE-W';
+        else if (projectText.includes('nyanza')) regionCode = 'KE-NY';
+        else if (projectText.includes('rift') || projectText.includes('valley')) regionCode = 'KE-RV';
+        else if (projectText.includes('eastern')) regionCode = 'KE-E';
+        else if (projectText.includes('north')) regionCode = 'KE-NE';
+      } else if (countryCode === 'TZ') {
+        if (projectText.includes('dar es salaam')) regionCode = 'TZ-DS';
+        else if (projectText.includes('arusha')) regionCode = 'TZ-AR';
+        else if (projectText.includes('dodoma')) regionCode = 'TZ-DO';
+        else if (projectText.includes('mwanza')) regionCode = 'TZ-MW';
+        // Add more Tanzania regions as needed
+      }
+      // Add more countries as needed
+      
+      if (countryCode) {
         setCategorization(prev => ({
           ...prev,
           countryCode,
-          projectCode
+          projectCode,
+          regionCode
         }));
+        console.log('✅ Auto-categorization applied:', { countryCode, projectCode, regionCode });
       }
     }
   }, [currentProject]);
@@ -123,29 +164,51 @@ export function ReportUpload({
   // Report frequency state
   const [reportFrequency, setReportFrequency] = useState<'monthly' | 'quarterly' | 'annual' | 'adhoc'>('adhoc');
 
-  const [availableProjects, setAvailableProjects] = useState<typeof PROJECTS>([]);
-  const [availableRegions, setAvailableRegions] = useState<any[]>([]);
+  // Dynamic project and region data
+  const availableProjects = React.useMemo(() => {
+    if (!categorization.countryCode) return [];
+    
+    // Filter projects by country and convert to naming convention format
+    return projects
+      .filter(project => {
+        const countryMatches = {
+          'KE': ['kenya'],
+          'TZ': ['tanzania'],
+          'UG': ['uganda'],
+          'ET': ['ethiopia'],
+          'SS': ['south sudan'],
+          'SD': ['sudan']
+        };
+        const countryNames = countryMatches[categorization.countryCode as keyof typeof countryMatches] || [];
+        return countryNames.some(countryName => 
+          project.country.toLowerCase().includes(countryName)
+        );
+      })
+      .map(project => {
+        // Generate project code similar to auto-categorization logic
+        let projectCode = project.id;
+        if (projectCode.length > 10) {
+          projectCode = project.name
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .split(' ')
+            .map(word => word.substring(0, 3))
+            .join('-')
+            .substring(0, 10);
+        }
+        
+        return {
+          code: projectCode,
+          name: project.name,
+          description: project.description || '',
+          country: project.country
+        };
+      });
+  }, [projects, categorization.countryCode]);
 
-  // Update available projects and regions when country changes
-  React.useEffect(() => {
-    if (categorization.countryCode) {
-      const projects = getProjectsByCountry(categorization.countryCode);
-      const regions = getRegionsByCountry(categorization.countryCode);
-      setAvailableProjects(projects);
-      setAvailableRegions(regions);
-      
-      // Reset region and project if they're not available for the selected country
-      if (!regions.find(r => r.code === categorization.regionCode)) {
-        setCategorization(prev => ({ ...prev, regionCode: '' }));
-      }
-      if (!projects.find(p => p.code === categorization.projectCode)) {
-        setCategorization(prev => ({ ...prev, projectCode: '' }));
-      }
-    } else {
-      setAvailableProjects([]);
-      setAvailableRegions([]);
-      setCategorization(prev => ({ ...prev, regionCode: '', projectCode: '' }));
-    }
+  const availableRegions = React.useMemo(() => {
+    if (!categorization.countryCode) return [];
+    return getRegionsByCountry(categorization.countryCode);
   }, [categorization.countryCode]);
 
   const handleCategorizationChange = (field: keyof NamingConventionData, value: string | Date) => {
@@ -429,8 +492,12 @@ export function ReportUpload({
           const reportType = REPORT_TYPES.find(t => t.code === categorization.reportTypeCode);
           const project = PROJECTS.find(p => p.code === categorization.projectCode);
           
-          // Create report data first
-          const reportData = {
+          // Generate UUID for report ID
+          const reportId = uuidv4();
+          
+          // Create report with basic structure (workflow to be implemented when user management API is ready)
+          const createdReport: Report = {
+            id: reportId,
             name: file.newName,
             type: getFileTypeFromExtension(file.originalName),
             size: formatFileSize(file.size),
@@ -438,21 +505,31 @@ export function ReportUpload({
             description: `${reportType?.name || 'Report'} for ${project?.name || 'Project'} - ${file.originalName}`,
             category: reportFrequency, // Use selected frequency instead of derived category
             status: 'draft' as const,
-            uploadedBy: user.name,
+            uploadedBy: `${user.firstName} ${user.lastName}`,
             lastModified: new Date().toISOString(),
-            lastModifiedBy: user.name,
-            projectId: projectId
+            lastModifiedBy: `${user.firstName} ${user.lastName}`,
+            projectId: projectId,
+            isPendingReview: true,
+            currentAuthLevel: 'branch-admin',
+            approvalWorkflow: {
+              id: uuidv4(),
+              reportId: reportId,
+              projectId: projectId,
+              createdAt: new Date().toISOString(),
+              createdBy: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
+              currentStep: 1,
+              totalSteps: 1,
+              steps: [],
+              status: 'pending'
+            }
           };
-
-          // Create report with approval workflow
-          const createdReport = createReportWithWorkflow(reportData, mockUsers);
           
           // Store file data using the storage utility
           const metadata = {
-            uploadedBy: user.name,
+            uploadedBy: `${user.firstName} ${user.lastName}`,
             projectId: projectId,
-            category: reportData.category,
-            status: reportData.status,
+            category: createdReport.category,
+            status: createdReport.status,
             reportFrequency: reportFrequency
           };
           
@@ -532,6 +609,27 @@ export function ReportUpload({
             <p className="text-sm text-gray-600">
               Configure the categorization for your documents. Country and Project are automatically filled from the current project context. Files will be automatically renamed according to the naming convention. <strong>Region, Report Type, and report frequency are required before uploading files.</strong>
             </p>
+
+            {/* Auto-categorization Summary */}
+            {(categorization.countryCode || categorization.projectCode) && (
+              <Alert className="border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription>
+                  <div className="font-medium text-green-800 mb-2">Auto-Categorization Applied</div>
+                  <div className="space-y-1 text-sm text-green-700">
+                    {categorization.countryCode && (
+                      <div>✓ Country: <strong>{currentProject?.country}</strong> → {categorization.countryCode}</div>
+                    )}
+                    {categorization.projectCode && (
+                      <div>✓ Project: <strong>{currentProject?.name}</strong> → {categorization.projectCode}</div>
+                    )}
+                    {categorization.regionCode && (
+                      <div>✓ Region: Auto-detected → {categorization.regionCode}</div>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Country Selection */}
@@ -545,12 +643,19 @@ export function ReportUpload({
                   onValueChange={(value) => handleCategorizationChange('countryCode', value)}
                   disabled={true}
                 >
-                  <SelectTrigger className="bg-gray-50">
+                  <SelectTrigger className="bg-green-50 border-green-200">
                     <SelectValue>
-                      {categorization.countryCode ? 
-                        COUNTRIES.find(c => c.code === categorization.countryCode)?.name + ` (${categorization.countryCode})` :
-                        "Auto-filled from project"
-                      }
+                      {categorization.countryCode ? (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span>
+                            {COUNTRIES.find(c => c.code === categorization.countryCode)?.name || currentProject?.country}
+                            <span className="text-gray-500 ml-1">({categorization.countryCode})</span>
+                          </span>
+                        </div>
+                      ) : (
+                        "Auto-detecting country..."
+                      )}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -561,9 +666,10 @@ export function ReportUpload({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500">
-                  Automatically filled from current project
-                </p>
+                <div className="flex items-center gap-2 text-xs text-green-600">
+                  <CheckCircle className="w-3 h-3" />
+                  <span>Auto-detected: {currentProject?.country}</span>
+                </div>
               </div>
 
               {/* Region Selection */}
@@ -577,8 +683,18 @@ export function ReportUpload({
                   onValueChange={(value) => handleCategorizationChange('regionCode', value)}
                   disabled={!categorization.countryCode}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a region" />
+                  <SelectTrigger className={categorization.regionCode ? "bg-green-50 border-green-200" : ""}>
+                    <SelectValue placeholder="Select a region">
+                      {categorization.regionCode && (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span>
+                            {availableRegions.find(r => r.code === categorization.regionCode)?.name}
+                            <span className="text-gray-500 ml-1">({categorization.regionCode})</span>
+                          </span>
+                        </div>
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {availableRegions.map((region) => (
@@ -588,6 +704,12 @@ export function ReportUpload({
                     ))}
                   </SelectContent>
                 </Select>
+                {categorization.regionCode && (
+                  <div className="flex items-center gap-2 text-xs text-green-600">
+                    <CheckCircle className="w-3 h-3" />
+                    <span>Auto-detected from project data</span>
+                  </div>
+                )}
               </div>
 
               {/* Project Selection */}
@@ -601,12 +723,19 @@ export function ReportUpload({
                   onValueChange={(value) => handleCategorizationChange('projectCode', value)}
                   disabled={true}
                 >
-                  <SelectTrigger className="bg-gray-50">
+                  <SelectTrigger className="bg-green-50 border-green-200">
                     <SelectValue>
-                      {categorization.projectCode ? 
-                        availableProjects.find(p => p.code === categorization.projectCode)?.name + ` (${categorization.projectCode})` :
-                        "Auto-filled from project"
-                      }
+                      {categorization.projectCode ? (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span>
+                            {availableProjects.find(p => p.code === categorization.projectCode)?.name || currentProject?.name} 
+                            <span className="text-gray-500 ml-1">({categorization.projectCode})</span>
+                          </span>
+                        </div>
+                      ) : (
+                        "Auto-detecting project..."
+                      )}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -617,9 +746,10 @@ export function ReportUpload({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500">
-                  Automatically filled from current project
-                </p>
+                <div className="flex items-center gap-2 text-xs text-green-600">
+                  <CheckCircle className="w-3 h-3" />
+                  <span>Auto-detected from current project: {currentProject?.name}</span>
+                </div>
               </div>
 
               {/* Report Type Selection */}

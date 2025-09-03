@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useAuth } from '@/contexts/AuthContext';
 import { useDashboard } from '@/contexts/DashboardContext';
+import { useProjects } from '@/contexts/ProjectsContext';
 import { OutcomeSelector } from './OutcomeSelector';
 import { OutputSelector } from './OutputSelector';
-import { getProjectOutcomes, getProjectOutputs } from '@/lib/icsData';
 import { LatLngTuple } from 'leaflet';
 
 // Fix default marker icon issue in Leaflet
@@ -22,28 +23,59 @@ const KENYA_CENTER: LatLngTuple = [-1.286389, 36.817223];
 const TANZANIA_CENTER: LatLngTuple = [-6.792354, 39.208328];
 
 export function Maps() {
-  const { user, currentProject } = useDashboard();
-  if (!user || !currentProject) return null;
+  const { user } = useAuth();
+  const { currentProject } = useDashboard();
+  const { getProjectOutcomes, getProjectOutputs } = useProjects();
   const [selectedOutcome, setSelectedOutcome] = useState<string | undefined>(undefined);
   const [selectedOutput, setSelectedOutput] = useState<string | undefined>(undefined);
+  const [outcomes, setOutcomes] = useState<any[]>([]);
+  const [outputs, setOutputs] = useState<any[]>([]);
 
-  if (!currentProject) {
-    return <div>No project selected</div>;
-  }
+  useEffect(() => {
+    const loadData = async () => {
+      if (user && currentProject) {
+        try {
+          const [outcomesData, outputsData] = await Promise.all([
+            getProjectOutcomes(currentProject.id),
+            getProjectOutputs(currentProject.id)
+          ]);
+          setOutcomes(outcomesData);
+          setOutputs(outputsData);
+        } catch (error) {
+          console.error('Error loading map data:', error);
+        }
+      }
+    };
+
+    loadData();
+  }, [user, currentProject, getProjectOutcomes, getProjectOutputs]);
+
+  useEffect(() => {
+    // Filter outputs based on selected outcome
+    const loadOutputs = async () => {
+      if (user && currentProject) {
+        try {
+          const outputsData = await getProjectOutputs(currentProject.id);
+          const filteredOutputs = selectedOutcome
+            ? outputsData.filter((o: any) => o.outcomeId === selectedOutcome)
+            : outputsData;
+          setOutputs(filteredOutputs);
+        } catch (error) {
+          console.error('Error loading filtered outputs:', error);
+        }
+      }
+    };
+
+    loadOutputs();
+  }, [selectedOutcome, user, currentProject, getProjectOutputs]);
+
+  if (!user || !currentProject) return null;
 
   // Center map based on project country
   let mapCenter = KENYA_CENTER;
   if (currentProject.country?.toLowerCase().includes('tanzania')) {
     mapCenter = TANZANIA_CENTER;
   }
-
-  // Get selected outcome/output
-  const outcomes = user ? getProjectOutcomes(user, currentProject.id) : [];
-  const outputs = user
-    ? (selectedOutcome
-        ? getProjectOutputs(user, currentProject.id).filter((o: any) => o.outcomeId === selectedOutcome)
-        : getProjectOutputs(user, currentProject.id))
-    : [];
   const selectedOutcomeObj = outcomes.find((o: any) => o.id === selectedOutcome);
   const selectedOutputObj = outputs.find((o: any) => o.id === selectedOutput);
 

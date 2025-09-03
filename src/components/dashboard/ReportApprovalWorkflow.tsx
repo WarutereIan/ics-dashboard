@@ -30,14 +30,14 @@ import {
   canUserApproveAtLevel 
 } from '@/lib/reportWorkflowUtils';
 import { useReport } from '@/contexts/ReportContext';
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ReportApprovalWorkflowProps {
   report: Report;
 }
 
 export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkflowProps) {
-  const { user } = useDashboard();
+  const { user } = useAuth();
   const { 
     approveReportStep, 
     rejectReportStep, 
@@ -89,14 +89,14 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
 
   const handleApprove = () => {
     if (currentStep) {
-      approveReportStep(report.id, currentStep.id, user.id, user.name, comment);
+      approveReportStep(report.id, currentStep.id, user.id, `${user.firstName} ${user.lastName}`, comment);
       setComment('');
     }
   };
 
   const handleReject = () => {
     if (currentStep && rejectionReason.trim()) {
-      rejectReportStep(report.id, currentStep.id, user.id, user.name, rejectionReason);
+      rejectReportStep(report.id, currentStep.id, user.id, `${user.firstName} ${user.lastName}`, rejectionReason);
       setRejectionReason('');
       setShowRejectDialog(false);
     }
@@ -104,7 +104,7 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
 
   const handleSkip = () => {
     if (currentStep && skipReason.trim()) {
-      skipReportStep(report.id, currentStep.id, user.id, user.name, skipReason);
+      skipReportStep(report.id, currentStep.id, user.id, `${user.firstName} ${user.lastName}`, skipReason);
       setSkipReason('');
       setShowSkipDialog(false);
     }
@@ -112,7 +112,7 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
 
   const handleAddComment = (stepId: string) => {
     if (comment.trim()) {
-      addCommentToReportStep(report.id, stepId, user.id, user.name, user.role, comment);
+      addCommentToReportStep(report.id, stepId, user.id, `${user.firstName} ${user.lastName}`, user.roles[0]?.roleName || 'user', comment);
       setComment('');
       setShowCommentDialog(false);
     }

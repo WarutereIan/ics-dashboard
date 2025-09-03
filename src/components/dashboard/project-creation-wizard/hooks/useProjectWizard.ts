@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/contexts/ProjectsContext';
 import { toast } from '@/hooks/use-toast';
 
-import { saveProject as saveProjectData, getProjectData, getProjectKPIsData } from '@/lib/projectDataManager';
+import { projectDataApi, CreateOutcomeDto, CreateActivityDto, CreateKPIDto } from '@/lib/api/projectDataApi';
+import { generateOutcomeId, generateActivityId, generateKpiId, generateProjectId } from '@/lib/uuid';
 import { 
   saveWizardDraft, 
   loadWizardDraft, 
@@ -25,8 +26,18 @@ import {
 export function useProjectWizard() {
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const { user } = useDashboard();
-  const { addProject, updateProject, getProjectById, projects } = useProjects();
+  const { user } = useAuth();
+  const { 
+    addProject, 
+    updateProject, 
+    getProjectById, 
+    projects,
+    isLoading: projectsLoading,
+    getProjectOutcomes,
+    getProjectActivities,
+    getProjectKPIs,
+    triggerDataRefresh
+  } = useProjects();
   const isEditMode = Boolean(projectId);
   
   // Store original project data for comparison in edit mode
@@ -39,7 +50,7 @@ export function useProjectWizard() {
       name: '',
       description: '',
       country: '',
-      status: 'planning',
+      status: 'PLANNING',
       startDate: undefined,
       endDate: undefined,
       budget: 0,
@@ -63,8 +74,18 @@ export function useProjectWizard() {
 
   // Load existing project data when in edit mode or load draft for new projects
   useEffect(() => {
-    if (isEditMode && projectId && user) {
+    console.log('useProjectWizard useEffect triggered:', { 
+      isEditMode, 
+      projectId, 
+      user: !!user, 
+      projectsCount: projects.length,
+      projectsLoading,
+      hasGetProjectById: !!getProjectById
+    });
+    
+    if (isEditMode && projectId && user && !projectsLoading && projects.length > 0) {
       const project = getProjectById(projectId);
+      console.log('Found project for editing:', project);
       
       if (project) {
         // Store original project data for comparison
@@ -76,48 +97,59 @@ export function useProjectWizard() {
         });
         
         // Load project basic info into local copy
-        setWizardState(prev => ({
-          ...prev,
-          projectData: {
-            id: project.id,
-            name: project.name,
-            description: project.description,
-            country: project.country,
-            status: project.status,
-            startDate: project.startDate,
-            endDate: project.endDate,
-            budget: project.budget,
-            backgroundInformation: project.backgroundInformation || '',
-            mapData: project.mapData,
-            theoryOfChange: project.theoryOfChange,
-          }
-        }));
+        const updatedProjectData = {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          country: project.country,
+          status: project.status,
+          startDate: project.startDate,
+          endDate: project.endDate,
+          budget: project.budget,
+          backgroundInformation: project.backgroundInformation || '',
+          mapData: project.mapData,
+          theoryOfChange: project.theoryOfChange,
+        };
+        
+        console.log('Setting wizard state with project data:', updatedProjectData);
+        
+        setWizardState(prev => {
+          const newState = {
+            ...prev,
+            projectData: updatedProjectData
+          };
+          console.log('New wizard state after setting project data:', newState);
+          return newState;
+        });
 
-        // Load outcomes, activities, and KPIs
-        try {
-          const projectData = getProjectData(projectId);
-          const kpisData = getProjectKPIsData(projectId);
+        // Load outcomes, activities, and KPIs from API
+        const loadProjectData = async () => {
+          try {
+            const [outcomesData, activitiesData, kpisData] = await Promise.all([
+              getProjectOutcomes(projectId),
+              getProjectActivities(projectId),
+              getProjectKPIs(projectId)
+            ]);
 
-          if (projectData) {
             // Store original data for comparison
             setOriginalProjectData((prev: any) => ({
               ...prev,
-              outcomes: [...projectData.outcomes],
-              activities: [...projectData.activities],
+              outcomes: [...outcomesData],
+              activities: [...activitiesData],
               kpis: [...kpisData]
             }));
             
             // Load into local copy
             setWizardState(prev => ({
               ...prev,
-              outcomes: projectData.outcomes.map((outcome: any) => ({
+              outcomes: outcomesData.map((outcome: any) => ({
                 id: outcome.id,
                 title: outcome.title,
                 description: outcome.description,
                 target: outcome.target || 0,
                 unit: outcome.unit || '',
               })),
-              activities: projectData.activities.map((activity: any) => ({
+              activities: activitiesData.map((activity: any) => ({
                 id: activity.id,
                 outcomeId: activity.outcomeId,
                 title: activity.title,
@@ -135,15 +167,17 @@ export function useProjectWizard() {
                 type: kpi.type,
               })),
             }));
+          } catch (error) {
+            console.error('Error loading project data from API:', error);
+            toast({
+              title: "Error Loading Project",
+              description: "Could not load project data for editing.",
+              variant: "destructive",
+            });
           }
-        } catch (error) {
-          console.error('Error loading project data:', error);
-          toast({
-            title: "Error Loading Project",
-            description: "Could not load project data for editing.",
-            variant: "destructive",
-          });
-        }
+        };
+
+        loadProjectData();
       }
     } else if (!isEditMode) {
       // Load draft for new project creation
@@ -152,7 +186,7 @@ export function useProjectWizard() {
         setWizardState(draft);
       }
     }
-  }, [isEditMode, projectId, user, projects]);
+  }, [isEditMode, projectId, user?.id, projectsLoading, projects.length]);
 
   // Auto-save draft when wizard state changes (only for new projects)
   useEffect(() => {
@@ -166,18 +200,13 @@ export function useProjectWizard() {
     };
   }, [wizardState, isEditMode]);
 
-  // Generate project ID from name
-  const generateProjectId = (name: string) => {
-    return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  };
-
   // Handle project data changes
   const handleProjectChange = (field: keyof ProjectFormData, value: any) => {
     setWizardState(prev => {
       const updated = { ...prev.projectData, [field]: value };
       // Only auto-generate ID for new projects, not when editing
-      if (field === 'name' && !isEditMode) {
-        updated.id = generateProjectId(value);
+      if (field === 'name' && !isEditMode && !updated.id) {
+        updated.id = generateProjectId();
       }
       return {
         ...prev,
@@ -189,7 +218,7 @@ export function useProjectWizard() {
   // Outcome management functions
   const addOutcome = () => {
     const newOutcome: OutcomeFormData = {
-      id: `${wizardState.projectData.id}-outcome-${wizardState.outcomes.length + 1}`,
+      id: generateOutcomeId(),
       title: '',
       description: '',
       target: 0,
@@ -224,10 +253,8 @@ export function useProjectWizard() {
 
   // Activity management functions
   const addActivity = (outcomeId: string) => {
-    const outcomeIndex = wizardState.outcomes.findIndex(o => o.id === outcomeId);
-    const activityCount = wizardState.activities.filter(a => a.outcomeId === outcomeId).length;
     const newActivity: ActivityFormData = {
-      id: `${wizardState.projectData.id}-activity-${outcomeIndex + 1}.${activityCount + 1}`,
+      id: generateActivityId(),
       outcomeId,
       title: '',
       description: '',
@@ -262,6 +289,7 @@ export function useProjectWizard() {
   // KPI management functions
   const addKPI = (outcomeId: string) => {
     const newKPI: KPIFormData = {
+      id: generateKpiId(),
       outcomeId,
       name: '',
       target: 0,
@@ -329,7 +357,6 @@ export function useProjectWizard() {
   const saveProject = async () => {
     try {
       const projectData = {
-        id: wizardState.projectData.id,
         name: wizardState.projectData.name,
         description: wizardState.projectData.description,
         country: wizardState.projectData.country,
@@ -382,36 +409,64 @@ export function useProjectWizard() {
         // Update existing project
         await updateProject(wizardState.projectData.id, projectData);
         
-        // Save project data (outcomes, activities, KPIs)
-        const success = saveProjectData(projectData, outcomes, activities, kpis);
+        // Save project data (outcomes, activities, KPIs) and wait for completion
+        console.log(`💾 Saving project data: ${outcomes.length} outcomes, ${activities.length} activities, ${kpis.length} KPIs`);
+        await saveOutcomesActivitiesKPIs(wizardState.projectData.id, outcomes, activities, kpis);
+        console.log('✅ All database operations completed successfully');
         
-        if (success) {
+        // Fetch fresh data directly after all save operations are complete
+        console.log('🔄 Fetching fresh data post-save...');
+        try {
+          const [freshOutcomes, freshActivities] = await Promise.all([
+            getProjectOutcomes(wizardState.projectData.id),
+            getProjectActivities(wizardState.projectData.id),
+          ]);
+          console.log(`✨ Fresh data loaded: ${freshOutcomes.length} outcomes, ${freshActivities.length} activities`);
+          
+          // Trigger data refresh to ensure all components get the latest data
+          triggerDataRefresh();
+          
           toast({
             title: "Project Updated Successfully",
-            description: `${wizardState.projectData.name} has been updated with ${outcomes.length} outcomes, ${activities.length} activities, and ${kpis.length} KPIs.`,
+            description: `${wizardState.projectData.name} has been updated with ${freshOutcomes.length} outcomes, ${freshActivities.length} activities, and ${kpis.length} KPIs.`,
           });
+          
+          // Navigate immediately since all operations are complete and data is fresh
+          console.log(`🧭 Navigating to project overview: /dashboard/projects/${wizardState.projectData.id}`);
           navigate(`/dashboard/projects/${wizardState.projectData.id}`);
-        } else {
-          throw new Error('Failed to save project data');
+          
+        } catch (error) {
+          console.error('❌ Error fetching fresh data after save:', error);
+          // Fallback: trigger refresh and navigate with small delay
+          triggerDataRefresh();
+          setTimeout(() => {
+            navigate(`/dashboard/projects/${wizardState.projectData.id}`);
+          }, 500);
         }
       } else {
         // Create new project
         const newProject = await addProject(projectData);
+        console.log(`✅ New project created: ${newProject.id}`);
         
-        // Save project data (outcomes, activities, KPIs)
-        const success = saveProjectData(projectData, outcomes, activities, kpis);
+        // Save project data (outcomes, activities, KPIs) to the new project and wait for completion
+        console.log(`💾 Saving project data to new project: ${outcomes.length} outcomes, ${activities.length} activities, ${kpis.length} KPIs`);
+        await saveOutcomesActivitiesKPIs(newProject.id, outcomes, activities, kpis);
+        console.log('✅ All database operations completed for new project');
         
-        if (success) {
-          toast({
-            title: "Project Created Successfully",
-            description: `${wizardState.projectData.name} has been created with ${outcomes.length} outcomes, ${activities.length} activities, and ${kpis.length} KPIs.`,
-          });
-          // Clear draft after successful save
-          clearWizardDraft();
-          navigate('/dashboard');
-        } else {
-          throw new Error('Failed to save project data');
-        }
+        // Trigger data refresh so all components reload their data
+        triggerDataRefresh();
+        
+        toast({
+          title: "Project Created Successfully",
+          description: `${wizardState.projectData.name} has been created with ${outcomes.length} outcomes, ${activities.length} activities, and ${kpis.length} KPIs.`,
+        });
+        
+        // Clear draft after successful save
+        clearWizardDraft();
+        
+        // Navigate immediately since all operations are complete
+        console.log(`🧭 Navigating to dashboard after new project creation`);
+        navigate('/dashboard');
       }
     } catch (error) {
       console.error('Error saving project:', error);
@@ -458,11 +513,185 @@ export function useProjectWizard() {
     return projectChanged || outcomesChanged || activitiesChanged || kpisChanged;
   };
 
+  // Helper function to save outcomes, activities, and KPIs via API
+  const saveOutcomesActivitiesKPIs = async (projectId: string, outcomes: any[], activities: any[], kpis: any[]) => {
+    try {
+      // Get original data for comparison
+      const originalOutcomes = originalProjectData?.outcomes || [];
+      const originalActivities = originalProjectData?.activities || [];
+      const originalKPIs = originalProjectData?.kpis || [];
+
+      // Handle Outcomes first and track ID mappings for new ones
+      const outcomeIdMapping: { [frontendId: string]: string } = {};
+      
+      for (const outcome of outcomes) {
+        const original = originalOutcomes.find((o: any) => o.id === outcome.id);
+        const isNewItem = !original;
+        if (isNewItem) {
+          // Create new outcome
+          const outcomeData: CreateOutcomeDto = {
+            title: outcome.title,
+            description: outcome.description,
+            target: outcome.target || 0,
+            current: 0,
+            unit: outcome.unit || '',
+            status: 'ON_TRACK' as const,
+            progress: outcome.progress || 0,
+          };
+          const createdOutcome = await projectDataApi.createProjectOutcome(projectId, outcomeData);
+          // Map frontend UUID to database UUID (they might be different)
+          outcomeIdMapping[outcome.id] = createdOutcome.id;
+          console.log(`Mapped outcome ID: ${outcome.id} -> ${createdOutcome.id}`);
+        } else {
+          // Update existing outcome if changed
+          const needsUpdate = 
+            original.title !== outcome.title ||
+            original.description !== outcome.description ||
+            original.target !== outcome.target ||
+            original.status !== outcome.status;
+          
+          if (needsUpdate) {
+            const updateData = {
+              title: outcome.title,
+              description: outcome.description,
+              target: outcome.target || 0,
+              current: original.current || 0,
+              unit: outcome.unit || original.unit || '',
+              status: outcome.status || 'on-track',
+              progress: outcome.progress || 0,
+            };
+            await projectDataApi.updateProjectOutcome(projectId, outcome.id, updateData);
+          }
+        }
+      }
+
+      // Delete removed outcomes
+      for (const original of originalOutcomes) {
+        const stillExists = outcomes.find((o: any) => o.id === original.id);
+        if (!stillExists) {
+          await projectDataApi.deleteProjectOutcome(projectId, original.id);
+        }
+      }
+
+      // Handle Activities (now properly linked to outcomes via outcomeId)
+      console.log('Outcome ID mapping:', outcomeIdMapping);
+      
+      for (const activity of activities) {
+        const original = originalActivities.find((a: any) => a.id === activity.id);
+        const isNewItem = !original;
+        
+        // Resolve the real outcomeId (use mapped ID if outcome was just created)
+        const realOutcomeId = outcomeIdMapping[activity.outcomeId] || activity.outcomeId;
+        console.log(`Activity ${activity.title}: mapping ${activity.outcomeId} -> ${realOutcomeId}`);
+        
+        if (isNewItem) {
+          // Create new activity
+          const activityData: CreateActivityDto = {
+            outcomeId: realOutcomeId,
+            title: activity.title,
+            description: activity.description,
+            responsible: activity.responsible || 'Unassigned',
+            status: 'NOT_STARTED' as const,
+            startDate: activity.startDate?.toISOString() || new Date().toISOString(),
+            endDate: activity.endDate?.toISOString() || new Date().toISOString(),
+            progress: activity.progress || 0,
+          };
+          await projectDataApi.createProjectActivity(projectId, activityData);
+        } else {
+          // Update existing activity if changed
+          const needsUpdate = 
+            original.title !== activity.title ||
+            original.description !== activity.description ||
+            original.status !== activity.status ||
+            original.outcomeId !== activity.outcomeId;
+          
+          if (needsUpdate) {
+            const updateData = {
+              outcomeId: realOutcomeId,
+              title: activity.title,
+              description: activity.description,
+              responsible: activity.responsible || original.responsible || 'Unassigned',
+              status: activity.status || 'not-started',
+              startDate: activity.startDate?.toISOString() || original.startDate,
+              endDate: activity.endDate?.toISOString() || original.endDate,
+              progress: activity.progress || 0,
+            };
+            await projectDataApi.updateProjectActivity(projectId, activity.id, updateData);
+          }
+        }
+      }
+
+      // Delete removed activities
+      for (const original of originalActivities) {
+        const stillExists = activities.find((a: any) => a.id === original.id);
+        if (!stillExists) {
+          await projectDataApi.deleteProjectActivity(projectId, original.id);
+        }
+      }
+
+      // Handle KPIs (note: backend API might not be fully implemented yet)
+      // We'll implement this with error handling in case the endpoints don't exist
+      try {
+        for (const kpi of kpis) {
+          const original = originalKPIs.find((k: any) => k.id === kpi.id);
+          const isNewItem = !original;
+          // Map frontend outcome ID to backend outcome ID
+          const realKpiOutcomeId = outcomeIdMapping[kpi.outcomeId] || kpi.outcomeId;
+          
+          if (isNewItem) {
+            // Create new KPI
+            const kpiData: CreateKPIDto = {
+              outcomeId: realKpiOutcomeId,
+              name: kpi.name,
+              title: kpi.name, // Keep for backward compatibility
+              description: `KPI for project ${projectId}`,
+              target: kpi.target,
+              current: 0,
+              unit: kpi.unit,
+              type: kpi.type || 'bar',
+              frequency: 'MONTHLY',
+            };
+            await projectDataApi.createProjectKPI(projectId, kpiData);
+          } else {
+            // Update existing KPI if changed
+            const needsUpdate = 
+              original.name !== kpi.name ||
+              original.target !== kpi.target ||
+              original.unit !== kpi.unit;
+            
+            if (needsUpdate) {
+              const updateData = {
+                title: kpi.name,
+                target: kpi.target,
+                unit: kpi.unit,
+              };
+              await projectDataApi.updateProjectKPI(projectId, kpi.id, updateData);
+            }
+          }
+        }
+
+        // Delete removed KPIs
+        for (const original of originalKPIs) {
+          const stillExists = kpis.find((k: any) => k.id === original.id);
+          if (!stillExists) {
+            await projectDataApi.deleteProjectKPI(projectId, original.id);
+          }
+        }
+      } catch (kpiError) {
+        console.warn('KPI operations failed (API might not be fully implemented):', kpiError);
+        // Continue without failing the entire save operation
+      }
+
+    } catch (error) {
+      console.error('Error saving outcomes/activities/KPIs:', error);
+      throw error;
+    }
+  };
+
   // Save edits (for edit mode) - now only saves when user completes the process
   const saveEdits = async () => {
     try {
       const projectData = {
-        id: wizardState.projectData.id,
         name: wizardState.projectData.name,
         description: wizardState.projectData.description,
         country: wizardState.projectData.country,
@@ -514,25 +743,24 @@ export function useProjectWizard() {
       // Update basic project data
       await updateProject(wizardState.projectData.id, projectData);
 
-      // Save project data (outcomes, activities, KPIs)
-      const success = saveProjectData(projectData, outcomes, activities, kpis);
-
-      if (success) {
-        // Update original data to reflect saved state
-        setOriginalProjectData({
-          project: { ...projectData },
-          outcomes: [...outcomes],
-          activities: [...activities],
-          kpis: [...kpis]
-        });
-        
-        toast({
-          title: "Edits Saved",
-          description: `Your project changes have been saved successfully with ${outcomes.length} outcomes, ${activities.length} activities, and ${kpis.length} KPIs.`,
-        });
-      } else {
-        throw new Error('Failed to save project data');
-      }
+      // Save project data (outcomes, activities, KPIs) using API
+      await saveOutcomesActivitiesKPIs(wizardState.projectData.id, outcomes, activities, kpis);
+      
+      // Update original data to reflect saved state
+      setOriginalProjectData({
+        project: { id: wizardState.projectData.id, ...projectData },
+        outcomes: [...outcomes],
+        activities: [...activities],
+        kpis: [...kpis]
+      });
+      
+      toast({
+        title: "Project Saved Successfully",
+        description: `Your project changes have been saved successfully with ${outcomes.length} outcomes, ${activities.length} activities, and ${kpis.length} KPIs.`,
+      });
+      
+      // Navigate back to the project overview page
+      navigate(`/dashboard/projects/${wizardState.projectData.id}`);
     } catch (error) {
       console.error('Error saving edits:', error);
       toast({
@@ -553,7 +781,7 @@ export function useProjectWizard() {
         name: '',
         description: '',
         country: '',
-        status: 'planning',
+        status: 'PLANNING',
         startDate: undefined,
         endDate: undefined,
         budget: 0,

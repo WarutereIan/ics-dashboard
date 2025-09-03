@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { useDashboard } from '@/contexts/DashboardContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 export function Settings() {
-  const { user } = useDashboard();
-  const [name, setName] = useState(user?.name || '');
+  const { user } = useAuth();
+  const [name, setName] = useState(user ? `${user.firstName} ${user.lastName}` : '');
   const [email, setEmail] = useState(user?.email || '');
   const [orgName, setOrgName] = useState('ICS Organization');
   const [theme, setTheme] = useState('light');
   const [password, setPassword] = useState('');
   const [logo, setLogo] = useState<File | null>(null);
 
-  const isGlobalAdmin = user?.role === 'global-admin';
+  const isGlobalAdmin = user?.roles.some(role => role.roleName === 'GLOBAL_ADMIN');
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto py-8">
