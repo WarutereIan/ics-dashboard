@@ -18,7 +18,8 @@ export type PostgreSQLDataType =
 
 // Question types supported by the form builder
 export type QuestionType = 
-  | 'SHORT_TEXT'          // Text input (single or multi-line)
+  | 'SHORT_TEXT'          // Text input (single line)
+  | 'LONG_TEXT'           // Text input (multi-line textarea)
   | 'NUMBER'              // Numeric input
   | 'EMAIL'               // Email validation
   | 'PHONE'               // Phone number
@@ -75,6 +76,12 @@ export interface BaseQuestion {
 export interface ShortTextQuestion extends BaseQuestion {
   type: 'SHORT_TEXT';
   placeholder?: string;
+}
+
+export interface LongTextQuestion extends BaseQuestion {
+  type: 'LONG_TEXT';
+  placeholder?: string;
+  rows?: number;
 }
 
 export interface EmailQuestion extends BaseQuestion {
@@ -235,6 +242,7 @@ export interface AudioUploadQuestion extends BaseQuestion {
 // Union type for all question types
 export type FormQuestion = 
   | ShortTextQuestion
+  | LongTextQuestion
   | EmailQuestion
   | PhoneQuestion
   | NumberQuestion
@@ -292,7 +300,7 @@ export interface Form {
   responseCount: number;
   lastResponseAt?: Date;
   tags: string[];
-  category?: string;
+  category?: string; // Using FormCategoryValue type from constants
 }
 
 // Media attachment for file uploads

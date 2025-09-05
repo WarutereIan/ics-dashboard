@@ -34,6 +34,12 @@ export interface CreateFormResponseDto {
   data: Record<string, any>;
 }
 
+export interface UpdateFormResponseDto {
+  respondentEmail?: string;
+  isComplete?: boolean;
+  data?: Record<string, any>;
+}
+
 export interface CreateFormTemplateDto {
   name: string;
   description: string;
@@ -123,6 +129,14 @@ export const formsApi = {
       return response.data as FormResponse;
     }
     throw new Error(response.error || 'Failed to fetch form response');
+  },
+
+  async updateFormResponse(projectId: string, formId: string, responseId: string, updates: UpdateFormResponseDto): Promise<FormResponse> {
+    const response = await apiClient.put(`/forms/projects/${projectId}/forms/${formId}/responses/${responseId}`, updates);
+    if (response.success && response.data) {
+      return response.data as FormResponse;
+    }
+    throw new Error(response.error || 'Failed to update form response');
   },
 
   async deleteFormResponse(projectId: string, formId: string, responseId: string): Promise<void> {

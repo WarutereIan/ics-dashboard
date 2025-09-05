@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FormCategorySelect } from '@/components/ui/form-category-select';
 import { AlertCircle, FileText, FolderOpen } from 'lucide-react';
 import { Form } from './types';
 
@@ -135,16 +136,13 @@ export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoSt
           <CardTitle>Form Metadata</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="form-category">Category (optional)</Label>
-            <Input
-              id="form-category"
-              value={form.category || ''}
-              onChange={(e) => onUpdate('category', e.target.value)}
-              placeholder="e.g., Baseline Survey, Monitoring, Evaluation"
-              className="mt-1"
-            />
-          </div>
+          <FormCategorySelect
+            value={form.category || ''}
+            onValueChange={(value) => onUpdate('category', value)}
+            label="Category (optional)"
+            placeholder="Select a form category..."
+            showDescription={true}
+          />
 
           <div>
             <Label htmlFor="form-tags">Tags (optional)</Label>

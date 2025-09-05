@@ -24,6 +24,11 @@ interface FormPreviewProps {
   onSubmit?: (response: FormResponse) => void; // Custom submit handler
   onBack?: () => void; // Custom back handler
   isDialog?: boolean; // If true, adjust layout for dialog display
+  // Edit mode props
+  editMode?: boolean; // If true, editing an existing response
+  existingResponse?: FormResponse; // The response being edited
+  onUpdate?: (updatedResponse: FormResponse) => void; // Handler for updates
+  externalLoading?: boolean; // External loading state (e.g., from parent modal)
 }
 
 export function FormPreview({ 
@@ -31,7 +36,11 @@ export function FormPreview({
   isPreviewMode = false, 
   onSubmit,
   onBack,
-  isDialog = false
+  isDialog = false,
+  editMode = false,
+  existingResponse,
+  onUpdate,
+  externalLoading = false
 }: FormPreviewProps) {
   const { projectId, formId } = useParams();
   const navigate = useNavigate();
@@ -85,21 +94,29 @@ export function FormPreview({
     }
   }, [currentForm, providedForm, formId, projectId]);
 
-  // Load saved preview data when form changes
+  // Load saved preview data when form changes or existing response in edit mode
   useEffect(() => {
-    if (form?.id && !isPreviewMode) {
-      const savedData = loadFormPreviewData(form.id);
-      if (savedData) {
-        setResponses(savedData.responses);
-        setCurrentSectionIndex(savedData.currentSection);
-        setIsDraft(true);
+    if (form?.id) {
+      if (editMode && existingResponse) {
+        // In edit mode, load the existing response data
+        setResponses(existingResponse.data || {});
+        setCurrentSectionIndex(0); // Start from first section
+        setIsDraft(false); // This is an existing response, not a draft
+      } else if (!isPreviewMode) {
+        // Normal mode - load saved draft data
+        const savedData = loadFormPreviewData(form.id);
+        if (savedData) {
+          setResponses(savedData.responses);
+          setCurrentSectionIndex(savedData.currentSection);
+          setIsDraft(true);
+        }
       }
     }
-  }, [form?.id, isPreviewMode]);
+  }, [form?.id, isPreviewMode, editMode, existingResponse]);
 
-  // Auto-save preview data when responses change
+  // Auto-save preview data when responses change (but not in edit mode)
   useEffect(() => {
-    if (form?.id && !isPreviewMode && Object.keys(responses).length > 0) {
+    if (form?.id && !isPreviewMode && !editMode && Object.keys(responses).length > 0) {
       const previewData: Omit<FormPreviewData, 'formId'> = {
         responses,
         currentSection: currentSectionIndex,
@@ -109,7 +126,7 @@ export function FormPreview({
       };
       saveFormPreviewData(form.id, previewData);
     }
-  }, [form?.id, responses, currentSectionIndex, isPreviewMode]);
+  }, [form?.id, responses, currentSectionIndex, isPreviewMode, editMode]);
 
   // Get all questions from all sections
   const allQuestions = form?.sections.flatMap(section => section.questions) || [];
@@ -214,39 +231,58 @@ export function FormPreview({
     setIsSubmitting(true);
 
     try {
-      const formResponse: FormResponse = {
-        id: `response-${Date.now()}`,
-        formId: form!.id,
-        formVersion: form!.version,
-        startedAt: new Date(),
-        submittedAt: new Date(),
-        isComplete: true,
-        data: {
-          ...responses,
-          ...conditionalResponses
-        }
-      };
+      if (editMode && existingResponse && onUpdate) {
+        // In edit mode, update the existing response
+        const updatedResponse: FormResponse = {
+          ...existingResponse,
+          data: {
+            ...responses,
+            ...conditionalResponses
+          },
+          isComplete: true
+        };
 
-      if (onSubmit) {
-        onSubmit(formResponse);
-      } else if (isPreviewMode) {
-        // Add response to context for preview/testing
-        addFormResponse(formResponse);
+        onUpdate(updatedResponse);
         toast({
-          title: "Form Submitted (Preview Mode)",
-          description: "In preview mode, responses are not actually saved.",
+          title: "Response Updated",
+          description: "The form response has been successfully updated.",
         });
       } else {
-        // In a real app, this would submit to API
-        toast({
-          title: "Form Submitted",
-          description: "Thank you for your response!",
-        });
-      }
+        // Create new response (normal mode)
+        const formResponse: FormResponse = {
+          id: `response-${Date.now()}`,
+          formId: form!.id,
+          formVersion: form!.version,
+          startedAt: new Date(),
+          submittedAt: new Date(),
+          isComplete: true,
+          data: {
+            ...responses,
+            ...conditionalResponses
+          }
+        };
 
-      // Clear localStorage data after successful submission
-      if (form?.id && !isPreviewMode) {
-        clearFormPreviewData(form.id);
+        if (onSubmit) {
+          onSubmit(formResponse);
+        } else if (isPreviewMode) {
+          // Add response to context for preview/testing
+          addFormResponse(formResponse);
+          toast({
+            title: "Form Submitted (Preview Mode)",
+            description: "In preview mode, responses are not actually saved.",
+          });
+        } else {
+          // In a real app, this would submit to API
+          toast({
+            title: "Form Submitted",
+            description: "Thank you for your response!",
+          });
+        }
+
+        // Clear localStorage data after successful submission
+        if (form?.id && !isPreviewMode) {
+          clearFormPreviewData(form.id);
+        }
       }
 
       // Navigate to thank you page or back
@@ -315,8 +351,8 @@ export function FormPreview({
   }
 
   return (
-    <div className={`${isDialog ? '' : 'min-h-screen bg-gray-50 py-8'}`}>
-      <div className={`${isDialog ? '' : 'max-w-4xl mx-auto px-4'}`}>
+    <div className={`${isDialog ? 'p-6' : 'min-h-screen bg-gray-50 py-8'}`}>
+      <div className={`${isDialog ? 'max-w-full' : 'max-w-4xl mx-auto px-4'}`}>
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -334,6 +370,11 @@ export function FormPreview({
             {isPreviewMode && (
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                 Preview Mode
+              </Badge>
+            )}
+            {editMode && (
+              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                Edit Mode
               </Badge>
             )}
           </div>
@@ -416,24 +457,29 @@ export function FormPreview({
               </div>
 
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleSaveDraft}
-                  disabled={isSubmitting}
-                  className="flex items-center gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  Save Draft
-                </Button>
+                {!editMode && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveDraft}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save Draft
+                  </Button>
+                )}
 
                 {isLastSection ? (
                   <Button
                     onClick={handleSubmit}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || externalLoading}
                     className="flex items-center gap-2"
                   >
                     <Send className="w-4 h-4" />
-                    {isSubmitting ? 'Submitting...' : 'Submit Form'}
+                    {(isSubmitting || externalLoading)
+                      ? (editMode ? 'Updating...' : 'Submitting...') 
+                      : (editMode ? 'Update Response' : 'Submit Form')
+                    }
                   </Button>
                 ) : (
                   <Button

@@ -33,6 +33,47 @@ import { toast } from '@/hooks/use-toast';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Form, FormResponse, FormQuestion, MediaAttachment } from './form-creation-wizard/types';
 import { useForm } from '@/contexts/FormContext';
+import { formsApi } from '@/lib/api/formsApi';
+import { ResponseEditModal } from './ResponseEditModal';
+
+// Helper function to transform backend question format to frontend format
+const transformQuestionData = (question: any) => {
+  if (!question.config) return question;
+  
+  // Extract options from config if they exist
+  const config = typeof question.config === 'string' ? JSON.parse(question.config) : question.config;
+  
+  return {
+    ...question,
+    options: config.options || [],
+    // Extract other config properties that might be expected at top level
+    placeholder: config.placeholder,
+    min: config.min,
+    max: config.max,
+    step: config.step,
+    allowOther: config.allowOther,
+    maxSelections: config.maxSelections,
+    displayType: config.displayType,
+    statements: config.statements,
+    defaultScaleType: config.defaultScaleType,
+    defaultLabels: config.defaultLabels,
+    // Preserve the original config
+    config
+  };
+};
+
+// Helper function to transform form data structure
+const transformFormData = (form: any): Form => {
+  if (!form) return form;
+  
+  return {
+    ...form,
+    sections: form.sections?.map((section: any) => ({
+      ...section,
+      questions: section.questions?.map(transformQuestionData) || []
+    })) || []
+  };
+};
 
 // ResponseCell component for displaying different types of response data
 interface ResponseCellProps {
@@ -560,6 +601,8 @@ export function FormResponseViewer() {
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; questionId: string } | null>(null);
   const [manualData, setManualData] = useState<Record<number, Record<string, any>>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedResponse, setSelectedResponse] = useState<FormResponse | null>(null);
 
   // Load form and responses
   useEffect(() => {
@@ -569,22 +612,29 @@ export function FormResponseViewer() {
         console.log('🔄 FormResponseViewer: Loading fresh data for form:', formId);
         
         try {
-          // Load fresh form data from API
-          const projectForms = await loadProjectForms(projectId);
-          console.log('✅ FormResponseViewer: Loaded', projectForms.length, 'fresh forms from API');
-          
-          const foundForm = projectForms.find((f: Form) => f.id === formId);
-          if (foundForm) {
-            setForm(foundForm);
-            console.log('📋 FormResponseViewer: Found target form:', foundForm.title);
+          // Load complete form data (with all question details) for editing
+          console.log('🔄 FormResponseViewer: Loading complete form data for:', formId);
+          const completeForm = await formsApi.getForm(projectId, formId);
+          if (completeForm) {
+            // Transform the form data to extract options from config
+            const transformedForm = transformFormData(completeForm);
+            setForm(transformedForm);
+            console.log('📋 FormResponseViewer: Loaded complete form with', transformedForm.sections?.length || 0, 'sections');
+            console.log('🔍 FormResponseViewer: Raw form data:', JSON.stringify(completeForm, null, 2));
+            console.log('🔍 FormResponseViewer: Transformed form data:', JSON.stringify(transformedForm, null, 2));
+            // Check first question structure for debugging
+            if (transformedForm.sections?.[0]?.questions?.[0]) {
+              console.log('🔍 First question structure:', transformedForm.sections[0].questions[0]);
+            }
           } else {
-            console.log('⚠️ FormResponseViewer: Form not found in fresh data, trying cached data');
-            // Fallback to cached data if form not found in fresh load
-            const cachedForms = await getProjectForms(projectId);
-            const cachedForm = cachedForms.find((f: Form) => f.id === formId);
-            if (cachedForm) {
-              setForm(cachedForm);
-              console.log('📦 FormResponseViewer: Found target form in cache:', cachedForm.title);
+            console.log('⚠️ FormResponseViewer: Complete form not found, trying project forms list');
+            // Fallback to project forms list if direct form fetch fails
+            const projectForms = await loadProjectForms(projectId);
+            const foundForm = projectForms.find((f: Form) => f.id === formId);
+            if (foundForm) {
+              const transformedFallbackForm = transformFormData(foundForm);
+              setForm(transformedFallbackForm);
+              console.log('📦 FormResponseViewer: Found form in project list:', foundForm.title);
             }
           }
 
@@ -632,6 +682,32 @@ export function FormResponseViewer() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedResponses = filteredResponses.slice(startIndex, endIndex);
+
+  // Handler functions
+  const handleEditResponse = (rowData: any) => {
+    if (rowData.isExisting && rowData.responseId) {
+      const originalResponse = responses.find(r => r.id === rowData.responseId);
+      if (originalResponse) {
+        setSelectedResponse(originalResponse);
+        setEditModalOpen(true);
+      }
+    }
+  };
+
+  const handleResponseUpdated = (updatedResponse: FormResponse) => {
+    setResponses(prev => prev.map(r => r.id === updatedResponse.id ? updatedResponse : r));
+  };
+
+  const handleDeleteResponse = async (responseId: string) => {
+    if (confirm('Are you sure you want to delete this response? This action cannot be undone.')) {
+      try {
+        await deleteFormResponse(projectId!, form!.id, responseId);
+        setResponses(prev => prev.filter(r => r.id !== responseId));
+      } catch (error) {
+        console.error('Error deleting response:', error);
+      }
+    }
+  };
 
   // Generate table rows including blank rows for manual entry
   const generateTableRows = () => {
@@ -693,26 +769,6 @@ export function FormResponseViewer() {
         const timeMs = submittedAt.getTime() - startedAt.getTime();
         return acc + timeMs / (1000 * 60); // Convert to minutes
       }, 0) / responses.filter(r => r.isComplete).length || 0,
-  };
-
-  const handleDeleteResponse = async (responseId: string) => {
-    try {
-      if (!formId || !projectId) return;
-      
-      await deleteFormResponse(projectId, formId, responseId);
-      setResponses(prev => prev.filter(r => r.id !== responseId));
-      
-      toast({
-        title: "Response Deleted",
-        description: "The response has been deleted successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Delete Failed",
-        description: "Could not delete the response. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleManualDataChange = (rowIndex: number, questionId: string, value: any) => {
@@ -1194,6 +1250,12 @@ export function FormResponseViewer() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem 
+                                  onClick={() => handleEditResponse(row)}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Response
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
                                       onClick={() => handleDeleteResponse(row.responseId!)}
                                   className="text-red-600"
                                 >
@@ -1354,7 +1416,26 @@ export function FormResponseViewer() {
                 </div>
               </div>
             </CardContent>
-          </Card>
-    </div>
-  );
-}
+      </Card>
+      
+      {/* Response Edit Modal */}
+        {selectedResponse && form && projectId && (
+          <ResponseEditModal
+            isOpen={editModalOpen}
+            onClose={() => {
+              setEditModalOpen(false);
+              setSelectedResponse(null);
+            }}
+            form={form}
+            response={selectedResponse}
+            projectId={projectId}
+            onResponseUpdated={handleResponseUpdated}
+          />
+        )}
+        </div>
+
+        
+    
+    );
+  }
+ 

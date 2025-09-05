@@ -24,7 +24,7 @@ export function SingleChoiceQuestionRenderer({
 }: SingleChoiceQuestionRendererProps) {
   if (question.displayType === 'DROPDOWN') {
     // Find the selected option to check for conditional questions
-    const selectedOption = question.options.find(option => option.value.toString() === value);
+    const selectedOption = question.options?.find(option => option.value.toString() === value);
     
     return (
       <BaseQuestionRenderer question={question} error={error} isPreviewMode={isPreviewMode}>
@@ -38,11 +38,15 @@ export function SingleChoiceQuestionRenderer({
               <SelectValue placeholder="Select an option..." />
             </SelectTrigger>
             <SelectContent>
-              {question.options.map((option) => (
+              {question.options?.map((option) => (
                 <SelectItem key={option.id} value={option.value.toString()}>
                   {option.label}
                 </SelectItem>
-              ))}
+              )) || (
+                <SelectItem value="no-options" disabled>
+                  No options available
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
           
@@ -78,49 +82,54 @@ export function SingleChoiceQuestionRenderer({
   return (
     <BaseQuestionRenderer question={question} error={error} isPreviewMode={isPreviewMode}>
       <div className="space-y-3">
-        {question.options.map((option) => (
-          <div key={option.id} className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                id={`${question.id}-${option.id}`}
-                name={question.id}
-                value={option.value.toString()}
-                checked={value === option.value.toString()}
-                onChange={(e) => onChange?.(e.target.value)}
-                disabled={isPreviewMode}
-                className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              />
-              <Label 
-                htmlFor={`${question.id}-${option.id}`}
-                className={`text-sm ${isPreviewMode ? 'text-gray-500' : 'cursor-pointer'}`}
-              >
-                {option.label}
-              </Label>
-            </div>
-            
-                        {/* Conditional Questions */}
-            {option.hasConditionalQuestions && 
-             option.conditionalQuestions && 
-             value === option.value.toString() && (
-              <div className="ml-6 mt-3 p-4 border-l-4 border-l-blue-500 bg-blue-50 rounded-r-lg">
-  
-                <div className="space-y-4">
-                  {option.conditionalQuestions.map((conditionalQuestion) => (
-                    <QuestionRenderer
-                      key={conditionalQuestion.id}
-                      question={conditionalQuestion}
-                      value={conditionalValues[conditionalQuestion.id]}
-                      onChange={(value) => onConditionalChange?.(conditionalQuestion.id, value)}
-                      error={undefined}
-                      isPreviewMode={isPreviewMode}
-                    />
-                  ))}
-                </div>
+        {question.options && question.options.length > 0 ? (
+          question.options.map((option) => (
+            <div key={option.id} className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id={`${question.id}-${option.id}`}
+                  name={question.id}
+                  value={option.value.toString()}
+                  checked={value === option.value.toString()}
+                  onChange={(e) => onChange?.(e.target.value)}
+                  disabled={isPreviewMode}
+                  className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                />
+                <Label 
+                  htmlFor={`${question.id}-${option.id}`}
+                  className={`text-sm ${isPreviewMode ? 'text-gray-500' : 'cursor-pointer'}`}
+                >
+                  {option.label}
+                </Label>
               </div>
-            )}
+              
+              {/* Conditional Questions */}
+              {option.hasConditionalQuestions && 
+               option.conditionalQuestions && 
+               value === option.value.toString() && (
+                <div className="ml-6 mt-3 p-4 border-l-4 border-l-blue-500 bg-blue-50 rounded-r-lg">
+                  <div className="space-y-4">
+                    {option.conditionalQuestions.map((conditionalQuestion) => (
+                      <QuestionRenderer
+                        key={conditionalQuestion.id}
+                        question={conditionalQuestion}
+                        value={conditionalValues[conditionalQuestion.id]}
+                        onChange={(value) => onConditionalChange?.(conditionalQuestion.id, value)}
+                        error={undefined}
+                        isPreviewMode={isPreviewMode}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="text-sm text-gray-500 italic">
+            No options available for this question.
           </div>
-        ))}
+        )}
       </div>
     </BaseQuestionRenderer>
   );

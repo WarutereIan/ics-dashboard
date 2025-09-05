@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { Form, FormResponse, FormQuestion } from '../components/dashboard/form-creation-wizard/types';
-import { formsApi, CreateFormDto, CreateFormResponseDto } from '../lib/api/formsApi';
+import { formsApi, CreateFormDto, CreateFormResponseDto, UpdateFormResponseDto } from '../lib/api/formsApi';
 import { toast } from '@/hooks/use-toast';
 import { Project } from '../types/dashboard';
 
@@ -96,6 +96,7 @@ interface FormContextType {
   // Form response management
   getFormResponses: (projectId: string, formId: string) => Promise<FormResponse[]>;
   addFormResponseToStorage: (response: FormResponse) => Promise<FormResponse | null>;
+  updateFormResponse: (projectId: string, formId: string, responseId: string, updates: UpdateFormResponseDto) => Promise<FormResponse | null>;
   deleteFormResponse: (projectId: string, formId: string, responseId: string) => Promise<void>;
   getProjectForms: (projectId: string) => Promise<Form[]>;
   
@@ -619,6 +620,45 @@ export function FormProvider({ children }: FormProviderProps) {
     }
   }, [isOnline, addToOfflineQueue]);
 
+  const updateFormResponse = useCallback(async (projectId: string, formId: string, responseId: string, updates: UpdateFormResponseDto): Promise<FormResponse | null> => {
+    try {
+      if (!isOnline) {
+        addToOfflineQueue('form_response', { ...updates, projectId, formId, responseId, type: 'update' });
+        toast({
+          title: "Offline Mode",
+          description: "Changes will be saved when you're back online",
+        });
+        return null;
+      }
+
+      const updatedResponse = await formsApi.updateFormResponse(projectId, formId, responseId, updates);
+      
+      // Update local cache
+      setAllFormResponses(prev => ({
+        ...prev,
+        [formId]: (prev[formId] || []).map(r => r.id === responseId ? updatedResponse : r)
+      }));
+
+      toast({
+        title: "Success",
+        description: "Response updated successfully",
+        duration: 4000,
+      });
+      return updatedResponse;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update response';
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 4000,
+      });
+      
+      addToOfflineQueue('form_response', { ...updates, projectId, formId, responseId, type: 'update' });
+      return null;
+    }
+  }, [isOnline, addToOfflineQueue]);
+
   const deleteFormResponse = useCallback(async (projectId: string, formId: string, responseId: string): Promise<void> => {
     try {
       await formsApi.deleteFormResponse(projectId, formId, responseId);
@@ -1010,6 +1050,7 @@ export function FormProvider({ children }: FormProviderProps) {
     loadProjectForms,
     getFormResponses,
     addFormResponseToStorage,
+    updateFormResponse,
     deleteFormResponse,
     getProjectForms,
     uploadMediaFile,

@@ -33,8 +33,8 @@ export function ProjectDetailsForm({ projectData, onProjectChange }: ProjectDeta
             <SelectContent>
               <SelectItem value="kenya">Kenya</SelectItem>
               <SelectItem value="tanzania">Tanzania</SelectItem>
-              <SelectItem value="uganda">Uganda</SelectItem>
-              <SelectItem value="ethiopia">Ethiopia</SelectItem>
+              <SelectItem value="cote d'ivoire">Côte d'Ivoire</SelectItem>
+             
             </SelectContent>
           </Select>
         </div>

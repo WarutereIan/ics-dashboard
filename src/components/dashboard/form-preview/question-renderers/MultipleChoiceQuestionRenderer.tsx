@@ -101,7 +101,7 @@ export function MultipleChoiceQuestionRenderer({
   return (
     <BaseQuestionRenderer question={question} error={error} isPreviewMode={isPreviewMode}>
       <div className="space-y-3">
-        {question.options.map((option) => {
+        {question.options?.map((option) => {
           const isSelected = value.includes(option.value.toString());
           const isDisabled = isPreviewMode || !!(
             question.maxSelections && 
@@ -154,7 +154,11 @@ export function MultipleChoiceQuestionRenderer({
               )}
             </div>
           );
-        })}
+        }) || (
+          <div className="text-sm text-gray-500 italic">
+            No options available for this question.
+          </div>
+        )}
         
         {/* Other option */}
         {question.allowOther && (
