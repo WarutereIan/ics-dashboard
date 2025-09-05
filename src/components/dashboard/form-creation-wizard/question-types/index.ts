@@ -14,6 +14,7 @@ import { QuestionType } from '../types';
 
 export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   SHORT_TEXT: 'Text Input',
+  LONG_TEXT: 'Long Text',
   NUMBER: 'Number Input',
   EMAIL: 'Email',
   PHONE: 'Phone Number',
@@ -21,7 +22,6 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   DATETIME: 'Date & Time',
   SINGLE_CHOICE: 'Single Choice',
   MULTIPLE_CHOICE: 'Multiple Choice',
-
   LIKERT_SCALE: 'Likert Scale',
   YES_NO: 'Yes/No',
   SLIDER: 'Slider',
@@ -34,6 +34,7 @@ export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
 
 export const QUESTION_TYPE_DESCRIPTIONS: Record<QuestionType, string> = {
   SHORT_TEXT: 'Text input for names, descriptions, and general text responses',
+  LONG_TEXT: 'Multi-line text input for longer responses and detailed descriptions',
   NUMBER: 'Numeric input with validation and constraints',
   EMAIL: 'Email input with built-in validation',
   PHONE: 'Phone number input with formatting',
@@ -41,7 +42,6 @@ export const QUESTION_TYPE_DESCRIPTIONS: Record<QuestionType, string> = {
   DATETIME: 'Date and time picker',
   SINGLE_CHOICE: 'Radio buttons or dropdown for one selection',
   MULTIPLE_CHOICE: 'Checkboxes for multiple selections',
-
   LIKERT_SCALE: 'Agreement scale (Strongly Disagree to Strongly Agree)',
   YES_NO: 'Simple yes/no question',
   SLIDER: 'Range slider for numeric values',

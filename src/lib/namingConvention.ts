@@ -189,7 +189,8 @@ export const REPORT_TYPES: ReportType[] = [
   { code: 'ADM', name: 'Administrative Reports', description: 'Administrative and management reports' },
   { code: 'HR', name: 'Human Resources Reports', description: 'HR and personnel reports' },
   { code: 'LOG', name: 'Logistics Reports', description: 'Logistics and supply chain reports' },
-  { code: 'TECH', name: 'Technical Reports', description: 'Technical and specialized reports' }
+  { code: 'TECH', name: 'Technical Reports', description: 'Technical and specialized reports' },
+  { code: 'ACT', name: 'Activity Reports', description: 'Activity and project activity reports' }
 ];
 
 // Version Control
@@ -238,11 +239,17 @@ export interface NamingConventionData {
   reportTypeCode: string;
   date: Date;
   versionControl?: string;
+  activityId?: string; // Optional activity ID for activity reports
 }
 
 export function generateFileName(data: NamingConventionData): string {
   const dateStr = data.date.toISOString().slice(0, 10).replace(/-/g, '');
   let fileName = `${data.countryCode}_${data.regionCode}_${data.projectCode}_${data.reportTypeCode}_${dateStr}`;
+  
+  // Add activity ID if present (for activity reports)
+  if (data.activityId) {
+    fileName += `_ACT${data.activityId}`;
+  }
   
   if (data.versionControl) {
     fileName += `_${data.versionControl}`;

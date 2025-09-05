@@ -28,9 +28,10 @@ import {
   Upload as UploadIcon
 } from 'lucide-react';
 import { 
-  StoredMediaFile,
+  StoredMediaFile as MediaStorageFile,
   MediaMetadata
 } from '@/lib/mediaStorage';
+import { StoredMediaFile } from '@/contexts/FormContext';
 import { useForm } from '@/contexts/FormContext';
 import { formatFileSize } from '@/lib/utils';
 
@@ -71,14 +72,16 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
 
   // Filter and sort files
   useEffect(() => {
-    let filtered = [...mediaFiles];
+    const filterFiles = async () => {
+      let filtered = [...mediaFiles];
 
-    // Search filter
-    if (searchQuery) {
-      filtered = searchMediaFiles(searchQuery).filter(file => 
-        file.metadata.projectId === projectId
-      );
-    }
+      // Search filter
+      if (searchQuery && projectId) {
+        const searchResults = await searchMediaFiles(projectId, searchQuery);
+        filtered = searchResults.filter(file => 
+          file.metadata.projectId === projectId
+        );
+      }
 
     // Media type filter
     if (mediaTypeFilter !== 'all') {
@@ -123,15 +126,18 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
       }
     });
 
-    setFilteredFiles(filtered);
+      setFilteredFiles(filtered);
+    };
+
+    filterFiles();
   }, [mediaFiles, searchQuery, mediaTypeFilter, formFilter, sortBy, sortOrder, projectId]);
 
-  const loadMediaFiles = () => {
+  const loadMediaFiles = async () => {
     if (!projectId) return;
     
     setIsLoading(true);
     try {
-      const files = getProjectMediaFiles(projectId);
+      const files = await getProjectMediaFiles(projectId);
       setMediaFiles(files);
       setStats(getProjectMediaStats(projectId));
     } catch (error) {
@@ -143,22 +149,36 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
 
   const handleDeleteFile = async (fileId: string) => {
     if (confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
-      const success = removeMediaFile(fileId);
-      if (success) {
-        loadMediaFiles();
+      try {
+        if (projectId) {
+          const success = await removeMediaFile(projectId, '', fileId);
+          if (success) {
+            loadMediaFiles();
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting file:', error);
       }
     }
   };
 
-  const handleDownloadFile = (file: StoredMediaFile) => {
-    const url = URL.createObjectURL(file.file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.metadata.fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleDownloadFile = async (file: StoredMediaFile) => {
+    try {
+      // Use the URL or filePath from the StoredMediaFile
+      const downloadUrl = file.url || file.filePath;
+      if (downloadUrl) {
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = file.metadata.originalFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        console.error('No download URL available for file:', file.id);
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
   };
 
   const getMediaIcon = (mediaType: string) => {
@@ -178,17 +198,21 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
     return Array.from(forms.entries()).map(([id, name]) => ({ id, name }));
   };
 
-  const handleExport = () => {
-    const exportData = exportProjectMedia(projectId);
-    const blob = new Blob([exportData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `media-export-${projectId}-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleExport = async () => {
+    try {
+      const exportData = await exportProjectMedia(projectId);
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `media-export-${projectId}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting media files:', error);
+    }
   };
 
   if (!projectId) {

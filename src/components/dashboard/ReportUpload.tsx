@@ -79,7 +79,7 @@ export function ReportUpload({
   const { createReportWithWorkflow } = useReport();
   const { user } = useAuth();
   const { currentProject } = useDashboard();
-  const { projects } = useProjects();
+  const { getProjectActivities, projects } = useProjects();
   const { projectId } = useParams();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -94,8 +94,47 @@ export function ReportUpload({
     projectCode: '',
     reportTypeCode: '',
     date: new Date(),
-    versionControl: 'none'
+    versionControl: 'none',
+    activityId: ''
   });
+
+  // Activities state for activity reports
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+
+  // Helper function to check if categorization is complete
+  const isCategorizationComplete = () => {
+    const basicComplete = categorization.regionCode && categorization.reportTypeCode;
+    const activityComplete = categorization.reportTypeCode !== 'ACT' || categorization.activityId;
+    return basicComplete && activityComplete;
+  };
+
+  // Load activities when report type is "ACT" (Activity Reports)
+  React.useEffect(() => {
+    const loadActivities = async () => {
+      if (categorization.reportTypeCode === 'ACT' && currentProject) {
+        setLoadingActivities(true);
+        try {
+          const projectActivities = await getProjectActivities(currentProject.id);
+          setActivities(projectActivities);
+          console.log('📋 Loaded activities for activity report:', projectActivities.length);
+        } catch (error) {
+          console.error('Error loading activities:', error);
+          setActivities([]);
+        } finally {
+          setLoadingActivities(false);
+        }
+      } else {
+        setActivities([]);
+        // Clear activity selection when not an activity report
+        if (categorization.reportTypeCode !== 'ACT') {
+          setCategorization(prev => ({ ...prev, activityId: '' }));
+        }
+      }
+    };
+
+    loadActivities();
+  }, [categorization.reportTypeCode, currentProject, getProjectActivities]);
 
   // Auto-fill country and project from current project context
   React.useEffect(() => {
@@ -256,6 +295,16 @@ export function ReportUpload({
       toast({
         title: "Incomplete Categorization",
         description: "Please complete the categorization (Region, Report Type) and select report frequency before uploading files.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if activity is selected for activity reports
+    if (categorization.reportTypeCode === 'ACT' && !categorization.activityId) {
+      toast({
+        title: "Activity Required",
+        description: "Please select an activity for activity reports.",
         variant: "destructive",
       });
       return;
@@ -469,6 +518,16 @@ export function ReportUpload({
       return;
     }
 
+    // Check if activity is selected for activity reports
+    if (categorization.reportTypeCode === 'ACT' && !categorization.activityId) {
+      toast({
+        title: "Activity Required",
+        description: "Please select an activity for activity reports.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if user and project are available
     if (!user || !projectId) {
       toast({
@@ -504,6 +563,11 @@ export function ReportUpload({
             uploadDate: new Date().toISOString(),
             description: `${reportType?.name || 'Report'} for ${project?.name || 'Project'} - ${file.originalName}`,
             category: reportFrequency, // Use selected frequency instead of derived category
+            // Add activity metadata for activity reports
+            ...(categorization.reportTypeCode === 'ACT' && categorization.activityId && {
+              activityId: categorization.activityId,
+              activityName: activities.find(a => a.id === categorization.activityId)?.title || activities.find(a => a.id === categorization.activityId)?.name || 'Unknown Activity'
+            }),
             status: 'draft' as const,
             uploadedBy: `${user.firstName} ${user.lastName}`,
             lastModified: new Date().toISOString(),
@@ -775,6 +839,37 @@ export function ReportUpload({
                 </Select>
               </div>
 
+              {/* Activity Selection - Only show for Activity Reports */}
+              {categorization.reportTypeCode === 'ACT' && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Hash className="w-4 h-4" />
+                    Link to Activity *
+                  </Label>
+                  <Select
+                    value={categorization.activityId || ''}
+                    onValueChange={(value) => handleCategorizationChange('activityId', value)}
+                    disabled={loadingActivities}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingActivities ? "Loading activities..." : "Select an activity"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activities.map((activity) => (
+                        <SelectItem key={activity.id} value={activity.id}>
+                          {activity.title || activity.name || `Activity ${activity.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {activities.length === 0 && !loadingActivities && (
+                    <p className="text-sm text-amber-600">
+                      No activities found for this project. Please create activities first.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Report Frequency Selection */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
@@ -826,7 +921,7 @@ export function ReportUpload({
             </div>
 
             {/* Generated File Name Preview */}
-            {categorization.regionCode && categorization.reportTypeCode && (
+            {isCategorizationComplete() && (
               <div className="p-3 bg-gray-50 rounded-lg border">
                 <p className="text-sm font-medium text-gray-700 mb-2">Generated File Name Pattern:</p>
                 <code className="text-sm font-mono break-all">
@@ -844,23 +939,23 @@ export function ReportUpload({
 
           {/* File Upload Input */}
           <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            categorization.regionCode && categorization.reportTypeCode
+            isCategorizationComplete()
               ? 'border-gray-300 hover:border-gray-400'
               : 'border-gray-200 bg-gray-50'
           }`}>
             <Upload className={`w-12 h-12 mx-auto mb-4 ${
-              categorization.regionCode && categorization.reportTypeCode
+              isCategorizationComplete()
                 ? 'text-gray-400'
                 : 'text-gray-300'
             }`} />
             <Label htmlFor="file-upload" className={`cursor-pointer ${
-              categorization.regionCode && categorization.reportTypeCode
+              isCategorizationComplete()
                 ? ''
                 : 'pointer-events-none'
             }`}>
               <div className="space-y-2">
                 <p className="text-lg font-medium">
-                  {categorization.regionCode && categorization.reportTypeCode
+                  {isCategorizationComplete()
                     ? 'Drop files here or click to upload'
                     : 'Complete categorization and select frequency to upload files'
                   }
@@ -871,9 +966,12 @@ export function ReportUpload({
                 <p className="text-sm text-gray-500">
                   Maximum {maxFiles} files allowed
                 </p>
-                {!(categorization.regionCode && categorization.reportTypeCode) && (
+                {!isCategorizationComplete() && (
                   <p className="text-sm text-orange-600 font-medium">
                     Please complete all required categorization fields and select report frequency above
+                    {categorization.reportTypeCode === 'ACT' && !categorization.activityId && (
+                      <span className="block mt-1">• Activity selection is required for Activity Reports</span>
+                    )}
                   </p>
                 )}
               </div>

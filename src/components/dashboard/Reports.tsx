@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +16,7 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { Report } from '@/types/dashboard';
 import { ReportUpload } from './ReportUpload';
 import { NamingConventionForm } from './NamingConventionForm';
-import { NamingConventionData, generateFileName, parseFileName } from '@/lib/namingConvention';
+import { NamingConventionData, generateFileName, parseFileName, REPORT_TYPES } from '@/lib/namingConvention';
 import { PendingReviews } from './PendingReviews';
 import { useReport } from '@/contexts/ReportContext';
 import { listReportFiles, downloadStoredFile, deleteReportFile, StoredFileData } from '@/lib/reportFileStorage';
@@ -30,6 +31,9 @@ export function Reports() {
   if (!user || !projectId) return null;
   
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedFrequency, setSelectedFrequency] = useState<string>('all');
+  const [selectedReportType, setSelectedReportType] = useState<string>('all');
+  const [selectedActivity, setSelectedActivity] = useState<string>('all');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [namingDialogOpen, setNamingDialogOpen] = useState(false);
@@ -51,6 +55,7 @@ export function Reports() {
   const [activities, setActivities] = useState<any[]>([]);
   const [outputs, setOutputs] = useState<any[]>([]);
   const [outcomes, setOutcomes] = useState<any[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
 
   useEffect(() => {
     const loadProjectData = async () => {
@@ -73,6 +78,13 @@ export function Reports() {
     loadProjectData();
   }, [projectId, user, getProjectActivities, getProjectOutputs, getProjectOutcomes]);
 
+  // Clear activity filter when report type changes away from ACT
+  useEffect(() => {
+    if (selectedReportType !== 'ACT') {
+      setSelectedActivity('all');
+    }
+  }, [selectedReportType]);
+
   const getFileIcon = (type: string) => {
     switch (type) {
       case 'pdf':
@@ -88,9 +100,10 @@ export function Reports() {
 
   const getCategoryBadge = (category: string) => {
     const variants = {
+      weekly: 'bg-cyan-100 text-cyan-800',
+      monthly: 'bg-green-100 text-green-800',
       quarterly: 'bg-blue-100 text-blue-800',
       annual: 'bg-purple-100 text-purple-800',
-      monthly: 'bg-green-100 text-green-800',
       adhoc: 'bg-gray-100 text-gray-800'
     };
     return variants[category as keyof typeof variants] || variants.adhoc;
@@ -161,9 +174,25 @@ export function Reports() {
     fileStorageKey: file.id // Link to stored file
   } as Report & { fileStorageKey: string }));
 
-  const filteredReports = selectedCategory === 'all' 
-    ? reports 
-    : reports.filter(report => report.category === selectedCategory);
+  // Comprehensive filtering logic
+  const filteredReports = reports.filter(report => {
+    // Frequency filter
+    const frequencyMatch = selectedFrequency === 'all' || report.category === selectedFrequency;
+    
+    // Report type filter (based on filename or metadata)
+    const reportTypeMatch = selectedReportType === 'all' || 
+      (report.name && report.name.includes(`_${selectedReportType}_`)) ||
+      (report as any).reportTypeCode === selectedReportType;
+    
+    // Activity filter (for activity reports)
+    const activityMatch = selectedActivity === 'all' || 
+      (report as any).activityId === selectedActivity;
+    
+    // Legacy category filter (for backward compatibility)
+    const categoryMatch = selectedCategory === 'all' || report.category === selectedCategory;
+    
+    return frequencyMatch && reportTypeMatch && activityMatch && categoryMatch;
+  });
 
   // Helper for report type options
   const reportTypeOptions = [
@@ -404,6 +433,7 @@ export function Reports() {
                 <div>
                   <Label htmlFor="report-category">Category</Label>
                   <select id="report-category" className="w-full p-2 border rounded">
+                    <option value="weekly">Weekly</option>
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly</option>
                     <option value="annual">Annual</option>
@@ -460,16 +490,94 @@ export function Reports() {
         </div>
       )}
 
-      <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-        <TabsList className="w-full">
-          <TabsTrigger value="all">All Reports</TabsTrigger>
-          <TabsTrigger value="monthly">Monthly</TabsTrigger>
-          <TabsTrigger value="quarterly">Quarterly</TabsTrigger>
-          <TabsTrigger value="annual">Annual</TabsTrigger>
-          <TabsTrigger value="adhoc">Ad-hoc</TabsTrigger>
-        </TabsList>
+      {/* Filter Controls */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <div className="flex items-center gap-2">
+            <Hash className="h-4 w-4" />
+            <span className="text-sm font-medium">Filters:</span>
+          </div>
+          
+          {/* Frequency Filter */}
+          <Select value={selectedFrequency} onValueChange={setSelectedFrequency}>
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="All Frequencies" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Frequencies</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="quarterly">Quarterly</SelectItem>
+              <SelectItem value="annual">Annual</SelectItem>
+              <SelectItem value="adhoc">Ad-hoc</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <TabsContent value={selectedCategory} className="space-y-4 w-full">
+          {/* Report Type Filter */}
+          <Select value={selectedReportType} onValueChange={setSelectedReportType}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="All Report Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Report Types</SelectItem>
+              {REPORT_TYPES.map((type) => (
+                <SelectItem key={type.code} value={type.code}>
+                  {type.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Activity Filter - Only show for Activity Reports */}
+          {selectedReportType === 'ACT' && (
+            <Select value={selectedActivity} onValueChange={setSelectedActivity}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="All Activities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Activities</SelectItem>
+                {activities.map((activity) => (
+                  <SelectItem key={activity.id} value={activity.id}>
+                    {activity.title || activity.name || `Activity ${activity.id}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Clear Filters Button */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setSelectedFrequency('all');
+              setSelectedReportType('all');
+              setSelectedActivity('all');
+              setSelectedCategory('all');
+            }}
+            className="w-full sm:w-auto"
+          >
+            Clear Filters
+          </Button>
+        </div>
+
+        {/* Filter Summary */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredReports.length} of {reports.length} reports
+            {(selectedFrequency !== 'all' || selectedReportType !== 'all' || selectedActivity !== 'all') && (
+              <span className="ml-2">
+                • Filtered by: 
+                {selectedFrequency !== 'all' && <span className="ml-1 font-medium">{selectedFrequency}</span>}
+                {selectedReportType !== 'all' && <span className="ml-1 font-medium">{REPORT_TYPES.find(t => t.code === selectedReportType)?.name}</span>}
+                {selectedActivity !== 'all' && <span className="ml-1 font-medium">{activities.find(a => a.id === selectedActivity)?.title || activities.find(a => a.id === selectedActivity)?.name}</span>}
+              </span>
+            )}
+          </p>
+        </div>
+
+        {/* Reports Grid */}
+        <div className="space-y-4 w-full">
           <div className="grid gap-4 w-full min-w-0">
             {filteredReports.map((report) => (
               <Card key={report.id} className="transition-all duration-200 hover:shadow-md w-full break-words whitespace-normal min-w-0">
@@ -496,6 +604,12 @@ export function Reports() {
                   <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground w-full min-w-0">
                     <div>Uploaded by <span className="font-medium text-foreground">{report.uploadedBy}</span></div>
                     <div>Last modified: {new Date(report.lastModified).toLocaleDateString()} by <span className="font-medium text-foreground">{report.lastModifiedBy}</span></div>
+                    {(report as any).activityId && (
+                      <div className="flex items-center gap-1">
+                        <Hash className="w-3 h-3" />
+                        Activity: <span className="font-medium text-foreground">{(report as any).activityName || 'Unknown Activity'}</span>
+                      </div>
+                    )}
                   </div>
                   {/* Naming Convention Info */}
                   {report.name && getNamingConventionDisplay(report.name)}
@@ -542,8 +656,8 @@ export function Reports() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 } 

@@ -88,7 +88,7 @@ export function AddFinancialDataModal({
     }
 
     const totalQuarterly = (formData.q1Cost || 0) + (formData.q2Cost || 0) + (formData.q3Cost || 0) + (formData.q4Cost || 0);
-    if (totalQuarterly > formData.totalAnnualBudget) {
+    if (formData.totalAnnualBudget && totalQuarterly > formData.totalAnnualBudget) {
       newErrors.quarterly = 'Sum of quarterly costs cannot exceed total annual budget';
     }
 
@@ -141,7 +141,7 @@ export function AddFinancialDataModal({
   };
 
   const totalQuarterly = (formData.q1Cost || 0) + (formData.q2Cost || 0) + (formData.q3Cost || 0) + (formData.q4Cost || 0);
-  const remainingBudget = formData.totalAnnualBudget - totalQuarterly;
+  const remainingBudget = (formData.totalAnnualBudget || 0) - totalQuarterly;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
