@@ -23,7 +23,8 @@ import {
   Calendar,
   Users,
   ArrowLeft,
-  FolderOpen
+  FolderOpen,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/contexts/FormContext';
@@ -50,6 +51,8 @@ export function FormManagement() {
   // Load forms from context for the current project
   const [forms, setForms] = useState<Form[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [copiedFormId, setCopiedFormId] = useState<string | null>(null);
+  const [showCopyPopup, setShowCopyPopup] = useState(false);
 
   // Load forms when component mounts or projectId changes
   useEffect(() => {
@@ -314,24 +317,40 @@ export function FormManagement() {
     }
   };
 
-  const handleShareForm = (form: Form) => {
+  const handleShareForm = async (form: Form) => {
     // Only allow sharing published forms
     if (form.status !== 'PUBLISHED') {
       toast({
         title: "Cannot Share Form",
         description: "Only published forms can be shared. Please publish the form first.",
         variant: "destructive",
+        duration: 4000,
       });
       return;
     }
 
-    const baseUrl = window.location.origin;
-    const formUrl = `${baseUrl}/fill/${form.id}`;
-    navigator.clipboard.writeText(formUrl);
-    toast({
-      title: "Link Copied!",
-      description: "Form link has been copied to clipboard.",
-    });
+    try {
+      const baseUrl = window.location.origin;
+      const formUrl = `${baseUrl}/fill/${form.id}`;
+      await navigator.clipboard.writeText(formUrl);
+      
+      // Show popup feedback
+      setShowCopyPopup(true);
+      setTimeout(() => setShowCopyPopup(false), 2000);
+      
+      toast({
+        title: "Link Copied!",
+        description: "Form link has been copied to clipboard.",
+        duration: 4000,
+      });
+    } catch (error) {
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy link to clipboard. Please try again.",
+        variant: "destructive",
+        duration: 4000,
+      });
+    }
   };
 
   // Filter handlers
@@ -745,6 +764,16 @@ export function FormManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Copy Success Popup */}
+      {showCopyPopup && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300">
+          <div className="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            <span className="font-medium">Link copied to clipboard!</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

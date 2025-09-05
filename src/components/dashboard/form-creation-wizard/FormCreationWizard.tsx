@@ -54,6 +54,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [showDraftAlert, setShowDraftAlert] = useState(false);
   const [draftAgeText, setDraftAgeText] = useState('');
+  const [showCopyPopup, setShowCopyPopup] = useState(false);
 
   // Check for draft on component mount
   useEffect(() => {
@@ -180,15 +181,30 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
   const isNextDisabled = !validateCurrentStep();
   const isLastStep = currentStep === steps.length - 1;
 
-  const handleShareForm = () => {
+  const handleShareForm = async () => {
     if (form.id) {
-      const baseUrl = window.location.origin;
-      const formUrl = `${baseUrl}/fill/${form.id}`;
-      navigator.clipboard.writeText(formUrl);
-      toast({
-        title: "Link Copied!",
-        description: "Form link has been copied to clipboard.",
-      });
+      try {
+        const baseUrl = window.location.origin;
+        const formUrl = `${baseUrl}/fill/${form.id}`;
+        await navigator.clipboard.writeText(formUrl);
+        
+        // Show popup feedback
+        setShowCopyPopup(true);
+        setTimeout(() => setShowCopyPopup(false), 2000);
+        
+        toast({
+          title: "Link Copied!",
+          description: "Form link has been copied to clipboard.",
+          duration: 4000,
+        });
+      } catch (error) {
+        toast({
+          title: "Copy Failed",
+          description: "Could not copy link to clipboard. Please try again.",
+          variant: "destructive",
+          duration: 4000,
+        });
+      }
     }
   };
 
@@ -425,6 +441,16 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Copy Success Popup */}
+      {showCopyPopup && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300">
+          <div className="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            <span className="font-medium">Link copied to clipboard!</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
