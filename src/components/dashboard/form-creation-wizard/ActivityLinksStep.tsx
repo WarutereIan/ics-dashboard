@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { 
@@ -21,6 +22,7 @@ interface ActivityLinksStepProps {
   form: Partial<Form>;
   availableActivities: ActivityKPIMapping[];
   onLinkQuestionToActivity: (sectionId: string, questionId: string, activityMapping: ActivityKPIMapping) => void;
+  onLinkQuestionToActivities: (sectionId: string, questionId: string, activityMappings: ActivityKPIMapping[]) => void;
   onUpdateQuestion: (sectionId: string, questionId: string, updates: Partial<FormQuestion>) => void;
 }
 
@@ -30,9 +32,10 @@ export function ActivityLinksStep({
   form,
   availableActivities,
   onLinkQuestionToActivity,
+  onLinkQuestionToActivities,
   onUpdateQuestion,
 }: ActivityLinksStepProps) {
-  const [selectedActivity, setSelectedActivity] = useState<string>('');
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
 
   // Get all questions from all sections
   const allQuestions = form.sections?.flatMap(section => 
@@ -43,8 +46,8 @@ export function ActivityLinksStep({
     }))
   ) || [];
 
-  const linkedQuestions = allQuestions.filter(q => q.linkedActivity);
-  const unlinkedQuestions = allQuestions.filter(q => !q.linkedActivity);
+  const linkedQuestions = allQuestions.filter(q => q.linkedActivity || (q.linkedActivities && q.linkedActivities.length > 0));
+  const unlinkedQuestions = allQuestions.filter(q => !q.linkedActivity && (!q.linkedActivities || q.linkedActivities.length === 0));
 
   const getActivityById = (activityId: string) => {
     return availableActivities.find(a => a.activityId === activityId);
@@ -58,19 +61,37 @@ export function ActivityLinksStep({
   };
 
   const unlinkQuestion = (question: any) => {
-    onUpdateQuestion(question.sectionId, question.id, { linkedActivity: undefined });
+    onUpdateQuestion(question.sectionId, question.id, { 
+      linkedActivity: undefined,
+      linkedActivities: []
+    });
   };
 
   const updateKPIContribution = (question: any, updates: any) => {
-    onUpdateQuestion(question.sectionId, question.id, {
-      linkedActivity: {
-        ...question.linkedActivity,
-        kpiContribution: {
-          ...question.linkedActivity?.kpiContribution,
-          ...updates,
+    // For now, update the first linked activity's KPI contribution
+    // TODO: Consider if we need to handle multiple KPI contributions
+    const linkedActivities = question.linkedActivities || 
+      (question.linkedActivity ? [question.linkedActivity] : []);
+    
+    if (linkedActivities.length > 0) {
+      const updatedActivities = linkedActivities.map((activity: any, index: number) => {
+        if (index === 0) {
+          return {
+            ...activity,
+            kpiContribution: {
+              ...activity.kpiContribution,
+              ...updates,
+            }
+          };
         }
-      }
-    });
+        return activity;
+      });
+      
+      onUpdateQuestion(question.sectionId, question.id, {
+        linkedActivities: updatedActivities,
+        linkedActivity: undefined // Clear legacy
+      });
+    }
   };
 
   const getQuestionTypeIcon = (type: string) => {
@@ -139,7 +160,10 @@ export function ActivityLinksStep({
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <p className="text-2xl font-bold text-green-600">
-                {linkedQuestions.filter(q => q.linkedActivity?.kpiContribution).length}
+                {linkedQuestions.filter(q => {
+                  const linkedActivities = q.linkedActivities || (q.linkedActivity ? [q.linkedActivity] : []);
+                  return linkedActivities.some(activity => !!activity.kpiContribution);
+                }).length}
               </p>
               <p className="text-sm text-green-700">Contributing to KPIs</p>
             </div>
@@ -156,28 +180,21 @@ export function ActivityLinksStep({
           <CardContent className="space-y-4">
             <div className="flex gap-4 items-end">
               <div className="flex-1">
-                <Label>Select Activity</Label>
-                <Select value={selectedActivity} onValueChange={setSelectedActivity}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose an activity to link questions..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableActivities.map((activity) => (
-                      <SelectItem key={activity.activityId} value={activity.activityId}>
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{activity.projectName}</span>
-                          <span className="text-sm text-gray-600">
-                            {activity.outcomeName} → {activity.activityName}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Select Activities</Label>
+                <MultiSelect
+                  options={availableActivities.map((activity) => ({
+                    value: activity.activityId,
+                    label: `${activity.projectName} - ${activity.activityName}`,
+                    description: `${activity.outcomeName} → ${activity.activityName}`
+                  }))}
+                  value={selectedActivities}
+                  onChange={setSelectedActivities}
+                  placeholder="Choose activities to link questions..."
+                />
               </div>
             </div>
 
-            {selectedActivity && (
+            {selectedActivities.length > 0 && (
               <div className="space-y-2">
                 <Label>Unlinked Questions</Label>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -190,10 +207,15 @@ export function ActivityLinksStep({
                       </div>
                       <Button
                         size="sm"
-                        onClick={() => linkQuestion(question, selectedActivity)}
+                        onClick={() => {
+                          const activitiesToLink = selectedActivities
+                            .map(activityId => availableActivities.find(a => a.activityId === activityId))
+                            .filter(Boolean) as ActivityKPIMapping[];
+                          onLinkQuestionToActivities(question.sectionId, question.id, activitiesToLink);
+                        }}
                       >
                         <Link className="w-4 h-4 mr-1" />
-                        Link
+                        Link to {selectedActivities.length} {selectedActivities.length === 1 ? 'Activity' : 'Activities'}
                       </Button>
                     </div>
                   ))}
@@ -223,8 +245,11 @@ export function ActivityLinksStep({
           ) : (
             <div className="space-y-4">
               {linkedQuestions.map((question) => {
-                const activity = getActivityById(question.linkedActivity!.activityId);
-                const hasKPIContribution = !!question.linkedActivity?.kpiContribution;
+                // Handle both single and multiple activity links
+                const linkedActivities = question.linkedActivities || 
+                  (question.linkedActivity ? [question.linkedActivity] : []);
+                
+                const hasKPIContribution = linkedActivities.some(activity => !!activity.kpiContribution);
                 
                 return (
                   <Card key={question.id} className="border-l-4 border-l-blue-500">
@@ -265,13 +290,22 @@ export function ActivityLinksStep({
                         </div>
 
                         {/* Activity Info */}
-                        {activity && (
-                          <div className="p-3 bg-blue-50 rounded-lg">
-                            <p className="text-sm font-medium text-blue-900">Linked Activity</p>
-                            <p className="text-sm text-blue-700">{activity.projectName}</p>
-                            <p className="text-xs text-blue-600">
-                              {activity.outcomeName} → {activity.activityName}
+                        {linkedActivities.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-blue-900">
+                              {linkedActivities.length === 1 ? 'Linked Activity' : `Linked Activities (${linkedActivities.length})`}
                             </p>
+                            {linkedActivities.map((linkedActivity, index) => {
+                              const activity = getActivityById(linkedActivity.activityId);
+                              return activity ? (
+                                <div key={index} className="p-3 bg-blue-50 rounded-lg">
+                                  <p className="text-sm text-blue-700">{activity.projectName}</p>
+                                  <p className="text-xs text-blue-600">
+                                    {activity.outcomeName} → {activity.activityName}
+                                  </p>
+                                </div>
+                              ) : null;
+                            })}
                           </div>
                         )}
 
@@ -287,7 +321,7 @@ export function ActivityLinksStep({
                               <div>
                                 <Label className="text-xs">Aggregation Method</Label>
                                 <Select
-                                  value={question.linkedActivity?.kpiContribution?.aggregationType || 'COUNT'}
+                                  value={linkedActivities[0]?.kpiContribution?.aggregationType || 'COUNT'}
                                   onValueChange={(value: AggregationType) =>
                                     updateKPIContribution(question, { aggregationType: value })
                                   }

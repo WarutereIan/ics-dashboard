@@ -30,6 +30,7 @@ interface QuestionsStepProps {
   onRemoveQuestion: (sectionId: string, questionId: string) => void;
   onDuplicateQuestion: (sectionId: string, questionId: string) => void;
   onLinkQuestionToActivity: (sectionId: string, questionId: string, activityMapping: ActivityKPIMapping) => void;
+  onLinkQuestionToActivities: (sectionId: string, questionId: string, activityMappings: ActivityKPIMapping[]) => void;
 }
 
 export function QuestionsStep({
@@ -40,6 +41,7 @@ export function QuestionsStep({
   onRemoveQuestion,
   onDuplicateQuestion,
   onLinkQuestionToActivity,
+  onLinkQuestionToActivities,
 }: QuestionsStepProps) {
   const [selectedQuestionType, setSelectedQuestionType] = useState<QuestionType>('SHORT_TEXT');
 
@@ -54,6 +56,8 @@ export function QuestionsStep({
       availableActivities,
       onLinkToActivity: (activityMapping: ActivityKPIMapping) => 
         onLinkQuestionToActivity(sectionId, question.id, activityMapping),
+      onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => 
+        onLinkQuestionToActivities(sectionId, question.id, activityMappings),
       sectionId,
       onAddQuestion,
     };

@@ -17,6 +17,7 @@ interface LikertScaleQuestionEditorProps {
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
   onLinkToActivity: (activityMapping: ActivityKPIMapping) => void;
+  onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => void;
 }
 
 export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps) {

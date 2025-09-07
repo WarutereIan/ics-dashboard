@@ -13,6 +13,7 @@ interface ShortTextQuestionEditorProps {
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
   onLinkToActivity: (activityMapping: ActivityKPIMapping) => void;
+  onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => void;
 }
 
 export function ShortTextQuestionEditor(props: ShortTextQuestionEditorProps) {

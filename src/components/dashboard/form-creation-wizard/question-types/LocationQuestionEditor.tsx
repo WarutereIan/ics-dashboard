@@ -16,6 +16,7 @@ interface BaseQuestionEditorProps {
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
   onLinkToActivity: (activityMapping: ActivityKPIMapping) => void;
+  onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => void;
   children?: React.ReactNode;
 }
 

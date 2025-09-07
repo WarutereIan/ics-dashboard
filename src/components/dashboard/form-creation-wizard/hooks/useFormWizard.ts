@@ -416,6 +416,30 @@ export function useFormWizard(formId?: string) {
     });
   }, [updateQuestion]);
 
+  // Multiple activity linking
+  const linkQuestionToActivities = useCallback((
+    sectionId: string, 
+    questionId: string, 
+    activityMappings: ActivityKPIMapping[]
+  ) => {
+    const linkedActivities = activityMappings.map(activityMapping => ({
+      projectId: activityMapping.projectId,
+      outcomeId: activityMapping.outcomeId,
+      activityId: activityMapping.activityId,
+      kpiContribution: activityMapping.availableKPIs && activityMapping.availableKPIs.length > 0 ? {
+        kpiId: activityMapping.availableKPIs[0].id,
+        weight: 1,
+        aggregationType: 'SUM' as const
+      } : undefined
+    }));
+
+    updateQuestion(sectionId, questionId, {
+      linkedActivities,
+      // Clear legacy single activity if it exists
+      linkedActivity: undefined,
+    });
+  }, [updateQuestion]);
+
   // Settings management
   const updateSettings = useCallback((settings: Partial<FormSettings>) => {
     setWizardState(prev => ({
@@ -729,6 +753,7 @@ export function useFormWizard(formId?: string) {
     
     // Activity linking
     linkQuestionToActivity,
+    linkQuestionToActivities,
     
     // Settings
     updateSettings,

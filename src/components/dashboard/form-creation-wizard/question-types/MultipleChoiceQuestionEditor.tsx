@@ -146,6 +146,7 @@ interface MultipleChoiceQuestionEditorProps {
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
   onLinkToActivity: (activityMapping: ActivityKPIMapping) => void;
+  onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => void;
 }
 
 export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditorProps) {
@@ -385,6 +386,24 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
                       onLinkQuestionToActivity={(questionId, activityMapping) => {
                         const updatedQuestions = (option.conditionalQuestions || []).map(q =>
                           q.id === questionId ? { ...q, linkedActivity: activityMapping } : q
+                        );
+                        updateOption(option.id, { 
+                          conditionalQuestions: updatedQuestions,
+                          hasConditionalQuestions: updatedQuestions.length > 0
+                        });
+                      }}
+                      onLinkQuestionToActivities={(questionId, activityMappings) => {
+                        const updatedQuestions = (option.conditionalQuestions || []).map(q =>
+                          q.id === questionId ? { ...q, linkedActivities: activityMappings.map(am => ({
+                            projectId: am.projectId,
+                            outcomeId: am.outcomeId,
+                            activityId: am.activityId,
+                            kpiContribution: am.availableKPIs && am.availableKPIs.length > 0 ? {
+                              kpiId: am.availableKPIs[0].id,
+                              weight: 1,
+                              aggregationType: 'SUM' as const
+                            } : undefined
+                          })), linkedActivity: undefined } : q
                         );
                         updateOption(option.id, { 
                           conditionalQuestions: updatedQuestions,

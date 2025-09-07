@@ -40,6 +40,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
     removeQuestion,
     duplicateQuestion,
     linkQuestionToActivity,
+    linkQuestionToActivities,
     updateSettings,
     saveDraft,
     publishForm,
@@ -109,6 +110,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
             onRemoveQuestion={removeQuestion}
             onDuplicateQuestion={duplicateQuestion}
             onLinkQuestionToActivity={linkQuestionToActivity}
+            onLinkQuestionToActivities={linkQuestionToActivities}
           />
         );
       
@@ -118,6 +120,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
             form={form}
             availableActivities={availableActivities as ActivityKPIMapping[]}
             onLinkQuestionToActivity={linkQuestionToActivity}
+            onLinkQuestionToActivities={linkQuestionToActivities}
             onUpdateQuestion={updateQuestion}
           />
         );

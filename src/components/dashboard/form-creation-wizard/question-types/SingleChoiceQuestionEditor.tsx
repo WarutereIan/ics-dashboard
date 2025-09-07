@@ -147,6 +147,7 @@ interface SingleChoiceQuestionEditorProps {
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
   onLinkToActivity: (activityMapping: ActivityKPIMapping) => void;
+  onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => void;
 }
 
 export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProps) {
@@ -336,6 +337,26 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                         // For now, we'll just update the question directly
                         const updatedQuestions = (option.conditionalQuestions || []).map(q =>
                           q.id === questionId ? { ...q, linkedActivity: activityMapping } : q
+                        );
+                        updateOption(option.id, { 
+                          conditionalQuestions: updatedQuestions,
+                          hasConditionalQuestions: updatedQuestions.length > 0
+                        });
+                      }}
+                      onLinkQuestionToActivities={(questionId, activityMappings) => {
+                        // This would need to be handled at the form level
+                        // For now, we'll just update the question directly
+                        const updatedQuestions = (option.conditionalQuestions || []).map(q =>
+                          q.id === questionId ? { ...q, linkedActivities: activityMappings.map(am => ({
+                            projectId: am.projectId,
+                            outcomeId: am.outcomeId,
+                            activityId: am.activityId,
+                            kpiContribution: am.availableKPIs && am.availableKPIs.length > 0 ? {
+                              kpiId: am.availableKPIs[0].id,
+                              weight: 1,
+                              aggregationType: 'SUM' as const
+                            } : undefined
+                          })), linkedActivity: undefined } : q
                         );
                         updateOption(option.id, { 
                           conditionalQuestions: updatedQuestions,

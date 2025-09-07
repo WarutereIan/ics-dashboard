@@ -381,7 +381,7 @@ export function useProjectWizard() {
         current: 0,
         unit: outcome.unit,
         progress: 0,
-        status: 'on-track' as const,
+        status: 'ON_TRACK' as const,
       }));
 
       const activities = wizardState.activities.map(activity => ({
@@ -390,7 +390,7 @@ export function useProjectWizard() {
         title: activity.title,
         description: activity.description,
         progress: 0,
-        status: 'not-started' as const,
+        status: 'NOT_STARTED' as const,
         startDate: activity.startDate || new Date(),
         endDate: activity.endDate || new Date(),
         responsible: activity.responsible,
@@ -557,7 +557,7 @@ export function useProjectWizard() {
               target: outcome.target || 0,
               current: original.current || 0,
               unit: outcome.unit || original.unit || '',
-              status: outcome.status || 'on-track',
+              status: outcome.status || 'ON_TRACK',
               progress: outcome.progress || 0,
             };
             await projectDataApi.updateProjectOutcome(projectId, outcome.id, updateData);
@@ -611,7 +611,7 @@ export function useProjectWizard() {
               title: activity.title,
               description: activity.description,
               responsible: activity.responsible || original.responsible || 'Unassigned',
-              status: activity.status || 'not-started',
+              status: activity.status || 'NOT_STARTED',
               startDate: activity.startDate?.toISOString() || original.startDate,
               endDate: activity.endDate?.toISOString() || original.endDate,
               progress: activity.progress || 0,
@@ -716,7 +716,7 @@ export function useProjectWizard() {
         current: 0,
         unit: outcome.unit,
         progress: 0,
-        status: 'on-track' as const,
+        status: 'ON_TRACK' as const,
       }));
 
       const activities = wizardState.activities.map(activity => ({
@@ -725,7 +725,7 @@ export function useProjectWizard() {
         title: activity.title,
         description: activity.description,
         progress: 0,
-        status: 'not-started' as const,
+        status: 'NOT_STARTED' as const,
         startDate: activity.startDate || new Date(),
         endDate: activity.endDate || new Date(),
         responsible: activity.responsible,

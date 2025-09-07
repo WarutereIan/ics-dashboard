@@ -175,7 +175,7 @@ export interface Outcome {
   current: number;
   unit: string;
   progress: number;
-  status: 'on-track' | 'at-risk' | 'behind' | 'completed';
+  status: 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'ON_TRACK' | 'AT_RISK' | 'BEHIND';
 }
 
 export interface SubActivity {
@@ -183,7 +183,7 @@ export interface SubActivity {
   title: string;
   description?: string;
   progress: number;
-  status: 'not-started' | 'in-progress' | 'completed' | 'on-hold';
+  status: 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'NOT_STARTED' | 'IN_PROGRESS';
   dueDate?: string;
 }
 
@@ -193,7 +193,7 @@ export interface Activity {
   title: string;
   description: string;
   progress: number;
-  status: 'not-started' | 'in-progress' | 'completed' | 'on-hold';
+  status: 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'NOT_STARTED' | 'IN_PROGRESS';
   startDate: Date;
   endDate: Date;
   responsible: string;
@@ -313,7 +313,7 @@ export interface Output {
   current: number;
   target: number;
   unit: string;
-  status: 'on-track' | 'at-risk' | 'behind' | 'completed';
+  status: 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'ON_TRACK' | 'AT_RISK' | 'BEHIND';
   activities: string[];
 }
 

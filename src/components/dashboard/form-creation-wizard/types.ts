@@ -59,7 +59,19 @@ export interface BaseQuestion {
     showWhen: string | number | boolean; // Value to match
     operator: 'EQUALS' | 'NOT_EQUALS' | 'GREATER_THAN' | 'LESS_THAN' | 'CONTAINS';
   };
-  // Link to project activity
+  // Link to project activities (supporting multiple activities)
+  linkedActivities?: {
+    projectId: string;
+    outcomeId: string;
+    activityId: string;
+    kpiContribution?: {
+      kpiId: string;
+      weight: number; // How much this question contributes to the KPI (0-1)
+      aggregationType: 'SUM' | 'COUNT' | 'AVERAGE' | 'MIN' | 'MAX';
+    };
+  }[];
+  
+  // Legacy support for single activity (deprecated)
   linkedActivity?: {
     projectId: string;
     outcomeId: string;

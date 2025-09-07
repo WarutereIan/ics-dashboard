@@ -156,6 +156,7 @@ interface ConditionalQuestionsEditorProps {
   availableActivities: ActivityKPIMapping[];
   onUpdateConditionalQuestions: (questions: FormQuestion[]) => void;
   onLinkQuestionToActivity: (questionId: string, activityMapping: ActivityKPIMapping) => void;
+  onLinkQuestionToActivities: (questionId: string, activityMappings: ActivityKPIMapping[]) => void;
   sectionId?: string; // Section ID for adding next question within conditionals
   onAddQuestion?: (sectionId: string, questionType: QuestionType) => void; // Function to add next question
 }
@@ -167,6 +168,7 @@ export function ConditionalQuestionsEditor({
   availableActivities,
   onUpdateConditionalQuestions,
   onLinkQuestionToActivity,
+  onLinkQuestionToActivities,
   sectionId,
   onAddQuestion,
 }: ConditionalQuestionsEditorProps) {
@@ -230,6 +232,8 @@ export function ConditionalQuestionsEditor({
       availableActivities,
       onLinkToActivity: (activityMapping: ActivityKPIMapping) => 
         onLinkQuestionToActivity(question.id, activityMapping),
+      onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => 
+        onLinkQuestionToActivities(question.id, activityMappings),
       sectionId: `conditional-${optionId}`, // Use a unique section ID for conditional questions
       onAddQuestion: handleAddQuestionInConditional, // Pass the conditional add function
     };

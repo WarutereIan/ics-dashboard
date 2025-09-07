@@ -50,13 +50,13 @@ export function OutcomesDetails() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'on-track':
+      case 'ON_TRACK':
         return 'bg-green-100 text-green-800';
-      case 'at-risk':
+      case 'AT_RISK':
         return 'bg-yellow-100 text-yellow-800';
-      case 'behind':
+      case 'BEHIND':
         return 'bg-red-100 text-red-800';
-      case 'completed':
+      case 'COMPLETED':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';

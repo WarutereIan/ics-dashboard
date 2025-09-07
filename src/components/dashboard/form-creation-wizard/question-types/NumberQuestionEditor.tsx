@@ -12,6 +12,7 @@ interface NumberQuestionEditorProps {
   onDuplicate: () => void;
   availableActivities: ActivityKPIMapping[];
   onLinkToActivity: (activityMapping: ActivityKPIMapping) => void;
+  onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => void;
 }
 
 export function NumberQuestionEditor(props: NumberQuestionEditorProps) {
