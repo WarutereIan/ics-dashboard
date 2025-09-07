@@ -26,6 +26,7 @@ import { GoalDetails } from '@/components/dashboard/GoalDetails';
 import { PublicFormFiller } from '@/components/public/PublicFormFiller';
 import { PublicLanding } from '@/components/public/PublicLanding';
 import { ProjectsApiTest } from '@/components/dashboard/ProjectsApiTest';
+import { FeedbackRoutes } from '@/components/dashboard/feedback/FeedbackRoutes';
 // New all-outcomes and all-outputs pages will be created as OutcomesDetails and OutputsDetails
 
 function ProtectedRoute({ roles }: { roles?: string[] }) {
@@ -89,6 +90,8 @@ function App() {
                           {/* Organizational Goals routes */}
                           <Route path="goals/:goalId" element={<GoalDetails />} />
                           <Route path="goals/:goalId/subgoals/:subGoalId" element={<GoalDetails />} />
+                          {/* Organization routes */}
+                          <Route path="feedback/*" element={<FeedbackRoutes projectId="organization" projectName="ICS Organization" />} />
                           {/* Admin-only project creation */}
                           <Route path="projects/create" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}>
                             <Route index element={<ProjectCreationWizard />} />
