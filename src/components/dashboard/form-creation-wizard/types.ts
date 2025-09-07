@@ -140,6 +140,7 @@ export interface YesNoQuestion extends BaseQuestion {
 export interface MultipleChoiceQuestion extends BaseQuestion {
   type: 'MULTIPLE_CHOICE';
   options: ChoiceOption[];
+  displayType: 'RADIO' | 'DROPDOWN';
   minSelections?: number;
   maxSelections?: number;
   allowOther?: boolean;

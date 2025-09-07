@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,7 @@ function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionTyp
           { id: uuidv4(), label: 'Option 1', value: 'option1', hasConditionalQuestions: false, conditionalQuestions: [] },
           { id: uuidv4(), label: 'Option 2', value: 'option2', hasConditionalQuestions: false, conditionalQuestions: [] },
         ],
+        displayType: 'RADIO',
       };
     
     case 'LIKERT_SCALE':
@@ -167,11 +168,21 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
     } as Partial<FormQuestion>);
   }
 
+  // Ensure display type is always RADIO
+  useEffect(() => {
+    if ((question as any).displayType !== 'RADIO') {
+      onUpdate({
+        displayType: 'RADIO'
+      } as Partial<FormQuestion>);
+    }
+  }, [(question as any).displayType, onUpdate]);
+
   const addOption = () => {
+    const optionText = `Option ${safeOptions.length + 1}`;
     const newOption: ChoiceOption = {
       id: uuidv4(),
-      label: `Option ${safeOptions.length + 1}`,
-      value: `option_${safeOptions.length + 1}`,
+      label: optionText,
+      value: optionText,
       hasConditionalQuestions: false,
       conditionalQuestions: [],
     };
@@ -182,9 +193,19 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
   };
 
   const updateOption = (optionId: string, updates: Partial<ChoiceOption>) => {
+    // Use "no title" as placeholder only when input is completely empty (length 0)
+    const sanitizedUpdates = { ...updates };
+    if (sanitizedUpdates.label !== undefined) {
+      sanitizedUpdates.label = sanitizedUpdates.label.length === 0 ? "no title" : sanitizedUpdates.label;
+    }
+    if (sanitizedUpdates.value !== undefined) {
+      const valueStr = String(sanitizedUpdates.value);
+      sanitizedUpdates.value = valueStr.length === 0 ? "no title" : valueStr;
+    }
+    
     onUpdate({
       options: safeOptions.map(option =>
-        option.id === optionId ? { ...option, ...updates } : option
+        option.id === optionId ? { ...option, ...sanitizedUpdates } : option
       )
     } as Partial<FormQuestion>);
   };
@@ -303,16 +324,17 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
                   <div key={option.id} className="flex items-center gap-2 p-2 border rounded">
                     <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
                     
-                    <div className="flex-1 grid grid-cols-2 gap-2">
+                    <div className="flex-1">
                       <Input
-                        value={option.label}
-                        onChange={(e) => updateOption(option.id, { label: e.target.value })}
-                        placeholder="Option label"
-                      />
-                      <Input
-                        value={option.value}
-                        onChange={(e) => updateOption(option.id, { value: e.target.value })}
-                        placeholder="Option value"
+                        value={option.label === "no title" ? "" : option.label}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          updateOption(option.id, { 
+                            label: newValue,
+                            value: newValue 
+                          });
+                        }}
+                        placeholder="Option text"
                       />
                     </div>
 

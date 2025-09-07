@@ -32,7 +32,10 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
   const totalSections = form.sections?.length || 0;
   const totalQuestions = form.sections?.reduce((total, section) => total + section.questions.length, 0) || 0;
   const linkedQuestions = form.sections?.reduce((total, section) => 
-    total + section.questions.filter(q => q.linkedActivity).length, 0) || 0;
+    total + section.questions.filter(q => {
+      const linkedActivities = q.linkedActivities || (q.linkedActivity ? [q.linkedActivity] : []);
+      return linkedActivities.length > 0;
+    }).length, 0) || 0;
   const requiredQuestions = form.sections?.reduce((total, section) => 
     total + section.questions.filter(q => q.isRequired).length, 0) || 0;
 
@@ -113,7 +116,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
           {question.isRequired && (
             <Badge variant="destructive" className="text-xs">Required</Badge>
           )}
-          {question.linkedActivity && (
+          {(question.linkedActivities?.length > 0 || question.linkedActivity) && (
             <Badge variant="secondary" className="text-xs">
               <Link className="w-3 h-3 mr-1" />
               Linked
@@ -124,7 +127,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
       
       <div className="text-xs text-gray-500">
         Section: {sectionTitle}
-        {question.linkedActivity && (
+        {(question.linkedActivities?.length > 0 || question.linkedActivity) && (
           <span className="ml-2">• Linked to activity</span>
         )}
       </div>

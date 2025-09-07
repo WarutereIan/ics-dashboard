@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,7 @@ function createQuestionWithDefaults(baseQuestion: any, questionType: QuestionTyp
           { id: uuidv4(), label: 'Option 1', value: 'option1', hasConditionalQuestions: false, conditionalQuestions: [] },
           { id: uuidv4(), label: 'Option 2', value: 'option2', hasConditionalQuestions: false, conditionalQuestions: [] },
         ],
-        displayType: 'RADIO',
+        displayType: 'DROPDOWN',
       };
     
     case 'MULTIPLE_CHOICE':
@@ -166,11 +166,21 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
     } as Partial<FormQuestion>);
   }
 
+  // Ensure display type is always DROPDOWN
+  useEffect(() => {
+    if (question.displayType !== 'DROPDOWN') {
+      onUpdate({
+        displayType: 'DROPDOWN'
+      } as Partial<FormQuestion>);
+    }
+  }, [question.displayType, onUpdate]);
+
   const addOption = () => {
+    const optionText = `Option ${safeOptions.length + 1}`;
     const newOption: ChoiceOption = {
       id: uuidv4(),
-      label: `Option ${safeOptions.length + 1}`,
-      value: `option_${safeOptions.length + 1}`,
+      label: optionText,
+      value: optionText,
     };
     
     onUpdate({
@@ -179,9 +189,19 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
   };
 
   const updateOption = (optionId: string, updates: Partial<ChoiceOption>) => {
+    // Use "no title" as placeholder only when input is completely empty (length 0)
+    const sanitizedUpdates = { ...updates };
+    if (sanitizedUpdates.label !== undefined) {
+      sanitizedUpdates.label = sanitizedUpdates.label.length === 0 ? "no title" : sanitizedUpdates.label;
+    }
+    if (sanitizedUpdates.value !== undefined) {
+      const valueStr = String(sanitizedUpdates.value);
+      sanitizedUpdates.value = valueStr.length === 0 ? "no title" : valueStr;
+    }
+    
     onUpdate({
       options: safeOptions.map(option =>
-        option.id === optionId ? { ...option, ...updates } : option
+        option.id === optionId ? { ...option, ...sanitizedUpdates } : option
       )
     } as Partial<FormQuestion>);
   };
@@ -214,22 +234,6 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
           <Label className="text-sm font-medium mb-4 block">Question Configuration</Label>
           
           <div className="space-y-4">
-            {/* Display Type */}
-            <div>
-              <Label>Display Type</Label>
-              <Select 
-                value={question.displayType} 
-                onValueChange={(value: 'RADIO' | 'DROPDOWN') => onUpdate({ displayType: value } as Partial<FormQuestion>)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="RADIO">Radio Buttons</SelectItem>
-                  <SelectItem value="DROPDOWN">Dropdown Menu</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
             {/* Allow Other Option */}
             <div className="flex items-center justify-between">
@@ -252,16 +256,17 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                   <div key={option.id} className="flex items-center gap-2 p-2 border rounded">
                     <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
                     
-                    <div className="flex-1 grid grid-cols-2 gap-2">
+                    <div className="flex-1">
                       <Input
-                        value={option.label}
-                        onChange={(e) => updateOption(option.id, { label: e.target.value })}
-                        placeholder="Option label"
-                      />
-                      <Input
-                        value={option.value}
-                        onChange={(e) => updateOption(option.id, { value: e.target.value })}
-                        placeholder="Option value"
+                        value={option.label === "no title" ? "" : option.label}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          updateOption(option.id, { 
+                            label: newValue,
+                            value: newValue 
+                          });
+                        }}
+                        placeholder="Option text"
                       />
                     </div>
 
