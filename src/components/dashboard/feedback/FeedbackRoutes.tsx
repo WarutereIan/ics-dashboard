@@ -1,9 +1,11 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { FeedbackProvider } from '@/contexts/FeedbackContext';
 import { FeedbackSubmissionInterface } from './FeedbackSubmissionInterface';
 import { FeedbackFormManagement } from './FeedbackFormManagement';
 import { FeedbackSubmissionsView } from './FeedbackSubmissionsView';
 import { FeedbackAnalytics } from './FeedbackAnalytics';
+import FeedbackFormDetails from './FeedbackFormDetails';
 
 interface FeedbackRoutesProps {
   projectId: string;
@@ -12,7 +14,8 @@ interface FeedbackRoutesProps {
 
 export function FeedbackRoutes({ projectId, projectName = "ICS Organization" }: FeedbackRoutesProps) {
   return (
-    <Routes>
+    <FeedbackProvider projectId={projectId}>
+      <Routes>
       <Route index element={<Navigate to="submit" replace />} />
       <Route 
         path="submit" 
@@ -22,6 +25,10 @@ export function FeedbackRoutes({ projectId, projectName = "ICS Organization" }: 
             projectName={projectName} 
           />
         } 
+      />
+      <Route 
+        path="forms/:id" 
+        element={<FeedbackFormDetails />} 
       />
       <Route 
         path="forms" 
@@ -50,6 +57,7 @@ export function FeedbackRoutes({ projectId, projectName = "ICS Organization" }: 
           />
         } 
       />
-    </Routes>
+      </Routes>
+    </FeedbackProvider>
   );
 }

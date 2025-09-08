@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useFeedback } from '@/contexts/FeedbackContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,8 @@ export function FeedbackResolutionWorkflow({
   const [newStatus, setNewStatus] = useState('');
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [assignTo, setAssignTo] = useState(assignedTo || '');
+  
+  const { updateSubmissionStatus, addNote } = useFeedback();
 
   const statusOptions = [
     { value: 'SUBMITTED', label: 'Submitted', icon: Clock, color: 'secondary' },
@@ -54,11 +57,31 @@ export function FeedbackResolutionWorkflow({
 
   const currentStatusInfo = getStatusInfo(currentStatus);
 
-  const handleStatusUpdate = () => {
+  const handleStatusUpdate = async () => {
     if (newStatus) {
-      onStatusUpdate(newStatus, resolutionNotes, assignTo);
-      setNewStatus('');
-      setResolutionNotes('');
+      try {
+        // Update status via context
+        await updateSubmissionStatus(submissionId, newStatus, assignTo || undefined);
+        
+        // Add note if provided
+        if (resolutionNotes.trim()) {
+          await addNote(submissionId, {
+            content: resolutionNotes,
+            authorId: 'current-user', // In real app, get from auth context
+            authorName: 'Current User',
+            isInternal: true
+          });
+        }
+        
+        // Call parent callback
+        onStatusUpdate(newStatus, resolutionNotes, assignTo);
+        
+        // Reset form
+        setNewStatus('');
+        setResolutionNotes('');
+      } catch (error) {
+        console.error('Error updating status:', error);
+      }
     }
   };
 

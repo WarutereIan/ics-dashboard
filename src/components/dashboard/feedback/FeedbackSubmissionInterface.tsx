@@ -20,6 +20,7 @@ import { GeneralFeedbackForm } from './forms/GeneralFeedbackForm';
 import { SafetyIncidentForm } from './forms/SafetyIncidentForm';
 import { EmergencyReportForm } from './forms/EmergencyReportForm';
 import { StaffFeedbackForm } from './forms/StaffFeedbackForm';
+import { useFeedback } from '@/contexts/FeedbackContext';
 
 interface FeedbackSubmissionInterfaceProps {
   projectId: string;
@@ -29,15 +30,30 @@ interface FeedbackSubmissionInterfaceProps {
 export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Program" }: FeedbackSubmissionInterfaceProps) {
   const [activeTab, setActiveTab] = useState('general');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { forms, categories, loading, createSubmission } = useFeedback();
 
   const handleFormSubmit = async (formData: any, formType: string) => {
     setIsSubmitting(true);
     try {
-      // In real implementation, this would submit to API
-      console.log(`Submitting ${formType} feedback:`, formData);
+      // Find the corresponding category and form
+      const category = categories.find(cat => cat.id === formType || cat.name.toLowerCase().includes(formType));
+      const form = forms.find(f => f.category?.id === category?.id);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const submissionData = {
+        formId: form?.id || formType,
+        projectId,
+        categoryId: category?.id || formType,
+        priority: 'MEDIUM',
+        sensitivity: 'INTERNAL',
+        escalationLevel: 'NONE',
+        data: formData,
+        isAnonymous: formData.isAnonymous || false,
+        submitterName: formData.submitterName,
+        submitterEmail: formData.submitterEmail,
+        stakeholderType: formData.stakeholderType
+      };
+
+      await createSubmission(submissionData);
       
       // Show success message
       alert('Thank you for your feedback! Your submission has been received and will be reviewed by our team.');
@@ -50,7 +66,8 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
     }
   };
 
-  const feedbackForms = [
+  // Static form configuration for UI display
+  const staticFormConfig = [
     {
       id: 'general',
       title: 'General Feedback',
@@ -92,6 +109,16 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
       component: StaffFeedbackForm
     }
   ];
+
+  // Merge API data with static configuration for display
+  const displayForms = staticFormConfig.map(config => {
+    const apiForm = forms.find(f => f.title === config.title || f.category?.name === config.title);
+    return {
+      ...config,
+      id: apiForm?.id || config.id,
+      apiData: apiForm
+    };
+  });
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -199,7 +226,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4 gap-1 p-1 mb-4">
-              {feedbackForms.map((form) => {
+              {displayForms.map((form) => {
                 const Icon = form.icon;
                 const colors = getColorClasses(form.color);
                 return (
@@ -215,7 +242,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
               })}
             </TabsList>
 
-            {feedbackForms.map((form) => {
+            {displayForms.map((form) => {
               const Icon = form.icon;
               const colors = getColorClasses(form.color);
               const FormComponent = form.component;

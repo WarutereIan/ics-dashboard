@@ -12,7 +12,8 @@ import {
   User,
   Eye
 } from 'lucide-react';
-import { FeedbackFormDetails } from './FeedbackFormDetails';
+import FeedbackFormDetails  from './FeedbackFormDetails';
+import { useNavigate } from 'react-router-dom';
 
 interface FeedbackFormManagementProps {
   projectId: string;
@@ -21,6 +22,7 @@ interface FeedbackFormManagementProps {
 
 export function FeedbackFormManagement({ projectId, projectName = "ICS Organization" }: FeedbackFormManagementProps) {
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Mock data for feedback forms
   const mockForms = [
@@ -99,23 +101,8 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
   };
 
   const handleFormClick = (formId: string) => {
-    setSelectedFormId(formId);
+    navigate(`forms/${formId}`);
   };
-
-  const handleBackToForms = () => {
-    setSelectedFormId(null);
-  };
-
-
-  // Show form details if a form is selected
-  if (selectedFormId) {
-    return (
-      <FeedbackFormDetails 
-        formId={selectedFormId} 
-        onBack={handleBackToForms} 
-      />
-    );
-  }
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">

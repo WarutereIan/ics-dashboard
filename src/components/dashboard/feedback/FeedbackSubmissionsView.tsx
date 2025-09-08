@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useFeedback } from '@/contexts/FeedbackContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,8 +35,25 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('all');
   const [selectedSubmission, setSelectedSubmission] = useState<string | null>(null);
+  
+  const { submissions, loading, updateSubmissionStatus } = useFeedback();
 
-  // Mock data for feedback submissions
+  // Transform real submissions to match UI expectations
+  const transformedSubmissions = submissions.map(submission => ({
+    id: submission.id,
+    title: submission.data?.title || 'Feedback Submission',
+    type: submission.category?.name || 'General',
+    priority: submission.priority,
+    status: submission.status,
+    submitter: submission.isAnonymous ? 'Anonymous' : (submission.submitterName || 'Unknown'),
+    submitterEmail: submission.submitterEmail,
+    isAnonymous: submission.isAnonymous,
+    submittedAt: submission.submittedAt,
+    assignedTo: submission.assignedTo,
+    description: submission.data?.description || submission.data?.feedback || submission.data?.details || 'No description provided'
+  }));
+
+  // Fallback mock data for demo when no real submissions
   const mockSubmissions = [
     {
       id: '1',
@@ -172,7 +190,10 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
     }
   };
 
-  const filteredSubmissions = mockSubmissions.filter(submission => {
+  // Use real submissions if available, otherwise fallback to mock data
+  const allSubmissions = transformedSubmissions.length > 0 ? transformedSubmissions : mockSubmissions;
+  
+  const filteredSubmissions = allSubmissions.filter(submission => {
     const matchesSearch = submission.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          submission.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || submission.status === statusFilter;
@@ -203,6 +224,19 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
     );
   }
 
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading feedback submissions...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Header */}
@@ -229,7 +263,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total</p>
-                <p className="text-2xl font-bold">{mockSubmissions.length}</p>
+                <p className="text-2xl font-bold">{allSubmissions.length}</p>
               </div>
             </div>
           </CardContent>
@@ -242,7 +276,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
               </div>
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
-                <p className="text-2xl font-bold">{mockSubmissions.filter(s => s.status === 'SUBMITTED').length}</p>
+                <p className="text-2xl font-bold">{allSubmissions.filter(s => s.status === 'SUBMITTED').length}</p>
               </div>
             </div>
           </CardContent>
@@ -255,7 +289,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
               </div>
               <div>
                 <p className="text-sm text-gray-600">In Progress</p>
-                <p className="text-2xl font-bold">{mockSubmissions.filter(s => s.status === 'IN_PROGRESS').length}</p>
+                <p className="text-2xl font-bold">{allSubmissions.filter(s => s.status === 'IN_PROGRESS').length}</p>
               </div>
             </div>
           </CardContent>
@@ -268,7 +302,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
               </div>
               <div>
                 <p className="text-sm text-gray-600">Resolved</p>
-                <p className="text-2xl font-bold">{mockSubmissions.filter(s => s.status === 'RESOLVED').length}</p>
+                <p className="text-2xl font-bold">{allSubmissions.filter(s => s.status === 'RESOLVED').length}</p>
               </div>
             </div>
           </CardContent>
@@ -281,7 +315,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
               </div>
               <div>
                 <p className="text-sm text-gray-600">Critical</p>
-                <p className="text-2xl font-bold">{mockSubmissions.filter(s => s.priority === 'CRITICAL').length}</p>
+                <p className="text-2xl font-bold">{allSubmissions.filter(s => s.priority === 'CRITICAL').length}</p>
               </div>
             </div>
           </CardContent>
