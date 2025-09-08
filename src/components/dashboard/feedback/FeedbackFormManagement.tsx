@@ -101,7 +101,7 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
   };
 
   const handleFormClick = (formId: string) => {
-    navigate(`forms/${formId}`);
+    navigate(`${formId}`);
   };
 
   return (
