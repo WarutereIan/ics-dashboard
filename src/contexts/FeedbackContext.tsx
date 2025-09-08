@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { feedbackApi } from '../services/feedbackApi';
 import { FeedbackForm, FeedbackSubmission, FeedbackCategory } from '../types/feedback';
 
@@ -52,7 +52,7 @@ export const FeedbackProvider: React.FC<FeedbackProviderProps> = ({
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
   // Fetch forms
-  const refreshForms = async () => {
+  const refreshForms = useCallback(async () => {
     try {
       setFormsLoading(true);
       const response = await feedbackApi.getForms(projectId);
@@ -63,24 +63,28 @@ export const FeedbackProvider: React.FC<FeedbackProviderProps> = ({
     } finally {
       setFormsLoading(false);
     }
-  };
+  }, [projectId]);
 
   // Fetch submissions
-  const refreshSubmissions = async () => {
+  const refreshSubmissions = useCallback(async () => {
     try {
       setSubmissionsLoading(true);
       const response = await feedbackApi.getSubmissions(projectId);
       setSubmissions((response as FeedbackSubmission[]) || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching submissions:', error);
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        console.warn('Unauthorized access to submissions - user may need to login');
+        // Could dispatch an auth event here if needed
+      }
       setSubmissions([]);
     } finally {
       setSubmissionsLoading(false);
     }
-  };
+  }, [projectId]);
 
   // Fetch categories
-  const refreshCategories = async () => {
+  const refreshCategories = useCallback(async () => {
     try {
       setCategoriesLoading(true);
       const response = await feedbackApi.getCategories();
@@ -91,10 +95,10 @@ export const FeedbackProvider: React.FC<FeedbackProviderProps> = ({
     } finally {
       setCategoriesLoading(false);
     }
-  };
+  }, []);
 
   // Refresh all data
-  const refreshAll = async () => {
+  const refreshAll = useCallback(async () => {
     setLoading(true);
     await Promise.all([
       refreshForms(),
@@ -102,7 +106,7 @@ export const FeedbackProvider: React.FC<FeedbackProviderProps> = ({
       refreshCategories()
     ]);
     setLoading(false);
-  };
+  }, [refreshForms, refreshSubmissions, refreshCategories]);
 
   // Create submission
   const createSubmission = async (data: any): Promise<FeedbackSubmission> => {
@@ -143,8 +147,11 @@ export const FeedbackProvider: React.FC<FeedbackProviderProps> = ({
       );
       
       return updatedSubmission;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating submission status:', error);
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        console.warn('Unauthorized access to update submission - user may need to login');
+      }
       throw error;
     }
   };
@@ -154,8 +161,11 @@ export const FeedbackProvider: React.FC<FeedbackProviderProps> = ({
     try {
       const response = await feedbackApi.addNote(submissionId, noteData);
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding note:', error);
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        console.warn('Unauthorized access to add note - user may need to login');
+      }
       throw error;
     }
   };

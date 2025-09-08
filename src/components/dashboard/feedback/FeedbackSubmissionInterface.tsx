@@ -35,14 +35,30 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
   const handleFormSubmit = async (formData: any, formType: string) => {
     setIsSubmitting(true);
     try {
-      // Find the corresponding category and form
-      const category = categories.find(cat => cat.id === formType || cat.name.toLowerCase().includes(formType));
-      const form = forms.find(f => f.category?.id === category?.id);
+      // Map form types to seeded category IDs
+      const categoryMapping: Record<string, string> = {
+        'general': 'general_feedback',
+        'safety': 'safety_incident',
+        'emergency': 'emergency_report',
+        'staff': 'staff_feedback'
+      };
+
+      // Map form types to seeded form IDs
+      const formMapping: Record<string, string> = {
+        'general': 'general_feedback_form',
+        'safety': 'safety_incident_form',
+        'emergency': 'emergency_report_form',
+        'staff': 'staff_feedback_form'
+      };
+
+      // Find the corresponding category and form, or use fallback IDs
+      const category = categories.find(cat => cat.id === categoryMapping[formType] || cat.name.toLowerCase().includes(formType));
+      const form = forms.find(f => f.category?.id === category?.id || f.id === formMapping[formType]);
       
       const submissionData = {
-        formId: form?.id || formType,
+        formId: form?.id || formMapping[formType] || 'general_feedback_form',
         projectId,
-        categoryId: category?.id || formType,
+        categoryId: category?.id || categoryMapping[formType] || 'general_feedback',
         priority: 'MEDIUM',
         sensitivity: 'INTERNAL',
         escalationLevel: 'NONE',
@@ -285,7 +301,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
                     {/* Form Component */}
                     <div className="max-w-5xl mx-auto">
                       <FormComponent 
-                        onSubmit={(data) => handleFormSubmit(data, form.title)}
+                        onSubmit={(data) => handleFormSubmit(data, form.id)}
                         isSubmitting={isSubmitting}
                       />
                     </div>

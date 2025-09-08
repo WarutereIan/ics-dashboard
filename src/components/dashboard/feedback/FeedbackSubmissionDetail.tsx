@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { FeedbackResolutionWorkflow } from './FeedbackResolutionWorkflow';
 import { FeedbackStatusTracker } from './FeedbackStatusTracker';
+import { useFeedback } from '@/contexts/FeedbackContext';
+import { FeedbackSubmission } from '@/types/feedback';
 
 interface FeedbackSubmissionDetailProps {
   submissionId: string;
@@ -34,77 +36,65 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
   const [resolutionNote, setResolutionNote] = useState('');
   const [newStatus, setNewStatus] = useState('');
   const [assignTo, setAssignTo] = useState('');
+  const [submission, setSubmission] = useState<FeedbackSubmission | null>(null);
+  
+  const { getSubmissionById, loading } = useFeedback();
 
-  // Mock submission data
-  const mockSubmission = {
-    id: submissionId,
-    title: 'Water quality concern in community center',
-    type: 'General',
-    priority: 'HIGH',
-    status: 'IN_PROGRESS',
-    submitter: 'John Doe',
-    submitterEmail: 'john@example.com',
-    isAnonymous: false,
-    submittedAt: '2024-01-15T10:30:00Z',
-    assignedTo: 'Sarah Wilson',
-    assignedAt: '2024-01-15T11:00:00Z',
-    description: 'Residents are reporting discolored water from the community center taps. The water has a brownish tint and unusual smell. This has been ongoing for the past 3 days and affects approximately 50 families who use the center daily.',
-    location: 'Community Center - Main Building',
-    attachments: [
-      { name: 'water_sample_photo.jpg', type: 'image', size: '2.3 MB' },
-      { name: 'complaint_log.pdf', type: 'document', size: '156 KB' }
-    ],
-    data: {
-      stakeholderType: 'community_member',
-      overallRating: '2',
-      programArea: 'infrastructure',
-      impact: 'negative',
-      suggestions: 'Please test water quality and provide alternative water source while investigation is ongoing.'
-    },
-    communications: [
-      {
-        id: '1',
-        type: 'email',
-        direction: 'outbound',
-        content: 'Thank you for reporting this issue. We have assigned it to our infrastructure team for immediate investigation.',
-        sentBy: 'Sarah Wilson',
-        sentAt: '2024-01-15T11:15:00Z',
-        status: 'delivered'
-      },
-      {
-        id: '2',
-        type: 'internal_note',
-        direction: 'inbound',
-        content: 'Water quality test scheduled for tomorrow morning. Will coordinate with local health department.',
-        sentBy: 'Mike Johnson',
-        sentAt: '2024-01-15T14:30:00Z',
-        status: 'read'
-      }
-    ],
-    resolutionHistory: [
-      {
-        id: '1',
-        status: 'SUBMITTED',
-        timestamp: '2024-01-15T10:30:00Z',
-        user: 'System',
-        details: 'Feedback submission received'
-      },
-      {
-        id: '2',
-        status: 'ACKNOWLEDGED',
-        timestamp: '2024-01-15T11:00:00Z',
-        user: 'Sarah Wilson',
-        details: 'Assigned to infrastructure team'
-      },
-      {
-        id: '3',
-        status: 'IN_PROGRESS',
-        timestamp: '2024-01-15T11:15:00Z',
-        user: 'Sarah Wilson',
-        details: 'Initial response sent to submitter'
-      }
-    ]
+  useEffect(() => {
+    if (submissionId) {
+      const foundSubmission = getSubmissionById(submissionId);
+      setSubmission(foundSubmission || null);
+    }
+  }, [submissionId, getSubmissionById]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading submission details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not found state
+  if (!submission) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-gray-600">Submission not found</p>
+          <Button variant="outline" onClick={onBack} className="mt-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Submissions
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Transform submission data for display
+  const displayData = {
+    id: submission.id,
+    title: submission.data?.title || `${submission.category?.name || 'Feedback'} Submission`,
+    type: submission.category?.name || 'General',
+    priority: submission.priority,
+    status: submission.status,
+    submitter: submission.isAnonymous ? 'Anonymous' : (submission.submitterName || 'Unknown'),
+    submitterEmail: submission.submitterEmail,
+    isAnonymous: submission.isAnonymous,
+    submittedAt: submission.submittedAt,
+    assignedTo: submission.assignedTo,
+    assignedAt: submission.assignedAt,
+    description: submission.data?.description || submission.data?.feedback || submission.data?.details || 'No description provided',
+    location: submission.data?.location || 'Not specified',
+    attachments: submission.attachments || [],
+    data: submission.data,
+    communications: submission.communications || [],
+    internalNotes: submission.internalNotes || []
   };
+
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -195,14 +185,14 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
             Back to Submissions
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{mockSubmission.title}</h1>
+            <h1 className="text-2xl font-bold">{displayData.title}</h1>
             <div className="flex items-center gap-3 mt-1">
-              <Badge variant={getPriorityColor(mockSubmission.priority)}>
-                {mockSubmission.priority} Priority
+              <Badge variant={getPriorityColor(displayData.priority)}>
+                {displayData.priority} Priority
               </Badge>
-              <Badge variant={getStatusColor(mockSubmission.status)} className="flex items-center gap-1">
-                {getStatusIcon(mockSubmission.status)}
-                {mockSubmission.status.replace('_', ' ')}
+              <Badge variant={getStatusColor(displayData.status)} className="flex items-center gap-1">
+                {getStatusIcon(displayData.status)}
+                {displayData.status.replace('_', ' ')}
               </Badge>
             </div>
           </div>
@@ -216,11 +206,11 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-gray-500" />
-                <span className="text-sm">Assigned to: <strong>{mockSubmission.assignedTo}</strong></span>
+                <span className="text-sm">Assigned to: <strong>{displayData.assignedTo}</strong></span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-gray-500" />
-                <span className="text-sm">Submitted: {new Date(mockSubmission.submittedAt).toLocaleDateString()}</span>
+                <span className="text-sm">Submitted: {new Date(displayData.submittedAt).toLocaleDateString()}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -252,24 +242,24 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-gray-600">Description</label>
-                  <p className="mt-1 text-sm">{mockSubmission.description}</p>
+                  <p className="mt-1 text-sm">{displayData.description}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Location</label>
-                  <p className="mt-1 text-sm">{mockSubmission.location}</p>
+                  <p className="mt-1 text-sm">{displayData.location}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Submitter</label>
                   <p className="mt-1 text-sm">
-                    {mockSubmission.isAnonymous ? 'Anonymous' : mockSubmission.submitter}
-                    {!mockSubmission.isAnonymous && (
-                      <span className="text-gray-500 ml-2">({mockSubmission.submitterEmail})</span>
+                    {displayData.isAnonymous ? 'Anonymous' : displayData.submitter}
+                    {!displayData.isAnonymous && (
+                      <span className="text-gray-500 ml-2">({displayData.submitterEmail})</span>
                     )}
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Submitted At</label>
-                  <p className="mt-1 text-sm">{new Date(mockSubmission.submittedAt).toLocaleString()}</p>
+                  <p className="mt-1 text-sm">{new Date(displayData.submittedAt).toLocaleString()}</p>
                 </div>
               </CardContent>
             </Card>
@@ -280,12 +270,12 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
                 <CardTitle>Form Responses</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {Object.entries(mockSubmission.data).map(([key, value]) => (
+                {Object.entries(displayData.data).map(([key, value]) => (
                   <div key={key}>
                     <label className="text-sm font-medium text-gray-600 capitalize">
                       {key.replace(/([A-Z])/g, ' $1').trim()}
                     </label>
-                    <p className="mt-1 text-sm">{value}</p>
+                    <p className="mt-1 text-sm">{String(value)}</p>
                   </div>
                 ))}
               </CardContent>
@@ -293,19 +283,19 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
           </div>
 
           {/* Attachments */}
-          {mockSubmission.attachments.length > 0 && (
+          {displayData.attachments.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>Attachments</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {mockSubmission.attachments.map((file, index) => (
+                  {displayData.attachments.map((file, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded">
                       <div className="flex items-center gap-3">
                         <FileText className="w-4 h-4 text-gray-500" />
                         <div>
-                          <p className="text-sm font-medium">{file.name}</p>
+                          <p className="text-sm font-medium">{file.filename}</p>
                           <p className="text-xs text-gray-500">{file.size}</p>
                         </div>
                       </div>
@@ -327,12 +317,12 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockSubmission.communications.map((comm) => (
+                {displayData.communications.map((comm) => (
                   <div key={comm.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Badge variant={comm.direction === 'outbound' ? 'default' : 'secondary'}>
-                          {comm.direction === 'outbound' ? 'Sent' : 'Received'}
+                        <Badge variant={comm.direction === 'OUTBOUND' ? 'default' : 'secondary'}>
+                          {comm.direction === 'OUTBOUND' ? 'Sent' : 'Received'}
                         </Badge>
                         <span className="text-sm font-medium">{comm.sentBy}</span>
                       </div>
@@ -353,9 +343,9 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
             {/* Resolution Workflow */}
             <div>
               <FeedbackResolutionWorkflow
-                submissionId={mockSubmission.id}
-                currentStatus={mockSubmission.status}
-                assignedTo={mockSubmission.assignedTo}
+                submissionId={displayData.id}
+                currentStatus={displayData.status}
+                assignedTo={displayData.assignedTo}
                 onStatusUpdate={(status, notes, assignTo) => {
                   console.log('Status update:', { status, notes, assignTo });
                   // Here you would typically make an API call to update the status
@@ -366,11 +356,11 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
             {/* Status Tracker */}
             <div>
               <FeedbackStatusTracker
-                statusHistory={mockSubmission.resolutionHistory}
-                currentStatus={mockSubmission.status}
-                assignedTo={mockSubmission.assignedTo}
-                submittedAt={mockSubmission.submittedAt}
-                resolvedAt={mockSubmission.status === 'RESOLVED' ? mockSubmission.assignedAt : undefined}
+                statusHistory={[]}
+                currentStatus={displayData.status}
+                assignedTo={displayData.assignedTo}
+                submittedAt={new Date(displayData.submittedAt).toISOString()}
+                resolvedAt={displayData.status === 'RESOLVED' ? (submission.resolvedAt ? new Date(submission.resolvedAt).toISOString() : (displayData.assignedAt ? new Date(displayData.assignedAt).toISOString() : undefined)) : undefined}
               />
             </div>
           </div>
@@ -383,20 +373,20 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-            {mockSubmission.resolutionHistory.map((entry) => (
-              <div key={entry.id} className="flex items-start gap-3 p-3 border rounded-lg">
+            {(displayData.internalNotes || []).map((note) => (
+              <div key={note.id} className="flex items-start gap-3 p-3 border rounded-lg">
                 <div className="p-2 bg-gray-100 rounded-full">
-                  {getActionIcon(entry.status)}
+                  <MessageSquare className="w-4 h-4" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">{entry.status.replace('_', ' ')}</span>
+                    <span className="font-medium">Internal Note</span>
                     <span className="text-xs text-gray-500">
-                      {new Date(entry.timestamp).toLocaleString()}
+                      {new Date(note.createdAt).toLocaleString()}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600">{entry.details}</p>
-                  <p className="text-xs text-gray-500 mt-1">by {entry.user}</p>
+                  <p className="text-sm text-gray-600">{note.content}</p>
+                  <p className="text-xs text-gray-500 mt-1">by {note.authorName}</p>
                 </div>
               </div>
             ))}

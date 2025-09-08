@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFeedback } from '@/contexts/FeedbackContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,93 +36,33 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
   const [activeTab, setActiveTab] = useState('all');
   const [selectedSubmission, setSelectedSubmission] = useState<string | null>(null);
   
-  const { submissions, loading, updateSubmissionStatus } = useFeedback();
+  const { submissions, loading, updateSubmissionStatus, refreshSubmissions } = useFeedback();
 
-  // Transform real submissions to match UI expectations
-  const transformedSubmissions = submissions.map(submission => ({
-    id: submission.id,
-    title: submission.data?.title || 'Feedback Submission',
-    type: submission.category?.name || 'General',
-    priority: submission.priority,
-    status: submission.status,
-    submitter: submission.isAnonymous ? 'Anonymous' : (submission.submitterName || 'Unknown'),
-    submitterEmail: submission.submitterEmail,
-    isAnonymous: submission.isAnonymous,
-    submittedAt: submission.submittedAt,
-    assignedTo: submission.assignedTo,
-    description: submission.data?.description || submission.data?.feedback || submission.data?.details || 'No description provided'
-  }));
+  // Fetch submissions when component mounts
+  useEffect(() => {
+    refreshSubmissions();
+  }, [refreshSubmissions]);
 
-  // Fallback mock data for demo when no real submissions
-  const mockSubmissions = [
-    {
-      id: '1',
-      title: 'Water quality concern in community center',
-      type: 'General',
-      priority: 'HIGH',
-      status: 'IN_PROGRESS',
-      submitter: 'John Doe',
-      submitterEmail: 'john@example.com',
-      isAnonymous: false,
-      submittedAt: '2024-01-15T10:30:00Z',
-      assignedTo: 'Sarah Wilson',
-      description: 'Residents are reporting discolored water from the community center taps...'
-    },
-    {
-      id: '2',
-      title: 'Safety incident at playground',
-      type: 'Safety',
-      priority: 'CRITICAL',
-      status: 'SUBMITTED',
-      submitter: 'Anonymous',
-      submitterEmail: null,
-      isAnonymous: true,
-      submittedAt: '2024-01-14T15:45:00Z',
-      assignedTo: null,
-      description: 'Broken equipment at the playground poses safety risk to children...'
-    },
-    {
-      id: '3',
-      title: 'Staff member was very helpful',
-      type: 'Staff',
-      priority: 'LOW',
-      status: 'RESOLVED',
-      submitter: 'Maria Garcia',
-      submitterEmail: 'maria@example.com',
-      isAnonymous: false,
-      submittedAt: '2024-01-13T09:15:00Z',
-      assignedTo: 'Mike Johnson',
-      description: 'The program coordinator was extremely helpful in explaining the new services...'
-    },
-    {
-      id: '4',
-      title: 'Emergency: Gas leak reported',
-      type: 'Emergency',
-      priority: 'CRITICAL',
-      status: 'ESCALATED',
-      submitter: 'Emergency Services',
-      submitterEmail: 'emergency@city.gov',
-      isAnonymous: false,
-      submittedAt: '2024-01-12T22:30:00Z',
-      assignedTo: 'Emergency Team',
-      description: 'Gas leak detected near the community center. Immediate evacuation required...'
-    },
-    {
-      id: '5',
-      title: 'Suggestion for better scheduling',
-      type: 'General',
-      priority: 'MEDIUM',
-      status: 'ACKNOWLEDGED',
-      submitter: 'Anonymous',
-      submitterEmail: null,
-      isAnonymous: true,
-      submittedAt: '2024-01-11T14:20:00Z',
-      assignedTo: 'Program Manager',
-      description: 'Would be helpful to have evening classes for working parents...'
-    }
-  ];
+  // Memoized transformation of submissions to prevent recalculation on every render
+  const transformedSubmissions = useMemo(() => {
+    return submissions.map(submission => ({
+      id: submission.id,
+      title: submission.data?.title || 'Feedback Submission',
+      type: submission.category?.name || 'General',
+      priority: submission.priority,
+      status: submission.status,
+      submitter: submission.isAnonymous ? 'Anonymous' : (submission.submitterName || 'Unknown'),
+      submitterEmail: submission.submitterEmail,
+      isAnonymous: submission.isAnonymous,
+      submittedAt: submission.submittedAt,
+      assignedTo: submission.assignedTo,
+      description: submission.data?.description || submission.data?.feedback || submission.data?.details || 'No description provided'
+    }));
+  }, [submissions]);
 
-  const getPriorityColor = (priority: string) => {
+
+  // Memoized utility functions
+  const getPriorityColor = useCallback((priority: string) => {
     switch (priority) {
       case 'CRITICAL':
         return 'destructive';
@@ -135,9 +75,9 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
       default:
         return 'outline';
     }
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'SUBMITTED':
         return 'secondary';
@@ -154,9 +94,9 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
       default:
         return 'outline';
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case 'SUBMITTED':
         return <Clock className="w-4 h-4" />;
@@ -173,9 +113,9 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
       default:
         return <Clock className="w-4 h-4" />;
     }
-  };
+  }, []);
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = useCallback((type: string) => {
     switch (type) {
       case 'General':
         return <MessageSquare className="w-4 h-4" />;
@@ -188,31 +128,35 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
       default:
         return <MessageSquare className="w-4 h-4" />;
     }
-  };
+  }, []);
 
-  // Use real submissions if available, otherwise fallback to mock data
-  const allSubmissions = transformedSubmissions.length > 0 ? transformedSubmissions : mockSubmissions;
+  // Use real submissions data
+  const allSubmissions = transformedSubmissions;
   
-  const filteredSubmissions = allSubmissions.filter(submission => {
-    const matchesSearch = submission.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         submission.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || submission.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || submission.priority === priorityFilter;
-    
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
+  // Memoized filtered submissions to prevent recalculation on every render
+  const filteredSubmissions = useMemo(() => {
+    return allSubmissions.filter(submission => {
+      const matchesSearch = submission.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           submission.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || submission.status === statusFilter;
+      const matchesPriority = priorityFilter === 'all' || submission.priority === priorityFilter;
+      
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [allSubmissions, searchTerm, statusFilter, priorityFilter]);
 
-  const handleViewSubmission = (submissionId: string) => {
+  // Memoized event handlers
+  const handleViewSubmission = useCallback((submissionId: string) => {
     setSelectedSubmission(submissionId);
-  };
+  }, []);
 
-  const handleBackToList = () => {
+  const handleBackToList = useCallback(() => {
     setSelectedSubmission(null);
-  };
+  }, []);
 
-  const handleExportSubmissions = () => {
+  const handleExportSubmissions = useCallback(() => {
     console.log('Export submissions');
-  };
+  }, []);
 
   // Show detailed view if a submission is selected
   if (selectedSubmission) {
@@ -231,6 +175,28 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading feedback submissions...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Feedback Submissions</h1>
+            <p className="text-gray-600 mt-2">
+              View and manage feedback submissions for {projectName}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading submissions...</p>
           </div>
         </div>
       </div>
@@ -373,8 +339,19 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
           <CardTitle>Submissions ({filteredSubmissions.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredSubmissions.map((submission) => (
+          {filteredSubmissions.length === 0 ? (
+            <div className="text-center py-12">
+              <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No submissions found</h3>
+              <p className="text-gray-500">
+                {transformedSubmissions.length === 0 
+                  ? "No feedback submissions have been received yet." 
+                  : "No submissions match your current filters."}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredSubmissions.map((submission) => (
               <div key={submission.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -420,14 +397,9 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
                   </div>
                 </div>
               </div>
-            ))}
-            {filteredSubmissions.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No submissions found matching your criteria.</p>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

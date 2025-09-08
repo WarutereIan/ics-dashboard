@@ -108,7 +108,7 @@ export function ProSidebar() {
             Organization Goals
           </MenuItem>
             <SubMenu 
-              label="Feedback & Reporting" 
+              label="Feedback " 
               icon={<MessageSquare className="h-4 w-4" />}
               className="text-sm"
             >

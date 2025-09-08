@@ -27,6 +27,8 @@ import { PublicFormFiller } from '@/components/public/PublicFormFiller';
 import { PublicLanding } from '@/components/public/PublicLanding';
 import { ProjectsApiTest } from '@/components/dashboard/ProjectsApiTest';
 import { FeedbackRoutes } from '@/components/dashboard/feedback/FeedbackRoutes';
+import { FeedbackSubmissionInterface } from '@/components/dashboard/feedback/FeedbackSubmissionInterface';
+import { FeedbackProvider } from '@/contexts/FeedbackContext';
 // New all-outcomes and all-outputs pages will be created as OutcomesDetails and OutputsDetails
 
 function ProtectedRoute({ roles }: { roles?: string[] }) {
@@ -74,6 +76,16 @@ function App() {
             <FormProvider>
               <PublicFormFiller isEmbedded={true} />
             </FormProvider>
+          } />
+          
+          {/* Public feedback submission route */}
+          <Route path="/feedback/submit" element={
+            <FeedbackProvider projectId="organization">
+              <FeedbackSubmissionInterface 
+                projectId="organization" 
+                projectName="ICS Organization" 
+              />
+            </FeedbackProvider>
           } />
           
           {/* Authenticated routes - wrapped in dashboard context providers */}
