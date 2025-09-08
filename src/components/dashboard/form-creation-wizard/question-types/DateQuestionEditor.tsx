@@ -28,7 +28,9 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
   };
 
   return (
-    <BaseQuestionEditor {...props}>
+    <BaseQuestionEditor {...props} onLinkToActivities={(activities) => {
+    activities.forEach(activity => props.onLinkToActivity(activity));
+  }}>
       <div className="space-y-4">
         <div className="p-4 bg-gray-50 rounded-lg">
           <Label className="text-sm font-medium mb-4 block">Question Configuration</Label>

@@ -8,7 +8,8 @@ import {
   FeedbackCategory,
   DEFAULT_FEEDBACK_CATEGORIES,
   FeedbackFormSettings,
-  EscalationRule
+  EscalationRule,
+  DEFAULT_STAKEHOLDER_TYPES
 } from '@/types/feedback';
 
 interface UseFeedbackWizardProps {
