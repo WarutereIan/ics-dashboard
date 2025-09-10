@@ -46,8 +46,8 @@ import { useReport } from '@/contexts/ReportContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { useProjects } from '@/contexts/ProjectsContext';
-// Note: Report workflow users will be fetched from user management API when available
-import { storeReportFile, downloadStoredFile, base64ToBlob } from '@/lib/reportFileStorage';
+import { reportService } from '@/services/reportService';
+import { useNotification } from '@/hooks/useNotification';
 import { v4 as uuidv4 } from 'uuid';
 import { Report } from '@/types/dashboard';
 
@@ -81,6 +81,7 @@ export function ReportUpload({
   const { currentProject } = useDashboard();
   const { getProjectActivities, projects } = useProjects();
   const { projectId } = useParams();
+  const { showSuccess, showError } = useNotification();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showNamingDialog, setShowNamingDialog] = useState(false);
@@ -292,31 +293,28 @@ export function ReportUpload({
 
     // Check if categorization is complete (country and project are auto-filled)
     if (!categorization.regionCode || !categorization.reportTypeCode) {
-      toast({
-        title: "Incomplete Categorization",
-        description: "Please complete the categorization (Region, Report Type) and select report frequency before uploading files.",
-        variant: "destructive",
-      });
+      showError(
+        "Incomplete Categorization",
+        "Please complete the categorization (Region, Report Type) and select report frequency before uploading files."
+      );
       return;
     }
 
     // Check if activity is selected for activity reports
     if (categorization.reportTypeCode === 'ACT' && !categorization.activityId) {
-      toast({
-        title: "Activity Required",
-        description: "Please select an activity for activity reports.",
-        variant: "destructive",
-      });
+      showError(
+        "Activity Required",
+        "Please select an activity for activity reports."
+      );
       return;
     }
 
     // Check if adding these files would exceed maxFiles limit
     if (uploadedFiles.length + files.length > maxFiles) {
-      toast({
-        title: "Too Many Files",
-        description: `You can only upload up to ${maxFiles} files.`,
-        variant: "destructive",
-      });
+      showError(
+        "Too Many Files",
+        `You can only upload up to ${maxFiles} files.`
+      );
       return;
     }
 
@@ -479,11 +477,16 @@ export function ReportUpload({
 
   const downloadFile = async (file: UploadedFile) => {
     try {
-      // Use the storage utility for downloading
-      const result = await downloadStoredFile(file.id, file.newName);
-      if (!result.success) {
-        throw new Error(result.error);
-      }
+      // Create a blob URL for the file and trigger download
+      const blob = new Blob([file.file], { type: file.type });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.newName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       toast({
         title: "Download Failed",
@@ -539,93 +542,50 @@ export function ReportUpload({
     }
 
     console.log('Starting upload process...');
-    // Final upload
     setIsUploading(true);
+    
     try {
       console.log('Processing files...');
-      // Store file data in localStorage and create reports with approval workflows
-      const createdReports = await Promise.all(uploadedFiles.map(async (file, index) => {
+      
+      // Upload files to backend API
+      const uploadPromises = uploadedFiles.map(async (file, index) => {
           console.log(`Processing file ${index + 1}:`, file);
           
           // Get the report type name
           const reportType = REPORT_TYPES.find(t => t.code === categorization.reportTypeCode);
           const project = PROJECTS.find(p => p.code === categorization.projectCode);
           
-          // Generate UUID for report ID
-          const reportId = uuidv4();
-          
-          // Create report with basic structure (workflow to be implemented when user management API is ready)
-          const createdReport: Report = {
-            id: reportId,
-            name: file.newName,
-            type: getFileTypeFromExtension(file.originalName),
-            size: formatFileSize(file.size),
-            uploadDate: new Date().toISOString(),
+        // Prepare report data for backend
+        const reportData = {
+          title: file.newName,
             description: `${reportType?.name || 'Report'} for ${project?.name || 'Project'} - ${file.originalName}`,
-            category: reportFrequency, // Use selected frequency instead of derived category
-            // Add activity metadata for activity reports
-            ...(categorization.reportTypeCode === 'ACT' && categorization.activityId && {
-              activityId: categorization.activityId,
-              activityName: activities.find(a => a.id === categorization.activityId)?.title || activities.find(a => a.id === categorization.activityId)?.name || 'Unknown Activity'
-            }),
-            status: 'draft' as const,
-            uploadedBy: `${user.firstName} ${user.lastName}`,
-            lastModified: new Date().toISOString(),
-            lastModifiedBy: `${user.firstName} ${user.lastName}`,
-            projectId: projectId,
-            isPendingReview: true,
-            currentAuthLevel: 'branch-admin',
-            approvalWorkflow: {
-              id: uuidv4(),
-              reportId: reportId,
-              projectId: projectId,
-              createdAt: new Date().toISOString(),
-              createdBy: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
-              currentStep: 1,
-              totalSteps: 1,
-              steps: [],
-              status: 'pending'
-            }
-          };
-          
-          // Store file data using the storage utility
-          const metadata = {
-            uploadedBy: `${user.firstName} ${user.lastName}`,
-            projectId: projectId,
-            category: createdReport.category,
-            status: createdReport.status,
+          category: reportFrequency,
+          reportType: categorization.reportTypeCode,
+          activityId: categorization.reportTypeCode === 'ACT' ? categorization.activityId : undefined,
             reportFrequency: reportFrequency
           };
           
-          console.log('Storing file with metadata:', metadata);
-          const storageResult = await storeReportFile(
+        console.log('Uploading file with data:', reportData);
+        
+        // Upload file to backend
+        const uploadResult = await reportService.uploadReportFile(
+          projectId,
             file.file,
-            createdReport.id,
-            file.namingData,
-            metadata
-          );
-          
-          console.log('Storage result:', storageResult);
-          if (!storageResult.success) {
-            throw new Error(`Failed to store file: ${storageResult.error}`);
-          }
-          
-          // Update the report with file storage information
-          // Note: In a real API, this would be stored in the database
-          const updatedReport = {
-            ...createdReport,
-            fileStorageKey: storageResult.fileKey // Reference to localStorage key
-          };
-          
-          return updatedReport;
-        }));
+          reportData
+        );
+        
+        console.log('Upload result:', uploadResult);
+        return uploadResult.data;
+      });
+
+      const createdReports = await Promise.all(uploadPromises);
 
         console.log('Upload completed successfully:', createdReports);
         setIsUploading(false);
-        toast({
-          title: "Upload Complete",
-          description: `${uploadedFiles.length} report(s) have been uploaded and are now pending approval.`,
-        });
+      showSuccess(
+        "Upload Complete",
+        `${uploadedFiles.length} report(s) have been uploaded successfully and are now available in the reports section.`
+      );
         
         if (onFilesUploaded) {
           onFilesUploaded(uploadedFiles);
@@ -641,15 +601,14 @@ export function ReportUpload({
           versionControl: 'none'
         }));
         setReportFrequency('adhoc');
+      
       } catch (error) {
         console.error('Upload failed with error:', error);
         setIsUploading(false);
-        toast({
-          title: "Upload Failed",
-          description: "An error occurred while creating the reports. Please try again.",
-          variant: "destructive",
-        });
-        console.error('Error creating reports:', error);
+      showError(
+        "Upload Failed",
+        error instanceof Error ? error.message : "An error occurred while uploading the reports. Please try again."
+      );
       }
   };
 

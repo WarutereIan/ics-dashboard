@@ -9,8 +9,12 @@ export interface APIResponse<T> {
 }
 
 export class APIClient {
-  private getAuthToken(): string | null {
+  public getAuthToken(): string | null {
     return localStorage.getItem('ics-auth-token');
+  }
+
+  public getBaseUrl(): string {
+    return API_BASE_URL;
   }
 
   private async request<T>(

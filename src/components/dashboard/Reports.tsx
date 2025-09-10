@@ -19,14 +19,16 @@ import { NamingConventionForm } from './NamingConventionForm';
 import { NamingConventionData, generateFileName, parseFileName, REPORT_TYPES } from '@/lib/namingConvention';
 import { PendingReviews } from './PendingReviews';
 import { useReport } from '@/contexts/ReportContext';
-import { listReportFiles, downloadStoredFile, deleteReportFile, StoredFileData } from '@/lib/reportFileStorage';
+import { reportService } from '@/services/reportService';
 import { useToast } from '@/hooks/use-toast';
+import { useNotification } from '@/hooks/useNotification';
 
 export function Reports() {
   const { user } = useAuth();
   const { getProjectActivities, getProjectOutputs, getProjectOutcomes } = useProjects();
   const { reports: contextReports } = useReport();
   const { toast } = useToast();
+  const { showSuccess, showError } = useNotification();
   const { projectId } = useParams();
   if (!user || !projectId) return null;
   
@@ -48,7 +50,7 @@ export function Reports() {
     versionControl: ''
   });
   const [generatedFileName, setGeneratedFileName] = useState<string>('');
-  const [storedFiles, setStoredFiles] = useState<StoredFileData[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
   // Get project data for report creation
@@ -144,55 +146,77 @@ export function Reports() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Convert stored files to report format for display
-  const reports = storedFiles.map(file => ({
-    id: file.id,
-    name: file.newName,
-    type: getFileTypeFromExtension(file.originalName),
-    size: formatFileSize(file.size),
-    uploadDate: file.uploadedAt,
-    description: `Stored file: ${file.originalName}`,
-    category: file.metadata?.category || 'adhoc',
-    status: file.metadata?.status || 'draft',
-    uploadedBy: file.metadata?.uploadedBy || 'Unknown',
-    lastModified: file.uploadedAt,
-    lastModifiedBy: file.metadata?.uploadedBy || 'Unknown',
-    projectId: file.metadata?.projectId || '',
-    currentAuthLevel: 'branch-admin' as const,
-    approvalWorkflow: {
-      id: file.id,
-      reportId: file.id,
-      projectId: file.metadata?.projectId || '',
-      createdAt: file.uploadedAt,
-      createdBy: file.metadata?.uploadedBy || '',
-      currentStep: 1,
-      totalSteps: 4,
-      steps: [],
-      status: 'pending' as const
-    },
-    isPendingReview: false,
-    fileStorageKey: file.id // Link to stored file
-  } as Report & { fileStorageKey: string }));
+  // Convert backend reports to display format
+  const displayReports = reports.map(report => {
+    // Helper function to format user name
+    const formatUserName = (user: any) => {
+      if (!user) return 'Unknown';
+      return `${user.firstName} ${user.lastName}`.trim() || user.email || 'Unknown';
+    };
 
-  // Comprehensive filtering logic
-  const filteredReports = reports.filter(report => {
-    // Frequency filter
+    return {
+      id: report.id,
+      name: report.title,
+      type: getFileTypeFromExtension(report.title),
+      size: report.fileSize,
+      uploadDate: report.createdAt,
+      description: report.description,
+      category: 'adhoc', // Default category
+      status: report.status.toLowerCase(),
+      uploadedBy: formatUserName(report.creator), // Use report.creator instead of report.createdBy
+      lastModified: report.updatedAt || report.createdAt,
+      lastModifiedBy: formatUserName(report.updater), // Use report.updater instead of report.updatedBy
+      projectId: projectId,
+      currentAuthLevel: 'branch-admin' as const,
+      approvalWorkflow: {
+        id: report.id,
+        reportId: report.id,
+        projectId: projectId,
+        createdAt: report.createdAt,
+        createdBy: formatUserName(report.creator), // Use report.creator instead of report.createdBy
+        currentStep: 1,
+        totalSteps: 4,
+        steps: [],
+        status: 'pending' as const
+      },
+      isPendingReview: false,
+      fileUrl: report.fileUrl, // Link to backend file
+      // Audit information
+      auditInfo: {
+        createdBy: report.creator, // Use the full user object
+        updatedBy: report.updater, // Use the full user object
+        createdAt: report.createdAt,
+        updatedAt: report.updatedAt
+      }
+    } as Report & { fileUrl: string; auditInfo: any };
+  });
+
+
+  // Simplified filtering logic - for now, just return all reports if filters are 'all'
+  const filteredReports = displayReports.filter(report => {
+    // For now, let's be more permissive with filtering to debug the issue
     const frequencyMatch = selectedFrequency === 'all' || report.category === selectedFrequency;
+    const categoryMatch = selectedCategory === 'all' || report.category === selectedCategory;
     
-    // Report type filter (based on filename or metadata)
-    const reportTypeMatch = selectedReportType === 'all' || 
-      (report.name && report.name.includes(`_${selectedReportType}_`)) ||
-      (report as any).reportTypeCode === selectedReportType;
+    // Report type filter - be more flexible
+    let reportTypeMatch = true;
+    if (selectedReportType !== 'all') {
+      // Check if the report name contains the selected report type
+      reportTypeMatch = !!(report.name && (
+        report.name.includes(`_${selectedReportType}_`) ||
+        report.name.toLowerCase().includes(selectedReportType.toLowerCase())
+      ));
+    }
     
-    // Activity filter (for activity reports)
+    // Activity filter - only apply if we have activity data
     const activityMatch = selectedActivity === 'all' || 
+      !(report as any).activityId || // If no activityId, it's not an activity report
       (report as any).activityId === selectedActivity;
     
-    // Legacy category filter (for backward compatibility)
-    const categoryMatch = selectedCategory === 'all' || report.category === selectedCategory;
     
     return frequencyMatch && reportTypeMatch && activityMatch && categoryMatch;
   });
+
 
   // Helper for report type options
   const reportTypeOptions = [
@@ -216,101 +240,74 @@ export function Reports() {
     setGeneratedFileName(fileName);
   };
 
-  // Load stored files from localStorage
-  const loadStoredFiles = async () => {
+  // Load reports from backend API
+  const loadReports = async () => {
     setIsLoadingFiles(true);
     try {
-      const response = await listReportFiles();
-      console.log('listReportFiles response:', response);
+      const response = await reportService.getReports(projectId);
       if (response.success && response.data) {
-        const files = response.data as unknown as StoredFileData[];
-        console.log('All stored files:', files);
-        // Filter files for current project
-        const projectFiles = files.filter(file => {
-          console.log('Checking file:', file.id, 'metadata:', file.metadata, 'projectId:', projectId);
-          return file.metadata?.projectId === projectId;
-        });
-        console.log('Filtered project files:', projectFiles);
-        setStoredFiles(projectFiles);
+        setReports(response.data);
+      } else {
+        setReports([]);
       }
     } catch (error) {
-      console.error('Error loading stored files:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load stored files",
-        variant: "destructive",
-      });
+      console.error('Error loading reports:', error);
+      showError(
+        "Load Failed",
+        "Failed to load reports from the server"
+      );
+      setReports([]);
     } finally {
       setIsLoadingFiles(false);
     }
   };
 
-  // Load files on component mount and when projectId changes
+  // Load reports on component mount and when projectId changes
   useEffect(() => {
-    console.log('Reports component - current projectId:', projectId);
     if (projectId) {
-      loadStoredFiles();
+      loadReports();
     }
   }, [projectId]);
 
   const handleFilesUploaded = (files: any[]) => {
-    console.log('Files uploaded with naming convention:', files);
     setUploadDialogOpen(false);
-    // Reload stored files after upload
-    loadStoredFiles();
+    // Reload reports after upload
+    loadReports();
   };
 
   // Handle file download
-  const handleDownloadFile = async (fileKey: string, fileName: string) => {
+  const handleDownloadFile = async (reportId: string, fileName: string) => {
     try {
-      const response = await downloadStoredFile(fileKey, fileName);
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "File downloaded successfully",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to download file",
-          variant: "destructive",
-        });
-      }
+      await reportService.downloadReportFile(projectId, reportId);
+      showSuccess(
+        "Download Complete",
+        "File downloaded successfully"
+      );
     } catch (error) {
       console.error('Error downloading file:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download file",
-        variant: "destructive",
-      });
+      showError(
+        "Download Failed",
+        error instanceof Error ? error.message : "Failed to download file"
+      );
     }
   };
 
   // Handle file deletion
-  const handleDeleteFile = async (fileKey: string, fileName: string) => {
+  const handleDeleteFile = async (reportId: string, fileName: string) => {
     try {
-      const response = await deleteReportFile(fileKey);
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "File deleted successfully",
-        });
-        // Reload files after deletion
-        loadStoredFiles();
-      } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to delete file",
-          variant: "destructive",
-        });
-      }
+      await reportService.deleteReportFile(projectId, reportId);
+      showSuccess(
+        "File Deleted",
+        "Report file has been deleted successfully"
+      );
+      // Reload reports after deletion
+      loadReports();
     } catch (error) {
       console.error('Error deleting file:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete file",
-        variant: "destructive",
-      });
+      showError(
+        "Delete Failed",
+        error instanceof Error ? error.message : "Failed to delete file"
+      );
     }
   };
 
@@ -366,7 +363,7 @@ export function Reports() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={loadStoredFiles}
+            onClick={loadReports}
             disabled={isLoadingFiles}
             className="gap-2"
           >
@@ -485,7 +482,7 @@ export function Reports() {
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-            <p className="text-sm text-muted-foreground">Loading stored files...</p>
+            <p className="text-sm text-muted-foreground">Loading reports...</p>
           </div>
         </div>
       )}
@@ -602,8 +599,16 @@ export function Reports() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground w-full min-w-0">
-                    <div>Uploaded by <span className="font-medium text-foreground">{report.uploadedBy}</span></div>
-                    <div>Last modified: {new Date(report.lastModified).toLocaleDateString()} by <span className="font-medium text-foreground">{report.lastModifiedBy}</span></div>
+                    <div className="flex items-center gap-1">
+                      <span>Uploaded by</span>
+                      <span className="font-medium text-foreground">{report.uploadedBy}</span>
+                      <span>on {new Date(report.uploadDate).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span>Last modified by</span>
+                      <span className="font-medium text-foreground">{report.lastModifiedBy}</span>
+                      <span>on {new Date(report.lastModified).toLocaleDateString()}</span>
+                    </div>
                     {(report as any).activityId && (
                       <div className="flex items-center gap-1">
                         <Hash className="w-3 h-3" />
@@ -625,7 +630,7 @@ export function Reports() {
                       variant="default" 
                       size="sm" 
                       className="gap-2"
-                      onClick={() => handleDownloadFile(report.fileStorageKey, report.name)}
+                      onClick={() => handleDownloadFile(report.id, report.name)}
                     >
                       <Download className="h-4 w-4" />
                       Download
@@ -634,7 +639,7 @@ export function Reports() {
                       variant="destructive" 
                       size="sm" 
                       className="gap-2"
-                      onClick={() => handleDeleteFile(report.fileStorageKey, report.name)}
+                      onClick={() => handleDeleteFile(report.id, report.name)}
                     >
                       <Trash2 className="h-4 w-4" />
                       Delete

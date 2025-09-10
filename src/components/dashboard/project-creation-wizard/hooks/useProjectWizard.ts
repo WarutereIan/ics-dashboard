@@ -513,6 +513,17 @@ export function useProjectWizard() {
     return projectChanged || outcomesChanged || activitiesChanged || kpisChanged;
   };
 
+  // Helper function to safely convert dates to ISO string
+  const toISOString = (date: any): string | undefined => {
+    if (!date) return undefined;
+    if (date instanceof Date) return date.toISOString();
+    if (typeof date === 'string') {
+      const parsed = new Date(date);
+      return isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+    }
+    return undefined;
+  };
+
   // Helper function to save outcomes, activities, and KPIs via API
   const saveOutcomesActivitiesKPIs = async (projectId: string, outcomes: any[], activities: any[], kpis: any[]) => {
     try {
@@ -592,8 +603,8 @@ export function useProjectWizard() {
             description: activity.description,
             responsible: activity.responsible || 'Unassigned',
             status: 'NOT_STARTED' as const,
-            startDate: activity.startDate?.toISOString() || new Date().toISOString(),
-            endDate: activity.endDate?.toISOString() || new Date().toISOString(),
+            startDate: toISOString(activity.startDate) || new Date().toISOString(),
+            endDate: toISOString(activity.endDate) || new Date().toISOString(),
             progress: activity.progress || 0,
           };
           await projectDataApi.createProjectActivity(projectId, activityData);
@@ -612,8 +623,8 @@ export function useProjectWizard() {
               description: activity.description,
               responsible: activity.responsible || original.responsible || 'Unassigned',
               status: activity.status || 'NOT_STARTED',
-              startDate: activity.startDate?.toISOString() || original.startDate,
-              endDate: activity.endDate?.toISOString() || original.endDate,
+              startDate: toISOString(activity.startDate) || original.startDate,
+              endDate: toISOString(activity.endDate) || original.endDate,
               progress: activity.progress || 0,
             };
             await projectDataApi.updateProjectActivity(projectId, activity.id, updateData);
