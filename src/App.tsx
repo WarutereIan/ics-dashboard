@@ -5,6 +5,8 @@ import { DashboardProvider } from '@/contexts/DashboardContext';
 import { FormProvider } from '@/contexts/FormContext';
 import { ReportProvider } from '@/contexts/ReportContext';
 import { ProjectsProvider } from '@/contexts/ProjectsContext';
+import { NotificationProvider, useNotifications } from '@/contexts/NotificationContext';
+import { NotificationContainer } from '@/components/ui/notification';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { GlobalOverview } from '@/components/dashboard/GlobalOverview';
 import { ProjectOverview } from '@/components/dashboard/ProjectOverview';
@@ -61,7 +63,20 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
+        <NotificationProvider>
+          <AppWithNotifications />
+        </NotificationProvider>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+function AppWithNotifications() {
+  const { notifications, removeNotification } = useNotifications();
+  
+  return (
+    <>
+      <Routes>
           {/* Public routes - no context providers that require auth */}
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Login />} />
@@ -139,8 +154,11 @@ function App() {
             </DashboardProvider>
           } />
         </Routes>
-      </AuthProvider>
-    </Router>
+      <NotificationContainer 
+        notifications={notifications} 
+        onRemove={removeNotification} 
+      />
+    </>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,8 +20,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, User, Shield, Building, Globe } from 'lucide-react';
+import { Plus, X, User, Shield, Building, Globe, Eye, EyeOff, Check } from 'lucide-react';
 import { Role, RoleAssignment } from '@/services/userManagementService';
+import { useProjects } from '@/contexts/ProjectsContext';
+import { useNotification } from '@/hooks/useNotification';
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -31,6 +33,8 @@ interface CreateUserDialogProps {
 }
 
 export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: CreateUserDialogProps) {
+  const { projects } = useProjects();
+  const { showSuccess, showError } = useNotification();
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -41,6 +45,24 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
   const [roleAssignments, setRoleAssignments] = useState<RoleAssignment[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Real-time validation for confirm password
+  const validateConfirmPassword = (password: string, confirmPassword: string) => {
+    if (!confirmPassword) return { isValid: false, message: '', showSuccess: false };
+    if (password !== confirmPassword) return { isValid: false, message: 'Passwords do not match', showSuccess: false };
+    return { isValid: true, message: 'Passwords match', showSuccess: true };
+  };
+
+  const handleFormDataChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear errors when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -70,9 +92,18 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
     setLoading(true);
     try {
       await onSubmit({
-        ...formData,
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        password: formData.password,
         roleAssignments: roleAssignments.length > 0 ? roleAssignments : undefined,
       });
+      
+      // Show success notification
+      showSuccess(
+        'User Created Successfully',
+        `${formData.firstName} ${formData.lastName} has been created and can now access the system.`
+      );
       
       // Reset form
       setFormData({
@@ -84,8 +115,17 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
       });
       setRoleAssignments([]);
       setErrors({});
-    } catch (error) {
+      
+      // Close dialog
+      onOpenChange(false);
+    } catch (error: any) {
       console.error('Failed to create user:', error);
+      
+      // Show error notification
+      showError(
+        'Failed to Create User',
+        error.message || 'An unexpected error occurred while creating the user. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -102,6 +142,18 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
   const updateRoleAssignment = (index: number, field: keyof RoleAssignment, value: string) => {
     const updated = [...roleAssignments];
     updated[index] = { ...updated[index], [field]: value };
+    
+    // Auto-populate country when project is selected
+    if (field === 'projectId' && value && value !== 'none') {
+      const selectedProject = projects.find(p => p.id === value);
+      if (selectedProject) {
+        updated[index].country = selectedProject.country;
+      }
+    } else if (field === 'projectId' && (value === 'none' || !value)) {
+      // Clear country when no project is selected
+      updated[index].country = '';
+    }
+    
     setRoleAssignments(updated);
   };
 
@@ -137,7 +189,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                   <Input
                     id="firstName"
                     value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    onChange={(e) => handleFormDataChange('firstName', e.target.value)}
                     className={errors.firstName ? 'border-red-500' : ''}
                   />
                   {errors.firstName && (
@@ -149,7 +201,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                   <Input
                     id="lastName"
                     value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    onChange={(e) => handleFormDataChange('lastName', e.target.value)}
                     className={errors.lastName ? 'border-red-500' : ''}
                   />
                   {errors.lastName && (
@@ -164,7 +216,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => handleFormDataChange('email', e.target.value)}
                   className={errors.email ? 'border-red-500' : ''}
                 />
                 {errors.email && (
@@ -175,29 +227,78 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="password">Password *</Label>
+                  <div className="relative">
                   <Input
                     id="password"
-                    type="password"
+                      type={showPassword ? 'text' : 'password'}
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className={errors.password ? 'border-red-500' : ''}
-                  />
+                      onChange={(e) => handleFormDataChange('password', e.target.value)}
+                      className={`${errors.password ? 'border-red-500' : ''} pr-10`}
+                    />
+                    <button
+                      type="button"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      onClick={() => setShowPassword(v => !v)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                   {errors.password && (
                     <p className="text-sm text-red-500">{errors.password}</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <div className="relative">
                   <Input
                     id="confirmPassword"
-                    type="password"
+                      type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className={errors.confirmPassword ? 'border-red-500' : ''}
-                  />
-                  {errors.confirmPassword && (
-                    <p className="text-sm text-red-500">{errors.confirmPassword}</p>
-                  )}
+                      onChange={(e) => handleFormDataChange('confirmPassword', e.target.value)}
+                      className={`${
+                        errors.confirmPassword 
+                          ? 'border-red-500' 
+                          : validateConfirmPassword(formData.password, formData.confirmPassword).isValid && formData.confirmPassword
+                          ? 'border-green-500'
+                          : ''
+                      } pr-10`}
+                    />
+                    <button
+                      type="button"
+                      aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                      onClick={() => setShowConfirmPassword(v => !v)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {(() => {
+                    const validation = validateConfirmPassword(formData.password, formData.confirmPassword);
+                    if (errors.confirmPassword) {
+                      return <p className="text-sm text-red-500">{errors.confirmPassword}</p>;
+                    }
+                    if (validation.showSuccess) {
+                      return (
+                        <p className="text-sm text-green-500 flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          {validation.message}
+                        </p>
+                      );
+                    }
+                    if (validation.message && !validation.isValid) {
+                      return <p className="text-sm text-red-500">{validation.message}</p>;
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
             </CardContent>
@@ -278,29 +379,48 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                         </div>
 
                         {selectedRole && selectedRole.level >= 4 && (
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-4">
                             <div className="space-y-2">
                               <Label className="flex items-center gap-2">
                                 <Building className="h-4 w-4" />
                                 Project (Optional)
                               </Label>
-                              <Input
-                                placeholder="Project ID"
-                                value={assignment.projectId || ''}
-                                onChange={(e) => updateRoleAssignment(index, 'projectId', e.target.value)}
-                              />
+                              <Select
+                                value={assignment.projectId || 'none'}
+                                onValueChange={(value) => updateRoleAssignment(index, 'projectId', value === 'none' ? '' : value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a project" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">No project</SelectItem>
+                                  {projects.map((project) => (
+                                    <SelectItem key={project.id} value={project.id}>
+                                      <div className="flex items-center gap-2">
+                                        <span>{project.name}</span>
+                                        <Badge variant="outline" className="text-xs">
+                                          {project.country}
+                                        </Badge>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
-                            <div className="space-y-2">
-                              <Label className="flex items-center gap-2">
-                                <Globe className="h-4 w-4" />
-                                Country (Optional)
-                              </Label>
-                              <Input
-                                placeholder="e.g., Kenya, Tanzania"
-                                value={assignment.country || ''}
-                                onChange={(e) => updateRoleAssignment(index, 'country', e.target.value)}
-                              />
-                            </div>
+                            {assignment.projectId && assignment.country && (
+                              <div className="space-y-2">
+                                <Label className="flex items-center gap-2">
+                                  <Globe className="h-4 w-4" />
+                                  Country
+                                </Label>
+                                <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                                  <Badge variant="secondary">{assignment.country}</Badge>
+                                  <span className="text-sm text-muted-foreground">
+                                    (Auto-selected from project)
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, X, User, Shield, Building, Globe, Key, Settings } from 'lucide-react';
 import { User as UserType, Role, RoleAssignment } from '@/services/userManagementService';
+import { useProjects } from '@/contexts/ProjectsContext';
 
 interface EditUserDialogProps {
   open: boolean;
@@ -33,6 +34,7 @@ interface EditUserDialogProps {
 }
 
 export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: EditUserDialogProps) {
+  const { projects } = useProjects();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -129,6 +131,18 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
   const updateRoleAssignment = (index: number, field: keyof RoleAssignment, value: string) => {
     const updated = [...roleAssignments];
     updated[index] = { ...updated[index], [field]: value };
+    
+    // Auto-populate country when project is selected
+    if (field === 'projectId' && value && value !== 'none') {
+      const selectedProject = projects.find(p => p.id === value);
+      if (selectedProject) {
+        updated[index].country = selectedProject.country;
+      }
+    } else if (field === 'projectId' && (value === 'none' || !value)) {
+      // Clear country when no project is selected
+      updated[index].country = '';
+    }
+    
     setRoleAssignments(updated);
   };
 
@@ -348,29 +362,48 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
                             </div>
 
                             {selectedRole && selectedRole.level >= 4 && (
-                              <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-4">
                                 <div className="space-y-2">
                                   <Label className="flex items-center gap-2">
                                     <Building className="h-4 w-4" />
                                     Project (Optional)
                                   </Label>
-                                  <Input
-                                    placeholder="Project ID"
-                                    value={assignment.projectId || ''}
-                                    onChange={(e) => updateRoleAssignment(index, 'projectId', e.target.value)}
-                                  />
+                                  <Select
+                                    value={assignment.projectId || 'none'}
+                                    onValueChange={(value) => updateRoleAssignment(index, 'projectId', value === 'none' ? '' : value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select a project" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">No project</SelectItem>
+                                      {projects.map((project) => (
+                                        <SelectItem key={project.id} value={project.id}>
+                                          <div className="flex items-center gap-2">
+                                            <span>{project.name}</span>
+                                            <Badge variant="outline" className="text-xs">
+                                              {project.country}
+                                            </Badge>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </div>
-                                <div className="space-y-2">
-                                  <Label className="flex items-center gap-2">
-                                    <Globe className="h-4 w-4" />
-                                    Country (Optional)
-                                  </Label>
-                                  <Input
-                                    placeholder="e.g., Kenya, Tanzania"
-                                    value={assignment.country || ''}
-                                    onChange={(e) => updateRoleAssignment(index, 'country', e.target.value)}
-                                  />
-                                </div>
+                                {assignment.projectId && assignment.country && (
+                                  <div className="space-y-2">
+                                    <Label className="flex items-center gap-2">
+                                      <Globe className="h-4 w-4" />
+                                      Country
+                                    </Label>
+                                    <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                                      <Badge variant="secondary">{assignment.country}</Badge>
+                                      <span className="text-sm text-muted-foreground">
+                                        (Auto-selected from project)
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

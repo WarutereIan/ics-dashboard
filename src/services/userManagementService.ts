@@ -212,6 +212,7 @@ class UserManagementService {
       // This is a placeholder - the actual implementation would need a dedicated endpoint
     });
   }
+
 }
 
 export const userManagementService = new UserManagementService();
