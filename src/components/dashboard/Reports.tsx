@@ -372,10 +372,10 @@ export function Reports() {
           </Button>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="secondary" className="gap-2">
+              {/* <Button variant="secondary" className="gap-2">
                 <FilePlus className="h-4 w-4" />
                 Create from Data
-              </Button>
+              </Button> */}
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>

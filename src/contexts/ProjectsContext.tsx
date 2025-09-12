@@ -3,7 +3,7 @@ import { Project, User, Outcome, Activity, Report } from '@/types/dashboard';
 import { projectsApi } from '@/lib/api/projectsApi';
 import { projectDataApi } from '@/lib/api/projectDataApi';
 import { useAuth } from './AuthContext';
-import { createPermissionManager } from '@/lib/permissions';
+import { createEnhancedPermissionManager } from '@/lib/permissions';
 
 interface ProjectsContextType {
   projects: Project[];
@@ -43,8 +43,8 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0);
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
-  // Create permission manager with current auth context
-  const permissionManager = createPermissionManager({
+  // Create enhanced permission manager with current auth context
+  const permissionManager = createEnhancedPermissionManager({
     user,
     isAuthenticated,
     isLoading: authLoading

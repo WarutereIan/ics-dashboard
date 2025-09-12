@@ -15,6 +15,7 @@ import Login from '@/components/auth/Login';
 import { OutcomesDetails } from '@/components/dashboard/OutcomesDetails';
 import { OutputsDetails } from '@/components/dashboard/OutputsDetails';
 import { Reports } from '@/components/dashboard/Reports';
+import { KoboData } from '@/components/dashboard/KoboData';
 import { Maps } from '@/components/dashboard/Maps';
 import { Media } from '@/components/dashboard/Media';
 import Financial from '@/components/dashboard/Financial';
@@ -133,6 +134,7 @@ function AppWithNotifications() {
                           <Route path="projects/:projectId/activities" element={<Activities />} />
                           <Route path="projects/:projectId/subactivities" element={<Subactivities />} />
                           <Route path="projects/:projectId/reports" element={<Reports />} />
+                          <Route path="projects/:projectId/kobo-data" element={<KoboData />} />
                           <Route path="projects/:projectId/maps" element={<Maps />} />
                           <Route path="projects/:projectId/financial" element={<Financial />} />
                           <Route path="projects/:projectId/media" element={<Media />} />
