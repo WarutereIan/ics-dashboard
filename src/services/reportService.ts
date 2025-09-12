@@ -68,7 +68,7 @@ class ReportService {
   }
 
   async getReports(projectId: string): Promise<ReportListResponse> {
-    const response = await apiClient.get<Report[]>(
+    const response = await apiClient.get<ReportFile[]>(
       `${this.baseUrl}/${projectId}/reports`
     );
 

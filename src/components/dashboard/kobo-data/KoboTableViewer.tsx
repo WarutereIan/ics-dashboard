@@ -36,7 +36,8 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
       setData(response.data);
     } catch (error) {
       console.error('Error loading table data:', error);
-      showError(`Failed to load table data: ${error.message || 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      showError(`Failed to load table data: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

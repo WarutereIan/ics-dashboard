@@ -97,7 +97,11 @@ export interface TableStats {
 export class KoboDataService {
   // Available Kobo Tables
   static async getAvailableKoboTables(projectId: string): Promise<{ data: AvailableKoboTable[] }> {
-    return apiClient.get(`/projects/${projectId}/kobo-data/available-tables`);
+    const response = await apiClient.get<AvailableKoboTable[]>(`/projects/${projectId}/kobo-data/available-tables`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to fetch available Kobo tables');
+    }
+    return { data: response.data || [] };
   }
 
   // Project Kobo Table Management
@@ -111,11 +115,22 @@ export class KoboDataService {
   }
 
   static async getProjectKoboTables(projectId: string): Promise<{ data: ProjectKoboTable[] }> {
-    return apiClient.get(`/projects/${projectId}/kobo-data/tables`);
+    const response = await apiClient.get<ProjectKoboTable[]>(`/projects/${projectId}/kobo-data/tables`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to fetch project Kobo tables');
+    }
+    return { data: response.data || [] };
   }
 
   static async getProjectKoboTable(projectId: string, tableId: string): Promise<{ data: ProjectKoboTable }> {
-    return apiClient.get(`/projects/${projectId}/kobo-data/tables/${tableId}`);
+    const response = await apiClient.get<ProjectKoboTable>(`/projects/${projectId}/kobo-data/tables/${tableId}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to fetch project Kobo table');
+    }
+    if (!response.data) {
+      throw new Error('Project Kobo table not found');
+    }
+    return { data: response.data };
   }
 
   static async updateProjectKoboTable(
@@ -151,7 +166,11 @@ export class KoboDataService {
     const url = tableId 
       ? `/projects/${projectId}/kobo-data/kpi-mappings?tableId=${tableId}`
       : `/projects/${projectId}/kobo-data/kpi-mappings`;
-    return apiClient.get(url);
+    const response = await apiClient.get<KoboKpiMapping[]>(url);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to fetch Kobo KPI mappings');
+    }
+    return { data: response.data || [] };
   }
 
   static async updateKoboKpiMapping(
@@ -174,12 +193,23 @@ export class KoboDataService {
 
   // Get table columns
   static async getTableColumns(projectId: string, tableId: string): Promise<{ data: TableColumn[] }> {
-    return apiClient.get(`/projects/${projectId}/kobo-data/tables/${tableId}/columns`);
+    const response = await apiClient.get<TableColumn[]>(`/projects/${projectId}/kobo-data/tables/${tableId}/columns`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to fetch table columns');
+    }
+    return { data: response.data || [] };
   }
 
   // Get table statistics
   static async getTableStats(projectId: string, tableId: string): Promise<{ data: TableStats }> {
-    return apiClient.get(`/projects/${projectId}/kobo-data/tables/${tableId}/stats`);
+    const response = await apiClient.get<TableStats>(`/projects/${projectId}/kobo-data/tables/${tableId}/stats`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to fetch table stats');
+    }
+    if (!response.data) {
+      throw new Error('Table stats not found');
+    }
+    return { data: response.data };
   }
 
   // Kobo Data Fetching
@@ -189,12 +219,26 @@ export class KoboDataService {
     page: number = 1, 
     limit: number = 50
   ): Promise<{ data: KoboTableData }> {
-    return apiClient.get(`/projects/${projectId}/kobo-data/tables/${tableId}/data?page=${page}&limit=${limit}`);
+    const response = await apiClient.get<KoboTableData>(`/projects/${projectId}/kobo-data/tables/${tableId}/data?page=${page}&limit=${limit}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to fetch table data');
+    }
+    if (!response.data) {
+      throw new Error('Table data not found');
+    }
+    return { data: response.data };
   }
 
   // KPI Calculation
   static async calculateKpiFromKoboData(projectId: string, kpiId: string): Promise<{ data: KpiCalculationResult }> {
-    return apiClient.get(`/projects/${projectId}/kobo-data/kpis/${kpiId}/calculate`);
+    const response = await apiClient.get<KpiCalculationResult>(`/projects/${projectId}/kobo-data/kpis/${kpiId}/calculate`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to calculate KPI');
+    }
+    if (!response.data) {
+      throw new Error('KPI calculation result not found');
+    }
+    return { data: response.data };
   }
 }
 

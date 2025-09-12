@@ -88,7 +88,7 @@ export const PERMISSION_DEFINITIONS = {
 } as const;
 
 // Role-based permission mappings (matching auth-seed.ts)
-export const ROLE_PERMISSIONS = {
+export const ROLE_PERMISSIONS: Record<string, string[]> = {
   'global-admin': Object.keys(PERMISSION_DEFINITIONS), // All permissions
 
   'director-africa': [
