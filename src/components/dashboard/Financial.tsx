@@ -47,6 +47,7 @@ export default function Financial() {
   const { currentProject } = useDashboard();
   const { projects, getProjectActivities } = useProjects();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'TZS' | 'KSH' | 'CIF'>('USD');
   const [projectFinancialData, setProjectFinancialData] = useState<ProjectFinancialData | null>(null);
   const [activitiesFinancialData, setActivitiesFinancialData] = useState<ActivityFinancialData[]>([]);
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
@@ -60,6 +61,43 @@ export default function Financial() {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+
+  // Currency conversion rates (example rates - in production, these should come from an API)
+  const currencyRates = {
+    USD: 1,
+    TZS: 2500, // 1 USD = 2500 TZS (approximate)
+    KSH: 150,  // 1 USD = 150 KSH (approximate)
+    CIF: 1.1   // 1 USD = 1.1 CIF (approximate)
+  };
+
+  // Helper function to convert amount to selected currency
+  const convertCurrency = (amount: number, fromCurrency: 'USD' = 'USD'): number => {
+    if (fromCurrency === selectedCurrency) return amount;
+    return amount * currencyRates[selectedCurrency] / currencyRates[fromCurrency];
+  };
+
+  // Helper function to get currency symbol
+  const getCurrencySymbol = (currency: string): string => {
+    switch (currency) {
+      case 'USD': return '$';
+      case 'TZS': return 'TSh';
+      case 'KSH': return 'KSh';
+      case 'CIF': return 'CIF';
+      default: return '$';
+    }
+  };
+
+  // Helper function to format currency amount
+  const formatCurrency = (amount: number): string => {
+    const convertedAmount = convertCurrency(amount);
+    const symbol = getCurrencySymbol(selectedCurrency);
+    
+    if (selectedCurrency === 'USD') {
+      return `${symbol}${convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    } else {
+      return `${symbol} ${convertedAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    }
+  };
 
   useEffect(() => {
     if (projectId) {
@@ -345,6 +383,11 @@ export default function Financial() {
           <p className="text-gray-600">
             Track costs, budgets, and variances for {currentProject?.name}
           </p>
+          {selectedCurrency !== 'USD' && (
+            <p className="text-sm text-blue-600 mt-1">
+              💱 Displaying amounts in {selectedCurrency}. All data is stored in USD and converted for display.
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
@@ -357,6 +400,18 @@ export default function Financial() {
                   {year}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={selectedCurrency} onValueChange={(value: 'USD' | 'TZS' | 'KSH' | 'CIF') => setSelectedCurrency(value)}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="USD">USD ($)</SelectItem>
+              <SelectItem value="TZS">TZS (TSh)</SelectItem>
+              <SelectItem value="KSH">KSH (KSh)</SelectItem>
+              <SelectItem value="CIF">CIF</SelectItem>
             </SelectContent>
           </Select>
           
@@ -412,7 +467,7 @@ export default function Financial() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-600">
-                    ${summary?.totalBudget.toLocaleString() || 0}
+                    {formatCurrency(summary?.totalBudget || 0)}
                   </div>
                 </CardContent>
               </Card>
@@ -423,7 +478,7 @@ export default function Financial() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-600">
-                    ${summary?.totalSpent.toLocaleString() || 0}
+                    {formatCurrency(summary?.totalSpent || 0)}
                   </div>
                 </CardContent>
               </Card>
@@ -435,7 +490,7 @@ export default function Financial() {
                 <CardContent>
                   <div className={`text-2xl font-bold flex items-center gap-2 ${getVarianceColor(summary?.totalVariance || 0)}`}>
                     {getVarianceIcon(summary?.totalVariance || 0)}
-                    ${Math.abs(summary?.totalVariance || 0).toLocaleString()}
+                    {formatCurrency(Math.abs(summary?.totalVariance || 0))}
                   </div>
                 </CardContent>
               </Card>
@@ -449,8 +504,8 @@ export default function Financial() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Spent: ${summary?.totalSpent.toLocaleString() || 0}</span>
-                    <span>Budget: ${summary?.totalBudget.toLocaleString() || 0}</span>
+                    <span>Spent: {formatCurrency(summary?.totalSpent || 0)}</span>
+                    <span>Budget: {formatCurrency(summary?.totalBudget || 0)}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
@@ -484,7 +539,7 @@ export default function Financial() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-blue-600">
-                          ${activitiesFinancialData.reduce((sum, activity) => sum + (activity.totalAnnualBudget || 0), 0).toLocaleString()}
+                          {formatCurrency(activitiesFinancialData.reduce((sum, activity) => sum + (activity.totalAnnualBudget || 0), 0))}
                         </div>
                       </CardContent>
                     </Card>
@@ -495,7 +550,7 @@ export default function Financial() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-orange-600">
-                          ${activitiesFinancialData.reduce((sum, activity) => sum + (activity.totalAnnualCost || 0), 0).toLocaleString()}
+                          {formatCurrency(activitiesFinancialData.reduce((sum, activity) => sum + (activity.totalAnnualCost || 0), 0))}
                         </div>
                       </CardContent>
                     </Card>
@@ -507,7 +562,7 @@ export default function Financial() {
                       <CardContent>
                         <div className={`text-2xl font-bold flex items-center gap-2 ${getVarianceColor(activitiesFinancialData.reduce((sum, activity) => sum + (activity.variance || 0), 0))}`}>
                           {getVarianceIcon(activitiesFinancialData.reduce((sum, activity) => sum + (activity.variance || 0), 0))}
-                          ${Math.abs(activitiesFinancialData.reduce((sum, activity) => sum + (activity.variance || 0), 0)).toLocaleString()}
+                          {formatCurrency(Math.abs(activitiesFinancialData.reduce((sum, activity) => sum + (activity.variance || 0), 0)))}
                         </div>
                       </CardContent>
                     </Card>
@@ -579,20 +634,20 @@ export default function Financial() {
                                     <div>
                                       <Label className="text-sm text-gray-600">Annual Budget</Label>
                                       <div className="text-lg font-semibold text-blue-600">
-                                        ${existingData.totalAnnualBudget.toLocaleString()}
+                                        {formatCurrency(existingData.totalAnnualBudget)}
                                       </div>
                                     </div>
                                     <div>
                                       <Label className="text-sm text-gray-600">Annual Cost</Label>
                                       <div className="text-lg font-semibold text-orange-600">
-                                        ${existingData.totalAnnualCost.toLocaleString()}
+                                        {formatCurrency(existingData.totalAnnualCost)}
                                       </div>
                                     </div>
                                     <div>
                                       <Label className="text-sm text-gray-600">Variance</Label>
                                       <div className={`text-lg font-semibold flex items-center gap-1 ${getVarianceColor(existingData.variance)}`}>
                                         {getVarianceIcon(existingData.variance)}
-                                        ${Math.abs(existingData.variance).toLocaleString()}
+                                        {formatCurrency(Math.abs(existingData.variance))}
                                       </div>
                                     </div>
                                   </div>
@@ -670,6 +725,9 @@ export default function Financial() {
                         isEditing={isEditing}
                         onUpdate={updateActivityData}
                         onRemove={removeActivityFinancialData}
+                        formatCurrency={formatCurrency}
+                        getCurrencySymbol={getCurrencySymbol}
+                        selectedCurrency={selectedCurrency}
                       />
                     ))}
                     
@@ -764,15 +822,15 @@ export default function Financial() {
                         <tr key={quarter} className="border-b">
                           <td className="p-2 font-medium">{quarter.toUpperCase()}</td>
                           <td className="p-2 text-right text-blue-600">
-                            ${summary?.byQuarter[quarter as keyof typeof summary.byQuarter].budget.toLocaleString() || 0}
+                            {formatCurrency(summary?.byQuarter[quarter as keyof typeof summary.byQuarter].budget || 0)}
                           </td>
                           <td className="p-2 text-right text-orange-600">
-                            ${summary?.byQuarter[quarter as keyof typeof summary.byQuarter].spent.toLocaleString() || 0}
+                            {formatCurrency(summary?.byQuarter[quarter as keyof typeof summary.byQuarter].spent || 0)}
                           </td>
                           <td className="p-2 text-right">
                             <Badge className={getVarianceColor(summary?.byQuarter[quarter as keyof typeof summary.byQuarter].variance || 0)}>
                               {getVarianceIcon(summary?.byQuarter[quarter as keyof typeof summary.byQuarter].variance || 0)}
-                              ${Math.abs(summary?.byQuarter[quarter as keyof typeof summary.byQuarter].variance || 0).toLocaleString()}
+                              {formatCurrency(Math.abs(summary?.byQuarter[quarter as keyof typeof summary.byQuarter].variance || 0))}
                             </Badge>
                           </td>
                         </tr>
@@ -817,15 +875,15 @@ export default function Financial() {
                              <tr key={quarter} className="border-b">
                                <td className="p-2 font-medium">{quarter.toUpperCase()}</td>
                                <td className="p-2 text-right text-blue-600">
-                                 ${quarterBudget.toLocaleString()}
+                                 {formatCurrency(quarterBudget)}
                                </td>
                                <td className="p-2 text-right text-orange-600">
-                                 ${quarterSpent.toLocaleString()}
+                                 {formatCurrency(quarterSpent)}
                                </td>
                                <td className="p-2 text-right">
                                  <Badge className={getVarianceColor(variance)}>
                                    {getVarianceIcon(variance)}
-                                   ${Math.abs(variance).toLocaleString()}
+                                   {formatCurrency(Math.abs(variance))}
                                  </Badge>
                                </td>
                              </tr>
@@ -864,9 +922,12 @@ interface ActivityFinancialCardProps {
   isEditing: boolean;
   onUpdate: (activityId: string, updates: Partial<LegacyActivityFinancialData>) => void;
   onRemove: (activityId: string) => void;
+  formatCurrency: (amount: number) => string;
+  getCurrencySymbol: (currency: string) => string;
+  selectedCurrency: 'USD' | 'TZS' | 'KSH' | 'CIF';
 }
 
-function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove }: ActivityFinancialCardProps) {
+function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove, formatCurrency, getCurrencySymbol, selectedCurrency }: ActivityFinancialCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleQuarterlyCostChange = (quarter: 'q1' | 'q2' | 'q3' | 'q4', value: string) => {
@@ -913,7 +974,7 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove }: 
           <div className="flex items-center gap-2">
             <Badge className={getVarianceColor(activityData.variance)}>
               {getVarianceIcon(activityData.variance)}
-              ${Math.abs(activityData.variance).toLocaleString()}
+              {formatCurrency(Math.abs(activityData.variance))}
             </Badge>
             {isEditing && (
               <Button
@@ -936,20 +997,20 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove }: 
             <div>
               <Label className="text-sm text-gray-600">Annual Budget</Label>
               <div className="text-lg font-semibold text-blue-600">
-                ${activityData.totalAnnualBudget.toLocaleString()}
+                {formatCurrency(activityData.totalAnnualBudget)}
               </div>
             </div>
             <div>
               <Label className="text-sm text-gray-600">Annual Cost</Label>
               <div className="text-lg font-semibold text-orange-600">
-                ${activityData.totalAnnualCost.toLocaleString()}
+                {formatCurrency(activityData.totalAnnualCost)}
               </div>
             </div>
             <div>
               <Label className="text-sm text-gray-600">Variance</Label>
               <div className={`text-lg font-semibold flex items-center gap-1 ${getVarianceColor(activityData.variance)}`}>
                 {getVarianceIcon(activityData.variance)}
-                ${Math.abs(activityData.variance).toLocaleString()}
+                {formatCurrency(Math.abs(activityData.variance))}
               </div>
             </div>
           </div>
@@ -963,7 +1024,7 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove }: 
               <div className="mb-4">
                 <Label className="text-sm font-medium text-blue-800">Total Annual Budget *</Label>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-gray-500">$</span>
+                  <span className="text-gray-500">{getCurrencySymbol(selectedCurrency)}</span>
                   <Input
                     type="number"
                     value={activityData.totalAnnualBudget}
@@ -987,7 +1048,7 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove }: 
                     <div key={quarter} className="space-y-1">
                       <Label className="text-xs text-gray-600 font-medium">{quarter.toUpperCase()}</Label>
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-500 text-sm">$</span>
+                        <span className="text-gray-500 text-sm">{getCurrencySymbol(selectedCurrency)}</span>
                         <Input
                           type="number"
                           value={activityData.quarterlyCosts[quarter]}
@@ -1012,7 +1073,7 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove }: 
                 <div>
                   <Label className="text-sm font-medium text-green-800">Total Annual Cost</Label>
                   <div className="text-lg font-semibold text-green-700">
-                    ${activityData.totalAnnualCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(activityData.totalAnnualCost)}
                   </div>
                   <p className="text-xs text-gray-600">Sum of all quarterly costs</p>
                 </div>
@@ -1020,7 +1081,7 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove }: 
                   <Label className="text-sm font-medium text-green-800">Variance</Label>
                   <div className={`text-lg font-semibold flex items-center gap-1 ${getVarianceColor(activityData.variance)}`}>
                     {getVarianceIcon(activityData.variance)}
-                    ${Math.abs(activityData.variance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(Math.abs(activityData.variance))}
                   </div>
                   <p className="text-xs text-gray-600">Budget - Actual Cost</p>
                 </div>

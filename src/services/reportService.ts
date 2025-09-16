@@ -7,7 +7,7 @@ export interface ReportUploadData {
   category?: string;
   reportType?: string;
   activityId?: string;
-  reportFrequency?: 'monthly' | 'quarterly' | 'annual' | 'adhoc';
+  reportFrequency?: 'weekly' | 'bimonthly' | 'monthly' | 'quarterly' | 'bi-annual' | 'annual' | 'adhoc';
 }
 
 export interface ReportFile {

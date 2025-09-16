@@ -18,6 +18,8 @@ import { ReportUpload } from './ReportUpload';
 import { NamingConventionForm } from './NamingConventionForm';
 import { NamingConventionData, generateFileName, parseFileName, REPORT_TYPES } from '@/lib/namingConvention';
 import { PendingReviews } from './PendingReviews';
+import { ReportWorkflowDetail } from './ReportWorkflowDetail';
+import { reportWorkflowService } from '@/services/reportWorkflowService';
 import { useReport } from '@/contexts/ReportContext';
 import { reportService } from '@/services/reportService';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +37,7 @@ export function Reports() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedFrequency, setSelectedFrequency] = useState<string>('all');
   const [selectedReportType, setSelectedReportType] = useState<string>('all');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<string>('all');
   const [selectedActivity, setSelectedActivity] = useState<string>('all');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -52,6 +55,7 @@ export function Reports() {
   const [generatedFileName, setGeneratedFileName] = useState<string>('');
   const [reports, setReports] = useState<any[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [openWorkflowId, setOpenWorkflowId] = useState<string | null>(null);
 
   // Get project data for report creation
   const [activities, setActivities] = useState<any[]>([]);
@@ -103,8 +107,10 @@ export function Reports() {
   const getCategoryBadge = (category: string) => {
     const variants = {
       weekly: 'bg-cyan-100 text-cyan-800',
+      bimonthly: 'bg-teal-100 text-teal-800',
       monthly: 'bg-green-100 text-green-800',
       quarterly: 'bg-blue-100 text-blue-800',
+      'bi-annual': 'bg-indigo-100 text-indigo-800',
       annual: 'bg-purple-100 text-purple-800',
       adhoc: 'bg-gray-100 text-gray-800'
     };
@@ -112,17 +118,27 @@ export function Reports() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
+    const key = (status || '').toLowerCase();
+    const variants: Record<string, string> = {
+      // File status
       draft: 'bg-yellow-100 text-yellow-800',
       final: 'bg-green-100 text-green-800',
-      archived: 'bg-gray-100 text-gray-800'
+      archived: 'bg-gray-100 text-gray-800',
+      // Workflow status
+      approved: 'bg-green-100 text-green-800',
+      rejected: 'bg-red-100 text-red-800',
+      pending: 'bg-yellow-100 text-yellow-800',
+      in_review: 'bg-blue-100 text-blue-800',
+      'in review': 'bg-blue-100 text-blue-800'
     };
-    return variants[status as keyof typeof variants] || variants.draft;
+    return variants[key] || variants.draft;
   };
 
   // Helper function to get file type from extension
-  const getFileTypeFromExtension = (fileName: string): 'pdf' | 'excel' | 'word' | 'other' => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
+  const getFileTypeFromExtension = (fileName?: string): 'pdf' | 'excel' | 'word' | 'other' => {
+    if (!fileName || typeof fileName !== 'string') return 'other';
+    const parts = fileName.split('.');
+    const extension = parts.length > 1 ? parts.pop()?.toLowerCase() : undefined;
     switch (extension) {
       case 'pdf':
         return 'pdf';
@@ -137,17 +153,12 @@ export function Reports() {
     }
   };
 
-  // Helper function to format file size
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+ 
 
   // Convert backend reports to display format
   const displayReports = reports.map(report => {
+
+    console.log(report);
     // Helper function to format user name
     const formatUserName = (user: any) => {
       if (!user) return 'Unknown';
@@ -161,9 +172,9 @@ export function Reports() {
       size: report.fileSize,
       uploadDate: report.createdAt,
       description: report.description,
-      category: 'adhoc', // Default category
+      category: report.category, // Default category
       status: report.status.toLowerCase(),
-      uploadedBy: formatUserName(report.creator), // Use report.creator instead of report.createdBy
+      uploadedBy: formatUserName(report.createdBy), // Use report.creator instead of report.createdBy
       lastModified: report.updatedAt || report.createdAt,
       lastModifiedBy: formatUserName(report.updater), // Use report.updater instead of report.updatedBy
       projectId: projectId,
@@ -177,7 +188,7 @@ export function Reports() {
         currentStep: 1,
         totalSteps: 4,
         steps: [],
-        status: 'pending' as const
+        status: report.status
       },
       isPendingReview: false,
       fileUrl: report.fileUrl, // Link to backend file
@@ -213,8 +224,25 @@ export function Reports() {
       !(report as any).activityId || // If no activityId, it's not an activity report
       (report as any).activityId === selectedActivity;
     
-    
-    return frequencyMatch && reportTypeMatch && activityMatch && categoryMatch;
+    // Time filter
+    let timeMatch = true;
+    if (selectedTimeRange !== 'all') {
+      const uploaded = new Date(report.uploadDate).getTime();
+      const now = Date.now();
+      const ranges: Record<string, number> = {
+        '7d': 7 * 24 * 60 * 60 * 1000,
+        '30d': 30 * 24 * 60 * 60 * 1000,
+        '3m': 90 * 24 * 60 * 60 * 1000,
+        '6m': 180 * 24 * 60 * 60 * 1000,
+        '1y': 365 * 24 * 60 * 60 * 1000,
+      };
+      const windowMs = ranges[selectedTimeRange];
+      if (windowMs) {
+        timeMatch = uploaded >= (now - windowMs);
+      }
+    }
+
+    return frequencyMatch && reportTypeMatch && activityMatch && categoryMatch && timeMatch;
   });
 
 
@@ -262,6 +290,16 @@ export function Reports() {
     }
   };
 
+  const formatFileSize = (bytes: number): string => {
+    if (!bytes || bytes <= 0) return '0 KB';
+    const kb = bytes / 1024;
+    if (kb < 1024) {
+      return `${kb.toFixed(0)} KB`;
+    }
+    const mb = kb / 1024;
+    return `${mb.toFixed(2)} MB`;
+  };
+
   // Load reports on component mount and when projectId changes
   useEffect(() => {
     if (projectId) {
@@ -289,6 +327,23 @@ export function Reports() {
         "Download Failed",
         error instanceof Error ? error.message : "Failed to download file"
       );
+    }
+  };
+
+  const handleOpenAudit = async (reportId: string) => {
+    try {
+      // Prefer loading by file id (report id here is the file/report id from reports table)
+      const wf = await reportWorkflowService.getByFile(reportId);
+      if (wf && wf.id) {
+        setOpenWorkflowId(wf.id);
+      } else {
+        // fallback: try directly as workflow id
+        setOpenWorkflowId(reportId);
+      }
+    } catch (e) {
+      console.error('Failed to load workflow for report:', e);
+      // fallback
+      setOpenWorkflowId(reportId);
     }
   };
 
@@ -431,8 +486,10 @@ export function Reports() {
                   <Label htmlFor="report-category">Category</Label>
                   <select id="report-category" className="w-full p-2 border rounded">
                     <option value="weekly">Weekly</option>
+                    <option value="bimonthly">Bi-monthly</option>
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly</option>
+                    <option value="bi-annual">Bi-annual</option>
                     <option value="annual">Annual</option>
                     <option value="adhoc">Ad-hoc</option>
                   </select>
@@ -503,8 +560,10 @@ export function Reports() {
             <SelectContent>
               <SelectItem value="all">All Frequencies</SelectItem>
               <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="bimonthly">Bi-monthly</SelectItem>
               <SelectItem value="monthly">Monthly</SelectItem>
               <SelectItem value="quarterly">Quarterly</SelectItem>
+              <SelectItem value="bi-annual">Bi-annual</SelectItem>
               <SelectItem value="annual">Annual</SelectItem>
               <SelectItem value="adhoc">Ad-hoc</SelectItem>
             </SelectContent>
@@ -522,6 +581,21 @@ export function Reports() {
                   {type.name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          {/* Time Range Filter */}
+          <Select value={selectedTimeRange} onValueChange={setSelectedTimeRange}>
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="All Time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="3m">Last 3 months</SelectItem>
+              <SelectItem value="6m">Last 6 months</SelectItem>
+              <SelectItem value="1y">Last year</SelectItem>
             </SelectContent>
           </Select>
 
@@ -551,6 +625,7 @@ export function Reports() {
               setSelectedReportType('all');
               setSelectedActivity('all');
               setSelectedCategory('all');
+              setSelectedTimeRange('all');
             }}
             className="w-full sm:w-auto"
           >
@@ -562,106 +637,96 @@ export function Reports() {
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Showing {filteredReports.length} of {reports.length} reports
-            {(selectedFrequency !== 'all' || selectedReportType !== 'all' || selectedActivity !== 'all') && (
+            {(selectedFrequency !== 'all' || selectedReportType !== 'all' || selectedActivity !== 'all' || selectedTimeRange !== 'all') && (
               <span className="ml-2">
                 • Filtered by: 
                 {selectedFrequency !== 'all' && <span className="ml-1 font-medium">{selectedFrequency}</span>}
                 {selectedReportType !== 'all' && <span className="ml-1 font-medium">{REPORT_TYPES.find(t => t.code === selectedReportType)?.name}</span>}
                 {selectedActivity !== 'all' && <span className="ml-1 font-medium">{activities.find(a => a.id === selectedActivity)?.title || activities.find(a => a.id === selectedActivity)?.name}</span>}
+                {selectedTimeRange !== 'all' && <span className="ml-1 font-medium">{selectedTimeRange}</span>}
               </span>
             )}
           </p>
         </div>
 
-        {/* Reports Grid */}
-        <div className="space-y-4 w-full">
-          <div className="grid gap-4 w-full min-w-0">
-            {filteredReports.map((report) => (
-              <Card key={report.id} className="transition-all duration-200 hover:shadow-md w-full break-words whitespace-normal min-w-0">
-                <CardHeader className="pb-3 w-full min-w-0">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 w-full min-w-0">
-                    <div className="flex items-center gap-3 w-full min-w-0">
-                      {getFileIcon(report.type)}
-                      <div className="w-full min-w-0">
-                        <CardTitle className="text-lg break-words whitespace-normal w-full">{report.name}</CardTitle>
-                        <CardDescription className="text-sm break-words whitespace-normal w-full">
-                          {report.size} • Uploaded on {new Date(report.uploadDate).toLocaleDateString()}
-                        </CardDescription>
+        {/* Reports Table */}
+        <div className="w-full overflow-x-auto">
+          {filteredReports.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-muted-foreground border-b">
+                  <th className="py-3 pr-4">Name</th>
+                  <th className="py-3 pr-4">Category</th>
+                  <th className="py-3 pr-4">Status</th>
+                  <th className="py-3 pr-4">Uploaded</th>
+                  <th className="py-3 pr-4">Uploaded By</th>
+                  <th className="py-3 pr-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredReports.map((report) => (
+                  <tr key={report.id} className="border-b last:border-0">
+                    <td className="py-3 pr-4 max-w-[420px] cursor-pointer" onClick={() => handleOpenAudit(report.id)}>
+                      <div className="flex items-center gap-2">
+                        {getFileIcon(report.type)}
+                        <div className="min-w-0">
+                          <div className="font-medium truncate max-w-[380px]" title={report.name}>{report.name}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[380px]" title={report.description}>{report.description}</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 w-full min-w-0">
-                      <Badge className={getCategoryBadge(report.category)}>
-                        {report.category}
+                    </td>
+                    <td className="py-3 pr-4">
+                      <Badge className={getCategoryBadge(report.category)}>{report.category}</Badge>
+                    </td>
+                    <td className="py-3 pr-4">
+                      <Badge className={getStatusBadge((report).approvalWorkflow.status)}>
+                        {((report).approvalWorkflow.status)}
                       </Badge>
-                      <Badge className={getStatusBadge(report.status)}>
-                        {report.status}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground w-full min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span>Uploaded by</span>
-                      <span className="font-medium text-foreground">{report.uploadedBy}</span>
-                      <span>on {new Date(report.uploadDate).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span>Last modified by</span>
-                      <span className="font-medium text-foreground">{report.lastModifiedBy}</span>
-                      <span>on {new Date(report.lastModified).toLocaleDateString()}</span>
-                    </div>
-                    {(report as any).activityId && (
-                      <div className="flex items-center gap-1">
-                        <Hash className="w-3 h-3" />
-                        Activity: <span className="font-medium text-foreground">{(report as any).activityName || 'Unknown Activity'}</span>
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">{new Date(report.uploadDate).toLocaleDateString()}</td>
+                    <td className="py-3 pr-4 whitespace-nowrap">{report.uploadedBy}</td>
+                    <td className="py-3 pr-4">
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" className="gap-2" onClick={() => handleDownloadFile(report.id, report.name)}>
+                          <Download className="h-4 w-4" />
+                          Download
+                        </Button>
+                        <Button variant="destructive" size="sm" className="gap-2" onClick={() => handleDeleteFile(report.id, report.name)}>
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </Button>
                       </div>
-                    )}
-                  </div>
-                  {/* Naming Convention Info */}
-                  {report.name && getNamingConventionDisplay(report.name)}
-                </CardHeader>
-                <CardContent className="w-full min-w-0">
-                  <p className="text-sm text-muted-foreground mb-4 break-words whitespace-normal w-full">{report.description}</p>
-                  <div className="flex flex-wrap items-center gap-2 w-full min-w-0">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Eye className="h-4 w-4" />
-                      View
-                    </Button>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="gap-2"
-                      onClick={() => handleDownloadFile(report.id, report.name)}
-                    >
-                      <Download className="h-4 w-4" />
-                      Download
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      className="gap-2"
-                      onClick={() => handleDeleteFile(report.id, report.name)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            !isLoadingFiles && (
+              <Card className="w-full">
+                <CardContent className="text-center py-8 w-full">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2 break-words whitespace-normal">No reports found</h3>
+                  <p className="text-muted-foreground break-words whitespace-normal">
+                    No reports available for the selected filters. Upload your first report to get started.
+                  </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-
-          {filteredReports.length === 0 && !isLoadingFiles && (
-            <Card className="w-full">
-              <CardContent className="text-center py-8 w-full">
-                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2 break-words whitespace-normal">No reports found</h3>
-                <p className="text-muted-foreground break-words whitespace-normal">
-                  No reports available for the selected category. Upload your first report to get started.
-                </p>
-              </CardContent>
-            </Card>
+            )
           )}
         </div>
+        {/* Audit Trail Dialog */}
+        <Dialog open={!!openWorkflowId} onOpenChange={(o) => !o && setOpenWorkflowId(null)}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+            {openWorkflowId && (
+              <ReportWorkflowDetail 
+                reportId={openWorkflowId} 
+                onClose={() => setOpenWorkflowId(null)} 
+                onChanged={() => loadReports()}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

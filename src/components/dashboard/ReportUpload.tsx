@@ -202,7 +202,7 @@ export function ReportUpload({
   }, [currentProject]);
 
   // Report frequency state
-  const [reportFrequency, setReportFrequency] = useState<'monthly' | 'quarterly' | 'annual' | 'adhoc'>('adhoc');
+  const [reportFrequency, setReportFrequency] = useState<'weekly' | 'bimonthly' | 'monthly' | 'quarterly' | 'bi-annual' | 'annual' | 'adhoc'>('adhoc');
 
   // Dynamic project and region data
   const availableProjects = React.useMemo(() => {
@@ -555,15 +555,23 @@ export function ReportUpload({
           const reportType = REPORT_TYPES.find(t => t.code === categorization.reportTypeCode);
           const project = PROJECTS.find(p => p.code === categorization.projectCode);
           
-        // Prepare report data for backend
+        // Map report type code to semantic category (separate from frequency)
+        const typeToCategory: Record<string, string> = {
+          FIN: 'FINANCIAL',
+          TECH: 'TECHNICAL',
+        };
+        const derivedCategory = typeToCategory[categorization.reportTypeCode] || 'ADHOC';
+
+        // Prepare report data for backend with distinct category and frequency
         const reportData = {
           title: file.newName,
-            description: `${reportType?.name || 'Report'} for ${project?.name || 'Project'} - ${file.originalName}`,
-          category: reportFrequency,
+          description: `${reportType?.name || 'Report'} for ${project?.name || 'Project'} - ${file.originalName}`,
+          category: derivedCategory,
           reportType: categorization.reportTypeCode,
           activityId: categorization.reportTypeCode === 'ACT' ? categorization.activityId : undefined,
-            reportFrequency: reportFrequency
-          };
+          reportFrequency: reportFrequency,
+          frequency: reportFrequency
+        };
           
         console.log('Uploading file with data:', reportData);
         
@@ -837,14 +845,17 @@ export function ReportUpload({
                 </Label>
                 <Select
                   value={reportFrequency}
-                  onValueChange={(value) => setReportFrequency(value as 'monthly' | 'quarterly' | 'annual' | 'adhoc')}
+                  onValueChange={(value) => setReportFrequency(value as 'weekly' | 'bimonthly' | 'monthly' | 'quarterly' | 'bi-annual' | 'annual' | 'adhoc')}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select report frequency" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="weekly">Weekly Reports</SelectItem>
+                    <SelectItem value="bimonthly">Bi-monthly Reports</SelectItem>
                     <SelectItem value="monthly">Monthly Reports</SelectItem>
                     <SelectItem value="quarterly">Quarterly Reports</SelectItem>
+                    <SelectItem value="bi-annual">Bi-annual Reports</SelectItem>
                     <SelectItem value="annual">Annual Reports</SelectItem>
                     <SelectItem value="adhoc">Ad-hoc Reports</SelectItem>
                   </SelectContent>

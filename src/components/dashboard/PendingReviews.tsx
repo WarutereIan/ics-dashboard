@@ -15,6 +15,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge as BadgeComponent } from '@/components/ui/badge';
 import { Report } from '@/types/dashboard';
+import { reportWorkflowService } from '@/services/reportWorkflowService';
+import { reportService } from '@/services/reportService';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { ReportWorkflowDetail } from './ReportWorkflowDetail';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -25,12 +30,39 @@ interface PendingReviewsProps {
 export function PendingReviews({ projectId }: PendingReviewsProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   if (!user) return null;
 
-  // Mock data for now - will be replaced with actual context data
-  const pendingReviews: Report[] = [];
-  const submittedPendingReview: Report[] = [];
+  const [pendingReviews, setPendingReviews] = React.useState<any[]>([]);
+  const [submittedPendingReview, setSubmittedPendingReview] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [openDetailId, setOpenDetailId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [pending, mine] = await Promise.all([
+          reportWorkflowService.getPendingReviews(projectId),
+          reportWorkflowService.getMyReports(projectId, 'PENDING'),
+        ]);
+        console.log('pending', pending);
+        console.log('mine', mine);
+        const pendingNormalized = (pending.reports || []).map((r: any) => ({ ...r, workflowStatus: r.status }));
+        const mineNormalized = (mine.reports || []).map((r: any) => ({ ...r, workflowStatus: r.status }));
+        setPendingReviews(pendingNormalized);
+        setSubmittedPendingReview(mineNormalized);
+      } catch (e) {
+        console.error('Failed to load workflow lists:', e);
+        setPendingReviews([]);
+        setSubmittedPendingReview([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [projectId]);
 
   const getAuthLevelDisplayName = (level: string): string => {
     const displayNames: Record<string, string> = {
@@ -62,12 +94,36 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
     return variants[category as keyof typeof variants] || variants.adhoc;
   };
 
-  const handleViewReport = (report: Report) => {
-    // Mock navigation for now
-    console.log('Navigate to report:', report.id);
+  const handleViewReport = async (report: any) => {
+    try {
+      if (!projectId) throw new Error('Missing projectId');
+      await reportService.downloadReportFile(projectId, report.id);
+    } catch (e: any) {
+      toast({ title: 'Download Failed', description: e?.message || 'Unable to download report', variant: 'destructive' });
+    }
   };
 
-  if (pendingReviews.length === 0 && submittedPendingReview.length === 0) {
+  const handleOpenReview = (report: any) => {
+    setOpenDetailId(report.id);
+  };
+
+  const handleReview = async (reportId: string, action: 'APPROVE' | 'REJECT' | 'REQUEST_CHANGES') => {
+    try {
+      await reportWorkflowService.review(reportId, action);
+      toast({ title: 'Success', description: `Review submitted: ${action}` });
+      // Refresh lists
+      const [pending, mine] = await Promise.all([
+        reportWorkflowService.getPendingReviews(projectId),
+        reportWorkflowService.getMyReports(projectId, 'PENDING'),
+      ]);
+      setPendingReviews(pending.reports || []);
+      setSubmittedPendingReview(mine.reports || []);
+    } catch (e: any) {
+      toast({ title: 'Review Failed', description: e?.message || 'Unable to submit review', variant: 'destructive' });
+    }
+  };
+
+  if (!loading && pendingReviews.length === 0 && submittedPendingReview.length === 0) {
     return (
       <Card>
         <CardContent className="text-center py-8">
@@ -83,6 +139,33 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
 
   return (
     <div className="space-y-6">
+      <Dialog open={!!openDetailId} onOpenChange={(o) => !o && setOpenDetailId(null)}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <div className="sr-only" id="report-dialog-title">Report Review</div>
+          <div className="sr-only" id="report-dialog-desc">Review report details and take action</div>
+          {openDetailId && (
+            <ReportWorkflowDetail 
+              reportId={openDetailId} 
+              onClose={() => setOpenDetailId(null)}
+              onChanged={async () => {
+                // Reload both pending reviews and submitted reports
+                try {
+                  const [pending, mine] = await Promise.all([
+                    reportWorkflowService.getPendingReviews(projectId),
+                    reportWorkflowService.getMyReports(projectId, 'PENDING'),
+                  ]);
+                  const pendingNormalized = (pending.reports || []).map((r: any) => ({ ...r, workflowStatus: r.status }));
+                  const mineNormalized = (mine.reports || []).map((r: any) => ({ ...r, workflowStatus: r.status }));
+                  setPendingReviews(pendingNormalized);
+                  setSubmittedPendingReview(mineNormalized);
+                } catch (e) {
+                  console.error('Failed to reload reports after status change:', e);
+                }
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       {/* Pending Reviews for User */}
       {pendingReviews.length > 0 && (
         <Card>
@@ -94,59 +177,67 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {pendingReviews.map((report) => (
+              {pendingReviews.map((report) => {
+                const status = (report.status || report.workflowStatus || '').toString().toLowerCase();
+                const category = (report.category || '').toString().toLowerCase();
+                const steps = Array.isArray(report.approvalSteps) ? report.approvalSteps : [];
+                const totalSteps = steps.length || 1;
+                const currentStepIndex = steps.findIndex((s: any) => !s.isCompleted);
+                const currentStep = currentStepIndex >= 0 ? currentStepIndex + 1 : totalSteps;
+                return (
                 <div key={report.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start gap-3">
                       <FileText className="h-5 w-5 text-blue-500 mt-1" />
                       <div>
-                        <h4 className="font-medium text-foreground">{report.name}</h4>
-                        <p className="text-sm text-muted-foreground">{report.description}</p>
+                        <h4 className="font-medium text-foreground">{report.name || 'Report'}</h4>
+                        <p className="text-sm text-muted-foreground">{report.description || ''}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <BadgeComponent className={getCategoryBadge(report.category)}>
-                            {report.category}
+                          <BadgeComponent className={getCategoryBadge(category)}>
+                            {category || 'adhoc'}
                           </BadgeComponent>
-                          <BadgeComponent className={getStatusBadge(report.approvalWorkflow.status)}>
-                            {report.approvalWorkflow.status}
+                          <BadgeComponent className={getStatusBadge(status)}>
+                            {status || 'pending'}
                           </BadgeComponent>
                           <BadgeComponent className="bg-blue-100 text-blue-800">
-                            {getAuthLevelDisplayName(report.currentAuthLevel)}
+                            Pending Step {currentStep}
                           </BadgeComponent>
                         </div>
                       </div>
                     </div>
-                    <Button 
-                      onClick={() => handleViewReport(report)}
-                      size="sm"
-                      className="gap-2"
-                    >
-                      <Eye className="h-4 w-4" />
-                      Review
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => handleViewReport(report)}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View
+                      </Button>
+                      <Button 
+                        onClick={() => handleOpenReview(report)}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Review
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      <span>Submitted by: {report.uploadedBy}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      <span>Uploaded: {new Date(report.uploadDate).toLocaleDateString()}</span>
+                      <span>Submitted: {report.submittedAt ? new Date(report.submittedAt).toLocaleDateString() : '-'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      <span>Step {report.approvalWorkflow.currentStep} of {report.approvalWorkflow.totalSteps}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="h-3 w-3" />
-                      <span>
-                        {report.approvalWorkflow.steps.reduce((total: number, step: any) => total + step.comments.length, 0)} comments
-                      </span>
+                      <span>Step {currentStep} of {totalSteps}</span>
                     </div>
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           </CardContent>
         </Card>
@@ -163,60 +254,67 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {submittedPendingReview.map((report) => (
+              {submittedPendingReview.map((report) => {
+                const status = (report.status || report.workflowStatus || '').toString().toLowerCase();
+                const category = (report.category || '').toString().toLowerCase();
+                const steps = Array.isArray(report.approvalSteps) ? report.approvalSteps : [];
+                const totalSteps = steps.length || 1;
+                const currentStepIndex = steps.findIndex((s: any) => !s.isCompleted);
+                const currentStep = currentStepIndex >= 0 ? currentStepIndex + 1 : totalSteps;
+                return (
                 <div key={report.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start gap-3">
                       <FileText className="h-5 w-5 text-green-500 mt-1" />
                       <div>
-                        <h4 className="font-medium text-foreground">{report.name}</h4>
-                        <p className="text-sm text-muted-foreground">{report.description}</p>
+                        <h4 className="font-medium text-foreground">{report.name || 'Report'}</h4>
+                        <p className="text-sm text-muted-foreground">{report.description || ''}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <BadgeComponent className={getCategoryBadge(report.category)}>
-                            {report.category}
+                          <BadgeComponent className={getCategoryBadge(category)}>
+                            {category || 'adhoc'}
                           </BadgeComponent>
-                          <BadgeComponent className={getStatusBadge(report.approvalWorkflow.status)}>
-                            {report.approvalWorkflow.status}
+                          <BadgeComponent className={getStatusBadge(status)}>
+                            {status || 'pending'}
                           </BadgeComponent>
                           <BadgeComponent className="bg-orange-100 text-orange-800">
-                            Pending {getAuthLevelDisplayName(report.currentAuthLevel)}
+                            Pending Step {currentStep}
                           </BadgeComponent>
                         </div>
                       </div>
                     </div>
-                    <Button 
-                      onClick={() => handleViewReport(report)}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                    >
-                      <Eye className="h-4 w-4" />
-                      View
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => handleViewReport(report)}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        View
+                      </Button>
+                      <Button 
+                        onClick={() => handleOpenReview(report)}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Review
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      <span>Submitted: {new Date(report.uploadDate).toLocaleDateString()}</span>
+                      <span>Submitted: {report.submittedAt ? new Date(report.submittedAt).toLocaleDateString() : '-'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      <span>Step {report.approvalWorkflow.currentStep} of {report.approvalWorkflow.totalSteps}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      <span>Current reviewer: {report.currentReviewerId || 'Unassigned'}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="h-3 w-3" />
-                      <span>
-                        {report.approvalWorkflow.steps.reduce((total: number, step: any) => total + step.comments.length, 0)} comments
-                      </span>
+                      <span>Step {currentStep} of {totalSteps}</span>
                     </div>
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           </CardContent>
         </Card>

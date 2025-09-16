@@ -324,7 +324,7 @@ export interface Report {
   size: string;
   uploadDate: string;
   description: string;
-  category: 'quarterly' | 'annual' | 'monthly' | 'adhoc';
+  category: 'weekly' | 'bimonthly' | 'monthly' | 'quarterly' | 'bi-annual' | 'annual' | 'adhoc';
   status: 'draft' | 'final' | 'archived';
   uploadedBy: string;
   lastModified: string;

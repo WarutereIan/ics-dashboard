@@ -118,21 +118,15 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   'coordinator-tanzania': [
-    'users:read',
+    // Restrict to Projects and User Management within country scope
     'projects:read-regional', 'projects:update-regional',
-    'finance:read-regional',
-    'kpis:read-regional', 'kpis:update-regional',
-    'reports:read-regional', 'reports:create-regional',
-    'analytics:read-regional'
+    'users:read-regional', 'users:create-regional', 'users:update-regional'
   ],
 
   'coordinator-cote-divoire': [
-    'users:read',
+    // Restrict to Projects and User Management within country scope
     'projects:read-regional', 'projects:update-regional',
-    'finance:read-regional',
-    'kpis:read-regional', 'kpis:update-regional',
-    'reports:read-regional', 'reports:create-regional',
-    'analytics:read-regional'
+    'users:read-regional', 'users:create-regional', 'users:update-regional'
   ],
 
   'project-coordinator': [
@@ -235,6 +229,12 @@ export class EnhancedPermissionManager {
       return true;
     }
 
+    // Honor server-provided direct permissions if present
+    const directPermissions = (user as any).permissions as string[] | undefined;
+    if (Array.isArray(directPermissions) && directPermissions.includes(permission)) {
+      return true;
+    }
+
     // Check if any of user's roles have this permission
     for (const role of user.roles) {
       if (!role.isActive) continue;
@@ -252,8 +252,13 @@ export class EnhancedPermissionManager {
    * Check if user has permission for a specific resource and action
    */
   hasResourcePermission(resource: string, action: string, scope: string = 'global'): boolean {
-    const permission = `${resource}:${action}${scope !== 'global' ? `-${scope}` : ''}`;
-    return this.hasPermission(permission);
+    // First check direct permission without scope suffix
+    const direct = this.hasPermission(`${resource}:${action}`);
+    if (direct) return true;
+
+    // Then check with scope suffix if provided
+    const scoped = scope !== 'global' ? this.hasPermission(`${resource}:${action}-${scope}`) : false;
+    return scoped;
   }
 
   /**

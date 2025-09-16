@@ -54,6 +54,10 @@ export function ProSidebar() {
   
   // Use centralized permission manager
   const isAdmin = () => permissionManager.isGlobalAdmin();
+  const isRegionalCoordinator = () => {
+    const roleNames = (user?.roles || []).map(r => r.roleName);
+    return roleNames.includes('coordinator-tanzania') || roleNames.includes('coordinator-cote-divoire');
+  };
 
   const handleCloseSidebar = () => {
     setSidebarOpen(false);
@@ -162,7 +166,17 @@ export function ProSidebar() {
                     No projects available
                   </MenuItem>
                 ) : (
-                  accessibleProjects.map(project => {
+                  (isRegionalCoordinator() 
+                    ? accessibleProjects.filter((project: any) => {
+                        const country = ((project && (project as any).country) ? (project as any).country : '').toLowerCase();
+                        const rcTz = (user?.roles || []).some(r => r.roleName === 'coordinator-tanzania');
+                        const rcCi = (user?.roles || []).some(r => r.roleName === 'coordinator-cote-divoire');
+                        if (rcTz) return country.includes('tanzania') || country.includes('tz');
+                        if (rcCi) return country.includes('côte') || country.includes('cote') || country.includes('ivoire');
+                        return true;
+                      })
+                    : accessibleProjects
+                  ).map(project => {
                     // Safety check for project object
                     if (!project || !project.id || !project.name) {
                       console.warn('Invalid project object:', project);
@@ -307,13 +321,13 @@ export function ProSidebar() {
               </SubMenu>
               
               {/* Admin section - Check for user management permissions */}
-              {permissionManager.canManageUsers('global') && (
+              {(permissionManager.canManageUsers('global') || isRegionalCoordinator()) && (
                 <SubMenu 
                   label="Administration" 
                   icon={<Settings className="h-4 w-4" />}
                   className="text-sm"
                 >
-                  {permissionManager.hasResourcePermission('users', 'read', 'global') && (
+                  {(permissionManager.hasResourcePermission('users', 'read', 'global') || isRegionalCoordinator()) && (
                     <MenuItem 
                       component={<Link to="/dashboard/admin/users" onClick={handleCloseSidebar} />}
                       className="text-sm"

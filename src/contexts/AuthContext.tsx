@@ -97,16 +97,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await authAPI.login(email, password);
       
       if (response.success && response.data) {
-        const { access_token, refresh_token, user } = response.data;
+        const { access_token, refresh_token } = response.data;
         
         // Store tokens
         localStorage.setItem(TOKEN_KEY, access_token);
         localStorage.setItem(REFRESH_TOKEN_KEY, refresh_token);
         
         setToken(access_token);
-        setUser(user);
+        // Immediately fetch full profile (includes roles + permissions) so UI reflects access
+        const profile = await authAPI.getProfile(access_token);
+        setUser(profile);
         
-        return { success: true, user };
+        return { success: true, user: profile };
       } else {
         return { success: false, error: response.error };
       }
