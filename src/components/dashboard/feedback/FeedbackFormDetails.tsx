@@ -11,95 +11,52 @@ import { FeedbackForm, FeedbackSubmission } from '@/types/feedback';
 const FeedbackFormDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { forms, submissions, loading } = useFeedback();
+  const { 
+    forms, 
+    submissions, 
+    loading, 
+    formsLoading, 
+    submissionsLoading,
+    getFormById, 
+    getSubmissionsByForm 
+  } = useFeedback();
   const [form, setForm] = useState<FeedbackForm | null>(null);
   const [formSubmissions, setFormSubmissions] = useState<FeedbackSubmission[]>([]);
-
-  // Mock forms for fallback when API data isn't available
-  const mockForms: FeedbackForm[] = [
-    {
-      id: '1',
-      projectId: 'organization',
-      title: 'General Feedback Form',
-      description: 'Collect general feedback from community members',
-      category: { name: 'General' } as any,
-      isActive: true,
-      allowAnonymous: true,
-      requireAuthentication: false,
-      sections: [],
-      settings: {} as any,
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15'),
-      createdBy: 'system'
-    },
-    {
-      id: '2',
-      projectId: 'organization', 
-      title: 'Safety Incident Report',
-      description: 'Report safety concerns and incidents',
-      category: { name: 'Safety' } as any,
-      isActive: true,
-      allowAnonymous: true,
-      requireAuthentication: false,
-      sections: [],
-      settings: {} as any,
-      createdAt: new Date('2024-01-10'),
-      updatedAt: new Date('2024-01-10'),
-      createdBy: 'system'
-    },
-    {
-      id: '3',
-      projectId: 'organization',
-      title: 'Emergency Report Form', 
-      description: 'Report emergency situations',
-      category: { name: 'Emergency' } as any,
-      isActive: true,
-      allowAnonymous: true,
-      requireAuthentication: false,
-      sections: [],
-      settings: {} as any,
-      createdAt: new Date('2024-01-08'),
-      updatedAt: new Date('2024-01-08'),
-      createdBy: 'system'
-    },
-    {
-      id: '4',
-      projectId: 'organization',
-      title: 'Staff Feedback Form',
-      description: 'Feedback about program staff',
-      category: { name: 'Staff' } as any,
-      isActive: false,
-      allowAnonymous: false,
-      requireAuthentication: true,
-      sections: [],
-      settings: {} as any,
-      createdAt: new Date('2024-01-12'),
-      updatedAt: new Date('2024-01-12'),
-      createdBy: 'system'
-    }
-  ];
 
   console.log('FeedbackFormDetails mounted with id:', id);
   console.log('Available forms:', forms);
   console.log('Loading state:', loading);
+  console.log('Forms loading:', formsLoading);
+  console.log('Submissions loading:', submissionsLoading);
+  
+  // Expected form IDs (matching database):
+  // - general_feedback_form
+  // - safety_incident_form  
+  // - emergency_report_form
+  // - staff_feedback_form
 
   useEffect(() => {
     if (id) {
       console.log('Looking for form with id:', id);
-      // Try to find in real forms first, fallback to mock
-      const allForms = forms.length > 0 ? forms : mockForms;
-      const foundForm = allForms.find(f => f.id === id);
+      
+      // Use the context utility function to get the form
+      const foundForm = getFormById(id);
       console.log('Found form:', foundForm);
       setForm(foundForm || null);
       
-      if (foundForm && submissions) {
-        const relatedSubmissions = submissions.filter(s => s.formId === foundForm.id);
+      // Use the context utility function to get submissions for this form
+      if (foundForm) {
+        const relatedSubmissions = getSubmissionsByForm(id);
+        console.log('Found submissions for form:', relatedSubmissions);
         setFormSubmissions(relatedSubmissions);
+      } else {
+        setFormSubmissions([]);
       }
     }
-  }, [id, forms, submissions]);
+  }, [id, forms, submissions, getFormById, getSubmissionsByForm]);
 
-  if (loading) {
+  // Show loading state while forms are being fetched
+  if (formsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -114,14 +71,17 @@ const FeedbackFormDetails: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-gray-600">Form not found</p>
+          <p className="text-gray-600 mb-2">Form not found</p>
+          <p className="text-sm text-gray-500 mb-4">
+            The form with ID "{id}" could not be found. It may have been deleted or you may not have access to it.
+          </p>
           <Button 
             variant="outline" 
-            onClick={() => navigate('/feedback/management')}
+            onClick={() => navigate('/dashboard/feedback/forms')}
             className="mt-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Management
+            Back to Forms
           </Button>
         </div>
       </div>
@@ -133,11 +93,11 @@ const FeedbackFormDetails: React.FC = () => {
   const pendingSubmissions = formSubmissions.filter(s => s.status === 'SUBMITTED' || s.status === 'ACKNOWLEDGED').length;
   const inProgressSubmissions = formSubmissions.filter(s => s.status === 'IN_PROGRESS').length;
 
-  // Calculate analytics
+  // Calculate analytics from real data
   const analytics = {
     responseRate: totalSubmissions > 0 ? ((resolvedSubmissions / totalSubmissions) * 100).toFixed(1) : '0',
-    averageResolutionTime: '2.3 days', // Mock data
-    satisfactionScore: '4.2/5', // Mock data
+    averageResolutionTime: calculateAverageResolutionTime(formSubmissions),
+    satisfactionScore: calculateSatisfactionScore(formSubmissions),
     priorityDistribution: {
       high: formSubmissions.filter(s => s.priority === 'HIGH').length,
       medium: formSubmissions.filter(s => s.priority === 'MEDIUM').length,
@@ -145,6 +105,30 @@ const FeedbackFormDetails: React.FC = () => {
       critical: formSubmissions.filter(s => s.priority === 'CRITICAL').length,
     }
   };
+
+  // Helper function to calculate average resolution time
+  function calculateAverageResolutionTime(submissions: FeedbackSubmission[]): string {
+    const resolvedSubmissions = submissions.filter(s => s.status === 'RESOLVED' && s.resolvedAt);
+    if (resolvedSubmissions.length === 0) return 'N/A';
+    
+    const totalDays = resolvedSubmissions.reduce((sum, submission) => {
+      const submittedAt = new Date(submission.submittedAt);
+      const resolvedAt = new Date(submission.resolvedAt!);
+      const diffTime = Math.abs(resolvedAt.getTime() - submittedAt.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return sum + diffDays;
+    }, 0);
+    
+    const averageDays = (totalDays / resolvedSubmissions.length).toFixed(1);
+    return `${averageDays} days`;
+  }
+
+  // Helper function to calculate satisfaction score (mock for now)
+  function calculateSatisfactionScore(submissions: FeedbackSubmission[]): string {
+    // This would need to be implemented based on actual satisfaction data
+    // For now, return a placeholder
+    return totalSubmissions > 0 ? 'N/A' : 'N/A';
+  }
 
   return (
     <div className="space-y-6">
@@ -154,7 +138,7 @@ const FeedbackFormDetails: React.FC = () => {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => navigate('/feedback/management')}
+            onClick={() => navigate('/dashboard/feedback/forms')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
@@ -246,8 +230,20 @@ const FeedbackFormDetails: React.FC = () => {
                   <p className="text-gray-900">{form.category?.name || 'General'}</p>
                 </div>
                 <div>
+                  <label className="text-sm font-medium text-gray-600">Type</label>
+                  <p className="text-gray-900">{form.category?.type || 'GENERAL'}</p>
+                </div>
+                <div>
                   <label className="text-sm font-medium text-gray-600">Status</label>
                   <p className="text-gray-900">{form.isActive ? 'Active' : 'Inactive'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Anonymous Submissions</label>
+                  <p className="text-gray-900">{form.allowAnonymous ? 'Allowed' : 'Not Allowed'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Authentication Required</label>
+                  <p className="text-gray-900">{form.requireAuthentication ? 'Yes' : 'No'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">Created</label>
@@ -256,6 +252,10 @@ const FeedbackFormDetails: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium text-gray-600">Last Updated</label>
                   <p className="text-gray-900">{new Date(form.updatedAt).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Created By</label>
+                  <p className="text-gray-900">{form.createdBy || 'System'}</p>
                 </div>
               </CardContent>
             </Card>
@@ -295,13 +295,23 @@ const FeedbackFormDetails: React.FC = () => {
                 <div className="space-y-4">
                   {formSubmissions.slice(0, 10).map((submission) => (
                     <div key={submission.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="space-y-1">
+                      <div className="space-y-1 flex-1">
                         <p className="font-medium">
                           {submission.isAnonymous ? 'Anonymous' : submission.submitterName || 'Unknown'}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {new Date(submission.submittedAt).toLocaleDateString()}
+                          {new Date(submission.submittedAt).toLocaleDateString()} at {new Date(submission.submittedAt).toLocaleTimeString()}
                         </p>
+                        {submission.stakeholderType && (
+                          <p className="text-xs text-gray-500">
+                            Stakeholder: {submission.stakeholderType}
+                          </p>
+                        )}
+                        {submission.assignedTo && (
+                          <p className="text-xs text-blue-600">
+                            Assigned to: {submission.assignedTo}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge variant={
@@ -318,6 +328,11 @@ const FeedbackFormDetails: React.FC = () => {
                         }>
                           {submission.status}
                         </Badge>
+                        {submission.sensitivity && (
+                          <Badge variant="outline" className="text-xs">
+                            {submission.sensitivity}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -426,18 +441,39 @@ const FeedbackFormDetails: React.FC = () => {
             <CardContent>
               {form.sections && form.sections.length > 0 ? (
                 <div className="space-y-6">
-                  {form.sections.map((section) => (
+                  {form.sections
+                    .sort((a, b) => a.order - b.order)
+                    .map((section) => (
                     <div key={section.id} className="border rounded-lg p-4">
-                      <h3 className="font-medium text-gray-900 mb-3">{section.title}</h3>
+                      <div className="mb-3">
+                        <h3 className="font-medium text-gray-900">{section.title}</h3>
+                        {section.description && (
+                          <p className="text-sm text-gray-600 mt-1">{section.description}</p>
+                        )}
+                      </div>
                       {section.questions && section.questions.length > 0 ? (
                         <div className="space-y-3">
-                          {section.questions.map((question) => (
+                          {section.questions
+                            .sort((a, b) => a.order - b.order)
+                            .map((question) => (
                             <div key={question.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                              <div>
+                              <div className="flex-1">
                                 <p className="text-sm font-medium">{question.title}</p>
-                                <p className="text-xs text-gray-500">{question.type}</p>
+                                {question.description && (
+                                  <p className="text-xs text-gray-500 mt-1">{question.description}</p>
+                                )}
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {question.type.replace('_', ' ')}
+                                  </Badge>
+                                  {question.conditional && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      Conditional
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
-                              <Badge variant={question.isRequired ? 'default' : 'secondary'} className="text-xs">
+                              <Badge variant={question.isRequired ? 'default' : 'secondary'} className="text-xs ml-2">
                                 {question.isRequired ? 'Required' : 'Optional'}
                               </Badge>
                             </div>
@@ -450,7 +486,12 @@ const FeedbackFormDetails: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-8">No form structure available</p>
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-2">No form structure available</p>
+                  <p className="text-sm text-gray-400">
+                    This form may not have been fully configured yet.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>

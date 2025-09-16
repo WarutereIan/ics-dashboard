@@ -160,6 +160,20 @@ export interface FeedbackSubmission {
   // Communication
   communications: FeedbackCommunication[];
   internalNotes: FeedbackNote[];
+  statusHistory: FeedbackStatusHistory[];
+}
+
+export interface FeedbackStatusHistory {
+  id: string;
+  submissionId: string;
+  status: FeedbackStatus;
+  previousStatus?: FeedbackStatus;
+  changedBy: string;
+  changedByName: string;
+  reason?: string;
+  details?: string;
+  assignedTo?: string;
+  createdAt: Date;
 }
 
 export interface FeedbackAttachment {

@@ -146,7 +146,7 @@ class FeedbackApiService {
     if (formId) params.append('formId', formId);
     const query = params.toString() ? `?${params.toString()}` : '';
     return this.request(`/analytics${query}`); // Protected endpoint
-  }
+          }
 
   async getFormAnalytics(formId: string) {
     return this.request(`/forms/${formId}/analytics`); // Protected endpoint

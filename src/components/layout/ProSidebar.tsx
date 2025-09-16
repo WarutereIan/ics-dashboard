@@ -91,13 +91,49 @@ export function ProSidebar() {
           <div className="flex-1 overflow-y-auto">
             <Menu>
               {/* Global Overview */}
+             <SubMenu 
+            label="Organization" 
+            icon={<Users className="h-4 w-4" />}
+            className="text-sm"
+            >
               <MenuItem 
-                component={<Link to="/dashboard" onClick={handleCloseSidebar} />}
+            icon={<Target className="h-4 w-4" />} 
+            component={<Link to="/dashboard" onClick={handleCloseSidebar} />}
+            className="text-sm"
+          >
+            Organization Goals
+          </MenuItem>
+            <SubMenu 
+              label="Feedback " 
+              icon={<MessageSquare className="h-4 w-4" />}
+              className="text-sm"
+            >
+              <MenuItem 
+                component={<Link to="/dashboard/feedback" onClick={handleCloseSidebar} />}
                 className="text-sm"
-                icon={<Target className="h-4 w-4" />}
               >
-                Global Overview
+                Submit Feedback
               </MenuItem>
+              <MenuItem 
+                component={<Link to="/dashboard/feedback/forms" onClick={handleCloseSidebar} />}
+                className="text-sm"
+              >
+                Manage Forms
+              </MenuItem>
+              <MenuItem 
+                component={<Link to="/dashboard/feedback/submissions" onClick={handleCloseSidebar} />}
+                className="text-sm"
+              >
+                View Submissions
+              </MenuItem>
+              <MenuItem 
+                component={<Link to="/dashboard/feedback/analytics" onClick={handleCloseSidebar} />}
+                className="text-sm"
+              >
+                Analytics
+              </MenuItem>
+            </SubMenu>
+          </SubMenu>
 
               {/* Projects Section */}
               <SubMenu 

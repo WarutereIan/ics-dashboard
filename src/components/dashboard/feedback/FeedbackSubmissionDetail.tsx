@@ -225,9 +225,8 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="communications">Communications</TabsTrigger>
           <TabsTrigger value="resolution">Resolution</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
@@ -310,33 +309,6 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
           )}
         </TabsContent>
 
-        <TabsContent value="communications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Communication History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {displayData.communications.map((comm) => (
-                  <div key={comm.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={comm.direction === 'OUTBOUND' ? 'default' : 'secondary'}>
-                          {comm.direction === 'OUTBOUND' ? 'Sent' : 'Received'}
-                        </Badge>
-                        <span className="text-sm font-medium">{comm.sentBy}</span>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {new Date(comm.sentAt).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-sm">{comm.content}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="resolution" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -356,7 +328,17 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
             {/* Status Tracker */}
             <div>
               <FeedbackStatusTracker
-                statusHistory={[]}
+                statusHistory={(submission.statusHistory || []).map(entry => ({
+                  id: entry.id,
+                  status: entry.status,
+                  previousStatus: entry.previousStatus,
+                  timestamp: entry.createdAt,
+                  user: entry.changedBy,
+                  changedByName: entry.changedByName,
+                  reason: entry.reason,
+                  details: entry.details,
+                  assignee: entry.assignedTo
+                }))}
                 currentStatus={displayData.status}
                 assignedTo={displayData.assignedTo}
                 submittedAt={new Date(displayData.submittedAt).toISOString()}
