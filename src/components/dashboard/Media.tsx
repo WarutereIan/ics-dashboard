@@ -1,144 +1,211 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Image, Video, Upload, Download, Eye, Trash2, Plus, Play, FileImage } from 'lucide-react';
+import { Image, Video, Upload, Download, Eye, Trash2, Plus, Play, FileImage, Search, Filter, Calendar, User, File, FileVideo, FileAudio } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formsApi } from '@/lib/api/formsApi';
+import { formatFileSize } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface MediaFile {
   id: string;
-  name: string;
-  type: 'image' | 'video' | 'document' | 'other';
+  fileName: string;
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  filePath: string;
   url: string;
-  thumbnail?: string;
-  size: string;
-  uploadDate: string;
-  description: string;
-  category: 'activities' | 'outcomes' | 'events' | 'training' | 'other';
-  tags: string[];
-  uploadedBy: string;
+  uploadedAt: string;
+  uploadedBy?: string;
+  metadata: {
+    mediaType: 'image' | 'video' | 'audio' | 'file';
+    tags?: string[];
+    description?: string;
+    location?: {
+      latitude: number;
+      longitude: number;
+      accuracy?: number;
+      address?: string;
+    };
+    formId?: string;
+    formName?: string;
+    questionId?: string;
+    questionTitle?: string;
+    questionType?: string;
+    questionOrder?: number;
+    projectName?: string;
+    projectId?: string;
+    country?: string;
+    uploadedVia?: string; // Added to track upload method
+  };
+  form?: {
+    id: string;
+    title: string;
+    projectId: string;
+  } | null;
+  question?: {
+    id: string;
+    title: string;
+    type: string;
+    order: number;
+  };
 }
 
-// Mock media data
-const mockMedia: MediaFile[] = [
-  {
-    id: '1',
-    name: 'child-rights-training-session.jpg',
-    type: 'image',
-    url: '/api/media/child-rights-training-session.jpg',
-    thumbnail: '/api/media/thumbnails/child-rights-training-session.jpg',
-    size: '2.4 MB',
-    uploadDate: '2024-01-15',
-    description: 'Children participating in rights awareness training at Kibera Primary School',
-    category: 'training',
-    tags: ['training', 'children', 'rights', 'kibera'],
-    uploadedBy: 'Sarah Johnson'
-  },
-  {
-    id: '2',
-    name: 'community-meeting-highlights.mp4',
-    type: 'video',
-    url: '/api/media/community-meeting-highlights.mp4',
-    thumbnail: '/api/media/thumbnails/community-meeting-highlights.jpg',
-    size: '45.2 MB',
-    uploadDate: '2024-01-12',
-    description: 'Highlights from community leader engagement meeting',
-    category: 'activities',
-    tags: ['community', 'meeting', 'leaders', 'engagement'],
-    uploadedBy: 'John Kimani'
-  },
-  {
-    id: '3',
-    name: 'parent-testimonial-video.mp4',
-    type: 'video',
-    url: '/api/media/parent-testimonial-video.mp4',
-    thumbnail: '/api/media/thumbnails/parent-testimonial-video.jpg',
-    size: '28.7 MB',
-    uploadDate: '2024-01-10',
-    description: 'Parent testimonial about improved child protection in schools',
-    category: 'outcomes',
-    tags: ['testimonial', 'parent', 'protection', 'success'],
-    uploadedBy: 'Mary Wanjiku'
-  },
-  {
-    id: '4',
-    name: 'school-visit-photos.jpg',
-    type: 'image',
-    url: '/api/media/school-visit-photos.jpg',
-    thumbnail: '/api/media/thumbnails/school-visit-photos.jpg',
-    size: '3.1 MB',
-    uploadDate: '2024-01-08',
-    description: 'Photos from monitoring visit to Mathare schools',
-    category: 'activities',
-    tags: ['monitoring', 'visit', 'schools', 'mathare'],
-    uploadedBy: 'Grace Muthoni'
-  }
-];
 
 export function Media() {
   const { projectId } = useParams();
+  const { toast } = useToast();
   const [media, setMedia] = useState<MediaFile[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [filteredMedia, setFilteredMedia] = useState<MediaFile[]>([]);
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedForm, setSelectedForm] = useState<string>('all');
+  const [selectedQuestionType, setSelectedQuestionType] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
-  const catRef = useRef<HTMLSelectElement>(null);
   const tagsRef = useRef<HTMLInputElement>(null);
 
-  // LocalStorage key per project
-  const storageKey = `media-project-${projectId}`;
-
-  // Load media from localStorage on mount or projectId change
+  // Load media from database
   useEffect(() => {
-    const stored = localStorage.getItem(storageKey);
-    if (stored) {
-      setMedia(JSON.parse(stored));
-    } else {
-      setMedia([]);
+    if (projectId) {
+      loadMediaFiles();
     }
-  }, [storageKey]);
+  }, [projectId]);
 
-  // Save media to localStorage on change
+  // Filter media based on search, type, form, and question type
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(media));
-  }, [media, storageKey]);
+    let filtered = media;
 
-  // Upload handler
-  const handleUpload = () => {
+    // Filter by type
+    if (selectedType !== 'all') {
+      filtered = filtered.filter(item => item.metadata.mediaType === selectedType);
+    }
+
+    // Filter by form
+    if (selectedForm !== 'all') {
+      filtered = filtered.filter(item => item.metadata.formName === selectedForm);
+    }
+
+    // Filter by question type
+    if (selectedQuestionType !== 'all') {
+      filtered = filtered.filter(item => item.metadata.questionType === selectedQuestionType);
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(item => 
+        item.originalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.metadata.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.metadata.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        item.metadata.formName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.metadata.questionTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.metadata.projectName?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    setFilteredMedia(filtered);
+  }, [media, selectedType, selectedForm, selectedQuestionType, searchQuery]);
+
+  const loadMediaFiles = async () => {
+    if (!projectId) return;
+    
+    setIsLoading(true);
+    try {
+      console.log('🔍 Loading media files for project:', projectId);
+      const mediaFiles = await formsApi.getProjectMediaFiles(projectId);
+      console.log('📁 Media files loaded:', mediaFiles);
+      setMedia(mediaFiles);
+    } catch (error) {
+      console.error('❌ Error loading media files:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load media files",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Upload handler - Note: This would need to be integrated with form uploads
+  const handleUpload = async () => {
     const fileInput = fileInputRef.current;
     const desc = descRef.current?.value || '';
-    const cat = catRef.current?.value || 'other';
     const tags = tagsRef.current?.value?.split(',').map(t => t.trim()).filter(Boolean) || [];
-    if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
+    
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+      toast({
+        title: "Error",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "Project ID not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const file = fileInput.files[0];
-    const id = Date.now().toString();
-    const type = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : file.type.includes('pdf') || file.type.includes('doc') ? 'document' : 'other';
-    const url = URL.createObjectURL(file);
-    const size = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
-    const uploadDate = new Date().toISOString();
-    const name = file.name;
-    const uploadedBy = 'You';
-    const allowedCategories = ['activities', 'outcomes', 'events', 'training', 'other'] as const;
-    const safeCategory = (allowedCategories.includes(cat as any) ? cat : 'other') as MediaFile['category'];
-    const newMedia: MediaFile = {
-      id, name, type, url, size, uploadDate, description: desc, category: safeCategory, tags, uploadedBy
-    };
-    setMedia(prev => [newMedia, ...prev]);
-    setUploadDialogOpen(false);
-    // Reset form
-    if (fileInput) fileInput.value = '';
-    if (descRef.current) descRef.current.value = '';
-    if (catRef.current) catRef.current.value = 'other';
-    if (tagsRef.current) tagsRef.current.value = '';
+    
+    try {
+      toast({
+        title: "Uploading...",
+        description: "Please wait while your file is being uploaded",
+        variant: "default",
+      });
+
+      console.log('📁 Uploading file:', file.name, 'to project:', projectId);
+      
+      const result = await formsApi.uploadDirectMediaFile(
+        projectId,
+        file,
+        desc || undefined,
+        tags.length > 0 ? tags.join(',') : undefined
+      );
+
+      console.log('✅ Upload successful:', result);
+
+      toast({
+        title: "Success",
+        description: "Media file uploaded successfully",
+        variant: "default",
+      });
+
+      // Reload media files
+      await loadMediaFiles();
+      
+      setUploadDialogOpen(false);
+      
+      // Reset form
+      if (fileInput) fileInput.value = '';
+      if (descRef.current) descRef.current.value = '';
+      if (tagsRef.current) tagsRef.current.value = '';
+      
+    } catch (error) {
+      console.error('❌ Upload failed:', error);
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload media file",
+        variant: "destructive",
+      });
+    }
   };
 
   // View handler
@@ -151,49 +218,61 @@ export function Media() {
   const handleDownload = (item: MediaFile) => {
     const link = document.createElement('a');
     link.href = item.url;
-    link.download = item.name;
+    link.download = item.originalName;
     link.click();
   };
 
   // Delete handler
-  const handleDelete = (item: MediaFile) => {
-    setMedia(prev => prev.filter(m => m.id !== item.id));
-    if (selectedMedia?.id === item.id) setViewDialogOpen(false);
+  const handleDelete = async (item: MediaFile) => {
+    if (!projectId || !item.metadata.formId) {
+      toast({
+        title: "Error",
+        description: "Cannot delete file - missing project or form information",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+      try {
+        await formsApi.deleteMediaFile(projectId, item.metadata.formId, item.id);
+        await loadMediaFiles(); // Reload the media list
+        toast({
+          title: "Success",
+          description: "File deleted successfully",
+        });
+      } catch (error) {
+        console.error('Error deleting file:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete file",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const getMediaIcon = (type: string) => {
     switch (type) {
       case 'image':
-        return <Image className="h-4 w-4 text-blue-500" />;
+        return <FileImage className="h-4 w-4 text-blue-500" />;
       case 'video':
-        return <Video className="h-4 w-4 text-red-500" />;
-      case 'document':
-        return <FileImage className="h-4 w-4 text-green-500" />;
+        return <FileVideo className="h-4 w-4 text-red-500" />;
+      case 'audio':
+        return <FileAudio className="h-4 w-4 text-purple-500" />;
+      case 'file':
+        return <File className="h-4 w-4 text-green-500" />;
       default:
-        return <FileImage className="h-4 w-4 text-gray-500" />;
+        return <File className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const getCategoryBadge = (category: string) => {
-    const variants = {
-      activities: 'bg-blue-100 text-blue-800',
-      outcomes: 'bg-green-100 text-green-800',
-      events: 'bg-purple-100 text-purple-800',
-      training: 'bg-orange-100 text-orange-800',
-      other: 'bg-gray-100 text-gray-800'
-    };
-    return variants[category as keyof typeof variants] || variants.other;
-  };
-
-  const filteredMedia = media.filter(item => {
-    const categoryMatch = selectedCategory === 'all' || item.category === selectedCategory;
-    const typeMatch = selectedType === 'all' || item.type === selectedType;
-    return categoryMatch && typeMatch;
-  });
+  // Get unique forms and question types for filters
+  const uniqueForms = Array.from(new Set(media.map(item => item.metadata.formName).filter((name): name is string => Boolean(name))));
+  const uniqueQuestionTypes = Array.from(new Set(media.map(item => item.metadata.questionType).filter((type): type is string => Boolean(type))));
 
   const totalSize = filteredMedia.reduce((sum, item) => {
-    const size = parseFloat(item.size.replace(' MB', ''));
-    return sum + size;
+    return sum + item.fileSize;
   }, 0);
 
   return (
@@ -238,16 +317,6 @@ export function Media() {
                 />
               </div>
               <div>
-                <Label htmlFor="category">Category</Label>
-                <select id="category" ref={catRef} defaultValue="other" className="w-full border rounded p-2">
-                  <option value="activities">Activities</option>
-                  <option value="outcomes">Outcomes</option>
-                  <option value="events">Events</option>
-                  <option value="training">Training</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div>
                 <Label htmlFor="tags">Tags (comma-separated)</Label>
                 <Input 
                   id="tags" 
@@ -284,7 +353,7 @@ export function Media() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {filteredMedia.filter(item => item.type === 'image').length}
+              {filteredMedia.filter(item => item.metadata.mediaType === 'image').length}
             </div>
           </CardContent>
         </Card>
@@ -294,7 +363,7 @@ export function Media() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {filteredMedia.filter(item => item.type === 'video').length}
+              {filteredMedia.filter(item => item.metadata.mediaType === 'video').length}
             </div>
           </CardContent>
         </Card>
@@ -303,29 +372,22 @@ export function Media() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Size</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalSize.toFixed(1)} MB</div>
+            <div className="text-2xl font-bold">{formatFileSize(totalSize)}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 items-center">
+      <div className="flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Filters:</span>
+          <Search className="h-4 w-4" />
+          <Input
+            placeholder="Search media files..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-64"
+          />
         </div>
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="activities">Activities</SelectItem>
-            <SelectItem value="outcomes">Outcomes</SelectItem>
-            <SelectItem value="events">Events</SelectItem>
-            <SelectItem value="training">Training</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={selectedType} onValueChange={setSelectedType}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="All Types" />
@@ -334,146 +396,203 @@ export function Media() {
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="image">Images</SelectItem>
             <SelectItem value="video">Videos</SelectItem>
-            <SelectItem value="document">Documents</SelectItem>
+            <SelectItem value="audio">Audio</SelectItem>
+            <SelectItem value="file">Files</SelectItem>
           </SelectContent>
         </Select>
+        {uniqueForms.length > 0 && (
+          <Select value={selectedForm} onValueChange={setSelectedForm}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All Forms" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Forms</SelectItem>
+              {uniqueForms.map(form => (
+                <SelectItem key={form} value={form}>{form}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {uniqueQuestionTypes.length > 0 && (
+          <Select value={selectedQuestionType} onValueChange={setSelectedQuestionType}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All Question Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Question Types</SelectItem>
+              {uniqueQuestionTypes.map(type => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
-      <Tabs defaultValue="grid" className="w-full">
-        <TabsList>
-          <TabsTrigger value="grid">Grid View</TabsTrigger>
-          <TabsTrigger value="list">List View</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="grid" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredMedia.map((item) => (
-              <Card key={item.id} className="group transition-all duration-200 hover:shadow-lg">
-                <CardHeader className="p-0">
-                  <div className="relative aspect-video bg-gray-100 rounded-t-lg overflow-hidden">
-                    {item.type === 'image' && (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                        <Image className="h-12 w-12 text-blue-400" />
-                      </div>
-                    )}
-                    {item.type === 'video' && (
-                      <div className="w-full h-full bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center">
-                        <Video className="h-12 w-12 text-red-400" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Play className="h-8 w-8 text-red-500" />
+      {/* Media Files Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Media Files</CardTitle>
+          <CardDescription>
+            {filteredMedia.length} media file{filteredMedia.length !== 1 ? 's' : ''} found
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-sm text-muted-foreground">Loading media files...</p>
+            </div>
+          ) : filteredMedia.length === 0 ? (
+            <div className="text-center py-8">
+              <FileImage className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Media Files</h3>
+              <p className="text-sm text-muted-foreground">
+                No media files found for this project. Upload files through form responses to see them here.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]">Type</TableHead>
+                    <TableHead>File Name</TableHead>
+                    <TableHead>Form</TableHead>
+                    <TableHead>Question</TableHead>
+                    <TableHead>Size</TableHead>
+                    <TableHead>Uploaded</TableHead>
+                    <TableHead>Uploaded By</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMedia.map((item) => (
+                    <TableRow key={item.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center">
+                          {getMediaIcon(item.metadata.mediaType)}
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            {item.metadata.mediaType}
+                          </Badge>
                         </div>
-                      </div>
-                    )}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Badge className={getCategoryBadge(item.category)}>
-                        {item.category}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      {getMediaIcon(item.type)}
-                      <h3 className="font-medium text-sm truncate">{item.name}</h3>
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{item.size}</span>
-                      <span>{new Date(item.uploadDate).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {item.tags.slice(0, 2).map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {tag}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium truncate max-w-[200px]" title={item.originalName}>
+                            {item.originalName}
+                          </div>
+                          {item.metadata.description && (
+                            <div className="text-xs text-muted-foreground truncate max-w-[200px]" title={item.metadata.description}>
+                              {item.metadata.description}
+                            </div>
+                          )}
+                          {item.metadata.tags && item.metadata.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {item.metadata.tags.slice(0, 3).map((tag, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                              {item.metadata.tags.length > 3 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  +{item.metadata.tags.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {item.metadata.uploadedVia === 'direct-upload' ? (
+                            <div className="text-sm text-muted-foreground">N/A</div>
+                          ) : (
+                            <>
+                              {item.metadata.formName && (
+                                <div className="text-sm font-medium">{item.metadata.formName}</div>
+                              )}
+                              {item.metadata.projectName && (
+                                <div className="text-xs text-muted-foreground">{item.metadata.projectName}</div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {item.metadata.uploadedVia === 'direct-upload' ? (
+                            <div className="text-sm text-muted-foreground">N/A</div>
+                          ) : (
+                            <>
+                              {item.metadata.questionTitle && (
+                                <div className="text-sm truncate max-w-[150px]" title={item.metadata.questionTitle}>
+                                  {item.metadata.questionTitle}
+                                </div>
+                              )}
+                              {item.metadata.questionType && (
+                                <div className="text-xs text-muted-foreground">{item.metadata.questionType}</div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{formatFileSize(item.fileSize)}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="text-sm">{new Date(item.uploadedAt).toLocaleDateString()}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(item.uploadedAt).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{item.uploadedBy || 'Unknown'}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={item.metadata.uploadedVia === 'direct-upload' ? 'default' : 'secondary'} className="text-xs">
+                          {item.metadata.uploadedVia === 'direct-upload' ? 'Direct Upload' : 'Form Response'}
                         </Badge>
-                      ))}
-                      {item.tags.length > 2 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{item.tags.length - 2}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => handleView(item)}>
-                        <Eye className="h-3 w-3" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => handleDownload(item)}>
-                        <Download className="h-3 w-3" />
-                        Download
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="list" className="space-y-4">
-          <div className="grid gap-4">
-            {filteredMedia.map((item) => (
-              <Card key={item.id} className="transition-all duration-200 hover:shadow-md">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {getMediaIcon(item.type)}
-                      <div>
-                        <CardTitle className="text-lg">{item.name}</CardTitle>
-                        <CardDescription className="text-sm">
-                          {item.size} • Uploaded on {new Date(item.uploadDate).toLocaleDateString()} by {item.uploadedBy}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <Badge className={getCategoryBadge(item.category)}>
-                      {item.category}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {item.tags.map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" className="gap-2" onClick={() => handleView(item)}>
-                        <Eye className="h-4 w-4" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-2" onClick={() => handleDownload(item)}>
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-2 text-red-600 hover:text-red-700" onClick={() => handleDelete(item)}>
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {filteredMedia.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Image className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">No media files found</h3>
-            <p className="text-muted-foreground">
-              No media files available for the selected filters. Upload your first media file to get started.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleView(item)}
+                            title="View"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleDownload(item)}
+                            title="Download"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleDelete(item)}
+                            title="Delete"
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* View Dialog/Modal */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
@@ -481,18 +600,60 @@ export function Media() {
           {selectedMedia && (
             <div className="space-y-4">
               <DialogHeader>
-                <DialogTitle>{selectedMedia.name}</DialogTitle>
-                <DialogDescription>{selectedMedia.description}</DialogDescription>
+                <DialogTitle>{selectedMedia.originalName}</DialogTitle>
+                {selectedMedia.metadata.description && (
+                  <DialogDescription>{selectedMedia.metadata.description}</DialogDescription>
+                )}
               </DialogHeader>
-              {selectedMedia.type === 'image' && (
-                <img src={selectedMedia.url} alt={selectedMedia.name} className="w-full max-h-[400px] object-contain rounded" />
+              {selectedMedia.metadata.mediaType === 'image' && (
+                <img src={selectedMedia.url} alt={selectedMedia.originalName} className="w-full max-h-[400px] object-contain rounded" />
               )}
-              {selectedMedia.type === 'video' && (
+              {selectedMedia.metadata.mediaType === 'video' && (
                 <video src={selectedMedia.url} controls className="w-full max-h-[400px] rounded" />
               )}
-              {selectedMedia.type === 'document' && (
-                <a href={selectedMedia.url} download={selectedMedia.name} className="text-blue-600 underline">Download Document</a>
+              {selectedMedia.metadata.mediaType === 'audio' && (
+                <audio src={selectedMedia.url} controls className="w-full" />
               )}
+              {(selectedMedia.metadata.mediaType === 'file') && (
+                <div className="text-center py-8">
+                  <File className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">Preview not available for this file type</p>
+                  <a href={selectedMedia.url} download={selectedMedia.originalName} className="text-blue-600 underline">
+                    Download {selectedMedia.originalName}
+                  </a>
+                </div>
+              )}
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p><strong>File Size:</strong> {formatFileSize(selectedMedia.fileSize)}</p>
+                <p><strong>Uploaded:</strong> {new Date(selectedMedia.uploadedAt).toLocaleString()}</p>
+                {selectedMedia.uploadedBy && <p><strong>Uploaded by:</strong> {selectedMedia.uploadedBy}</p>}
+                {selectedMedia.metadata.formName && <p><strong>From Form:</strong> {selectedMedia.metadata.formName}</p>}
+                {selectedMedia.metadata.questionTitle && <p><strong>Question:</strong> {selectedMedia.metadata.questionTitle}</p>}
+                {selectedMedia.metadata.questionType && <p><strong>Question Type:</strong> {selectedMedia.metadata.questionType}</p>}
+                {selectedMedia.metadata.projectName && <p><strong>Project:</strong> {selectedMedia.metadata.projectName}</p>}
+                {selectedMedia.metadata.country && <p><strong>Country:</strong> {selectedMedia.metadata.country}</p>}
+                {selectedMedia.metadata.location && (
+                  <div>
+                    <strong>Location:</strong>
+                    <p className="text-xs">
+                      {selectedMedia.metadata.location.latitude}, {selectedMedia.metadata.location.longitude}
+                      {selectedMedia.metadata.location.address && ` (${selectedMedia.metadata.location.address})`}
+                    </p>
+                  </div>
+                )}
+                {selectedMedia.metadata.tags && selectedMedia.metadata.tags.length > 0 && (
+                  <div>
+                    <strong>Tags:</strong>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedMedia.metadata.tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => handleDownload(selectedMedia)}>
                   <Download className="h-4 w-4" /> Download

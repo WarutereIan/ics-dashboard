@@ -221,19 +221,33 @@ export const formsApi = {
     if (responseId) formData.append('responseId', responseId);
     formData.append('metadata', JSON.stringify(metadata));
 
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/v1/forms/projects/${projectId}/forms/${formId}/media`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to upload media file');
+    const response = await apiClient.upload(`/forms/projects/${projectId}/forms/${formId}/media`, formData);
+    
+    if (!response.success) {
+      throw new Error(`Failed to upload media file: ${response.error}`);
     }
 
-    return response.json();
+    return response.data;
+  },
+
+  async uploadDirectMediaFile(
+    projectId: string,
+    file: File,
+    description?: string,
+    tags?: string
+  ): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (description) formData.append('description', description);
+    if (tags) formData.append('tags', tags);
+
+    const response = await apiClient.upload(`/forms/projects/${projectId}/media/upload`, formData);
+    
+    if (!response.success) {
+      throw new Error(`Failed to upload media file: ${response.error}`);
+    }
+
+    return response.data;
   },
 
   async getFormMediaFiles(projectId: string, formId: string): Promise<any[]> {
