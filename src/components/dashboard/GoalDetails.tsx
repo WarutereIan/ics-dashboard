@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Target, Activity, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,16 +8,30 @@ import { Button } from '@/components/ui/button';
 import { RadialGauge } from '@/components/visualizations/RadialGauge';
 import { BulletChart } from '@/components/visualizations/BulletChart';
 import { PieChart } from '@/components/visualizations/PieChart';
-import { getGoalById, getSubGoalById, ActivityLink } from '@/lib/organizationalGoals';
+import { StrategicGoal, StrategicSubGoal, StrategicActivityLink } from '@/lib/api/strategicPlanApi';
 
-export function GoalDetails() {
+interface GoalDetailsProps {
+  goal?: StrategicGoal;
+  goals?: StrategicGoal[];
+  subGoal?: StrategicSubGoal;
+}
+
+export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: GoalDetailsProps) {
   const { goalId, subGoalId } = useParams();
+  const location = useLocation();
   const [selectedSubGoal, setSelectedSubGoal] = useState<string | undefined>(subGoalId);
 
-  // If we have a subGoalId, get the parent goal and specific subgoal
-  const subGoalData = subGoalId ? getSubGoalById(subGoalId) : undefined;
-  const goal = subGoalData ? subGoalData.goal : goalId ? getGoalById(goalId) : undefined;
-  const specificSubGoal = subGoalData ? subGoalData.subGoal : undefined;
+  // Get goal data from location state (passed from navigation) or props
+  const stateGoal = location.state?.goal;
+  const stateGoals = location.state?.goals;
+  const stateSubGoal = location.state?.subGoal;
+  
+  // Find goal from location state, props, or by ID from goals array
+  const goal = stateGoal || propGoal || (stateGoals && goalId ? stateGoals.find((g: StrategicGoal) => g.id === goalId) : undefined) || (goals && goalId ? goals.find((g: StrategicGoal) => g.id === goalId) : undefined);
+  
+  // Find specific subgoal from location state, props, or by ID from goal's subgoals
+  const specificSubGoal = stateSubGoal || propSubGoal || (subGoalId && goal ? 
+    goal.subgoals.find((sg: StrategicSubGoal) => sg.id === subGoalId) : undefined);
 
   if (!goal) {
     return (
@@ -37,12 +51,14 @@ export function GoalDetails() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'contributing':
         return 'bg-green-100 text-green-800';
       case 'at-risk':
+      case 'at_risk':
         return 'bg-yellow-100 text-yellow-800';
       case 'not-contributing':
+      case 'not_contributing':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -50,7 +66,7 @@ export function GoalDetails() {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
+    switch (priority.toLowerCase()) {
       case 'high':
         return 'bg-red-100 text-red-800';
       case 'medium':
@@ -63,11 +79,14 @@ export function GoalDetails() {
   };
 
   const renderKPIVisualization = (kpi: any) => {
+    const currentValue = kpi.currentValue || kpi.value || 0;
+    const targetValue = kpi.targetValue || kpi.target || 1;
+    
     switch (kpi.type) {
       case 'radialGauge':
         return (
           <RadialGauge 
-            value={(kpi.value / kpi.target) * 100} 
+            value={(currentValue / targetValue) * 100} 
             size={150} 
             unit={kpi.unit} 
             primaryColor="#3B82F6"
@@ -77,8 +96,8 @@ export function GoalDetails() {
       case 'bulletChart':
         return (
           <BulletChart
-            current={kpi.value}
-            target={kpi.target}
+            current={currentValue}
+            target={targetValue}
             title="Progress"
             unit={kpi.unit}
             height={100}
@@ -88,11 +107,11 @@ export function GoalDetails() {
         return (
           <div className="w-full">
             <div className="mb-2 text-sm font-medium">
-              {kpi.value.toLocaleString()} / {kpi.target.toLocaleString()} {kpi.unit}
+              {currentValue.toLocaleString()} / {targetValue.toLocaleString()} {kpi.unit}
             </div>
-            <Progress value={(kpi.value / kpi.target) * 100} className="h-3" />
+            <Progress value={(currentValue / targetValue) * 100} className="h-3" />
             <div className="mt-1 text-xs text-muted-foreground">
-              {Math.round((kpi.value / kpi.target) * 100)}% Complete
+              {Math.round((currentValue / targetValue) * 100)}% Complete
             </div>
           </div>
         );
@@ -101,7 +120,7 @@ export function GoalDetails() {
     }
   };
 
-  const ActivityConnectionCard = ({ activity }: { activity: ActivityLink }) => (
+  const ActivityConnectionCard = ({ activity }: { activity: StrategicActivityLink }) => (
     <Card className="transition-all duration-200 hover:shadow-md">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
@@ -110,7 +129,7 @@ export function GoalDetails() {
             <p className="text-xs text-muted-foreground">{activity.projectName}</p>
           </div>
           <Badge className={getStatusColor(activity.status)}>
-            {activity.status.replace('-', ' ')}
+            {activity.status.replace('_', ' ').replace('-', ' ')}
           </Badge>
         </div>
         
@@ -138,7 +157,10 @@ export function GoalDetails() {
       <div className="flex flex-col space-y-8 overflow-x-hidden w-full max-w-full px-2 md:px-4">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Link to={`/dashboard/goals/${goal.id}`}>
+          <Link 
+            to={`/dashboard/goals/${goal.id}`}
+            state={{ goal, goals: [goal] }}
+          >
             <Button variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Goal
@@ -170,12 +192,12 @@ export function GoalDetails() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="w-5 h-5" />
-              Contributing Project Activities ({specificSubGoal.linkedActivities.length})
+              Contributing Project Activities ({specificSubGoal.activityLinks.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {specificSubGoal.linkedActivities.map((activity, index) => (
+              {specificSubGoal.activityLinks.map((activity: StrategicActivityLink, index: number) => (
                 <ActivityConnectionCard key={index} activity={activity} />
               ))}
             </div>
@@ -188,8 +210,8 @@ export function GoalDetails() {
   // Generate project contribution data for pie chart
   const projectContributions = new Map<string, { name: string; value: number; activities: number }>();
   
-  goal.subgoals.forEach(subGoal => {
-    subGoal.linkedActivities.forEach(activity => {
+  goal.subgoals.forEach((subGoal: StrategicSubGoal) => {
+    subGoal.activityLinks.forEach((activity: StrategicActivityLink) => {
       const existing = projectContributions.get(activity.projectId);
       if (existing) {
         existing.value += activity.contribution;
@@ -224,7 +246,7 @@ export function GoalDetails() {
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-bold text-foreground">{goal.title}</h1>
             <Badge className={getPriorityColor(goal.priority)}>
-              {goal.priority} priority
+              {goal.priority.toLowerCase()} priority
             </Badge>
           </div>
           <p className="text-muted-foreground">{goal.description}</p>
@@ -266,7 +288,7 @@ export function GoalDetails() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Activities</p>
                 <p className="text-3xl font-bold text-foreground">
-                  {goal.subgoals.reduce((sum, sg) => sum + sg.linkedActivities.length, 0)}
+                  {goal.subgoals.reduce((sum: number, sg: StrategicSubGoal) => sum + sg.activityLinks.length, 0)}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-500" />
@@ -299,7 +321,7 @@ export function GoalDetails() {
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-foreground">Sub-Goals & Project Activities</h2>
         
-        {goal.subgoals.map((subGoal, index) => (
+        {goal.subgoals.map((subGoal: StrategicSubGoal, index: number) => (
           <Card key={subGoal.id} className="transition-all duration-200 hover:shadow-md">
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -307,7 +329,10 @@ export function GoalDetails() {
                   <CardTitle className="text-lg">{subGoal.title}</CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">{subGoal.description}</p>
                 </div>
-                <Link to={`/dashboard/goals/${goal.id}/subgoals/${subGoal.id}`}>
+                <Link 
+                  to={`/dashboard/goals/${goal.id}/subgoals/${subGoal.id}`}
+                  state={{ goal, goals: [goal], subGoal }}
+                >
                   <Button variant="outline" size="sm">
                     View Details
                   </Button>
@@ -325,10 +350,10 @@ export function GoalDetails() {
                 <div>
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
                     <Activity className="w-4 h-4" />
-                    Contributing Activities ({subGoal.linkedActivities.length})
+                    Contributing Activities ({subGoal.activityLinks.length})
                   </h4>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {subGoal.linkedActivities.map((activity, actIndex) => (
+                    {subGoal.activityLinks.map((activity: StrategicActivityLink, actIndex: number) => (
                       <div 
                         key={actIndex}
                         className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"

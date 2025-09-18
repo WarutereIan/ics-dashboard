@@ -26,6 +26,9 @@ import { Subactivities } from '@/components/dashboard/Subactivities';
 import { ProjectCreationWizard } from '@/components/dashboard/ProjectCreationWizard';
 import { FormRoutes } from '@/components/dashboard/FormRoutes';
 import { GoalDetails } from '@/components/dashboard/GoalDetails';
+import { StrategicPlanCreate } from '@/components/dashboard/StrategicPlanCreate';
+import { StrategicPlanEdit } from '@/components/dashboard/StrategicPlanEdit';
+import { Profile } from '@/components/dashboard/Profile';
 import { PublicFormFiller } from '@/components/public/PublicFormFiller';
 import { PublicLanding } from '@/components/public/PublicLanding';
 import { ProjectsApiTest } from '@/components/dashboard/ProjectsApiTest';
@@ -115,10 +118,14 @@ function AppWithNotifications() {
                         <Route element={<DashboardLayout />}>
                           <Route index element={<GlobalOverview />} />
                           <Route path="api-test" element={<ProjectsApiTest />} />
+                          <Route path="profile" element={<Profile />} />
+                          <Route path="settings" element={<Settings />} />
                           {/* Organizational Goals routes */}
                           <Route path="goals/:goalId" element={<GoalDetails />} />
                           <Route path="goals/:goalId/subgoals/:subGoalId" element={<GoalDetails />} />
                           {/* Organization routes */}
+                          <Route path="strategic-plan/create" element={<StrategicPlanCreate />} />
+                          <Route path="strategic-plan/edit" element={<StrategicPlanEdit />} />
                           <Route path="feedback/*" element={<FeedbackRoutes projectId="organization" projectName="ICS Organization" />} />
                           {/* Admin-only project creation */}
                           <Route path="projects/create" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}>

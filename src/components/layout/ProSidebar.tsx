@@ -1,7 +1,7 @@
 import React from 'react';
 import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
 import { Link, useLocation } from 'react-router-dom';
-import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText, Plus, ClipboardList, X, DollarSign, MessageSquare, Database } from 'lucide-react';
+import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText, Plus, ClipboardList, X, DollarSign, MessageSquare, Database, BookOpen, Edit3 } from 'lucide-react';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { useProjects } from '@/contexts/ProjectsContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -107,6 +107,26 @@ export function ProSidebar() {
           >
             Organization Goals
           </MenuItem>
+            {isAdmin() && (
+              <SubMenu 
+                label="Strategic Plan" 
+                icon={<BookOpen className="h-4 w-4" />}
+                className="text-sm"
+              >
+                <MenuItem 
+                  component={<Link to="/dashboard/strategic-plan/create" onClick={handleCloseSidebar} />}
+                  className="text-sm"
+                >
+                  Create Strategic Plan
+                </MenuItem>
+                <MenuItem 
+                  component={<Link to="/dashboard/strategic-plan/edit" onClick={handleCloseSidebar} />}
+                  className="text-sm"
+                >
+                  Edit Strategic Plan
+                </MenuItem>
+              </SubMenu>
+            )}
             <SubMenu 
               label="Feedback " 
               icon={<MessageSquare className="h-4 w-4" />}
