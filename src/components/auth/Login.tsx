@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,14 +16,38 @@ export const Login: React.FC<LoginProps> = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, isAuthenticated, isLoading } = useAuth();
+  
+  // Get the 'next' parameter from URL and validate it
+  const rawNext = searchParams.get('next');
+  
+  // Debug logging
+  console.log('Login component - nextUrl from searchParams:', rawNext);
+  console.log('Login component - all search params:', Object.fromEntries(searchParams.entries()));
+  
+  // Validate and sanitize the next URL to prevent open redirects
+  const isValidNextUrl = (url: string): boolean => {
+    // Only allow relative URLs (starting with /) and not login page
+    return url.startsWith('/') && !url.startsWith('//') && url !== '/login';
+  };
+  
+  const decodedNext = rawNext ? decodeURIComponent(rawNext) : null;
+  console.log('Login component - decoded URL:', decodedNext);
+  
+  const safeNextUrl = decodedNext && isValidNextUrl(decodedNext) ? decodedNext : null;
+  console.log('Login component - safeNextUrl:', safeNextUrl);
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      // If there's a safe 'next' URL, redirect there, otherwise go to dashboard
+      const redirectUrl = safeNextUrl && safeNextUrl !== '/login' ? safeNextUrl : '/dashboard';
+      console.log('Login component - user authenticated, redirecting to:', redirectUrl);
+      console.log('Login component - safeNextUrl was:', safeNextUrl);
+      navigate(redirectUrl, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, safeNextUrl]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +63,7 @@ export const Login: React.FC<LoginProps> = () => {
       
       if (result.success) {
         // Redirect will happen automatically via useEffect when isAuthenticated changes
-        navigate('/dashboard');
+        // The useEffect will handle the 'next' URL parameter
       } else {
         setError(result.error || 'Login failed. Please try again.');
       }
@@ -68,6 +92,7 @@ export const Login: React.FC<LoginProps> = () => {
             <img src="/logo.png" alt="ICS Logo" className="h-12 w-auto mx-auto mb-4" />
             <CardTitle className="text-2xl font-bold text-gray-900">IDMS Dashboard</CardTitle>
             <p className="text-sm text-gray-600">Sign in to your account</p>
+           
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleLogin} className="space-y-4">

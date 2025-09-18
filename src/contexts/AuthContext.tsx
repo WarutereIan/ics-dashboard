@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User } from '@/types/dashboard';
 import { authAPI } from '@/lib/api/auth';
 
@@ -8,7 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
-  logout: () => void;
+  logout: (preserveCurrentUrl?: boolean) => void;
   refreshToken: () => Promise<boolean>;
   updateProfile: (updates: Partial<User>) => Promise<User>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -31,8 +31,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => localStorage.getItem(TOKEN_KEY)
   );
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Use ref to access current token in event listeners without causing re-renders
+  const tokenRef = useRef<string | null>(token);
+  tokenRef.current = token;
 
   const isAuthenticated = !!user && !!token;
+
+  // Debug logging for state changes
+  console.log('AuthContext render - state:', { 
+    hasUser: !!user, 
+    hasToken: !!token, 
+    isLoading, 
+    isAuthenticated 
+  });
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -42,12 +54,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Listen for unauthorized events from API client
   useEffect(() => {
     const handleUnauthorized = () => {
-      logout();
+      console.log('AuthContext - unauthorized event received');
+      // When user is unauthorized (e.g., token expired), preserve current URL for redirect
+      clearAuthData();
+      
+      // Optional: Call logout endpoint to invalidate token on server
+      if (tokenRef.current) {
+        authAPI.logout(tokenRef.current).catch(console.error);
+      }
+      
+      // Preserve current URL for redirect after login
+      if (typeof window !== 'undefined') {
+        const currentUrl = window.location.pathname + window.location.search;
+        if (currentUrl !== '/login') {
+          console.log('AuthContext - redirecting to login with next:', currentUrl);
+          window.location.href = `/login?next=${encodeURIComponent(currentUrl)}`;
+        } else {
+          console.log('AuthContext - redirecting to login without next');
+          window.location.href = '/login';
+        }
+      }
     };
 
+    console.log('AuthContext - setting up unauthorized event listener');
     window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
-  }, []);
+    return () => {
+      console.log('AuthContext - cleaning up unauthorized event listener');
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, []); // Remove token dependency to prevent re-renders
 
   // Auto-refresh token before expiry
   useEffect(() => {
@@ -73,20 +108,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   const initializeAuth = async () => {
+    console.log('AuthContext - initializeAuth called');
     const storedToken = localStorage.getItem(TOKEN_KEY);
+    console.log('AuthContext - storedToken found:', !!storedToken);
     
     if (storedToken) {
       try {
+        console.log('AuthContext - verifying token with backend');
         // Verify token with backend and get user profile
         const userProfile = await authAPI.getProfile(storedToken);
+        console.log('AuthContext - token verified, setting user and token');
         setUser(userProfile);
         setToken(storedToken);
       } catch (error) {
-        console.error('Token verification failed:', error);
+        console.error('AuthContext - Token verification failed:', error);
         clearAuthData();
       }
     }
     
+    console.log('AuthContext - setting loading to false');
     setIsLoading(false);
   };
 
@@ -123,11 +163,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = (preserveCurrentUrl = false) => {
     clearAuthData();
+    
     // Optional: Call logout endpoint to invalidate token on server
     if (token) {
       authAPI.logout(token).catch(console.error);
+    }
+    
+    // If we want to preserve the current URL for redirect after login
+    if (preserveCurrentUrl && typeof window !== 'undefined') {
+      const currentUrl = window.location.pathname + window.location.search;
+      if (currentUrl !== '/login') {
+        window.location.href = `/login?next=${encodeURIComponent(currentUrl)}`;
+        return;
+      }
+    }
+    
+    // Default behavior: redirect to login without next parameter
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
     }
   };
 
@@ -191,6 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const clearAuthData = () => {
+    console.log('AuthContext - clearAuthData called');
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     setToken(null);

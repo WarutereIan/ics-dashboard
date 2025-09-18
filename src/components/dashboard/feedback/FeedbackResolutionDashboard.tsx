@@ -365,25 +365,25 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
                 const title = submission.data?.title || submission.data?.description || `${submission.category?.name || 'Feedback'} Submission`;
                 return (
                   <div key={submission.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-gray-100 rounded-full">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-100 rounded-full">
                         {submission.status === 'RESOLVED' ? <CheckCircle className="w-4 h-4 text-green-600" /> :
                          submission.status === 'ESCALATED' ? <AlertTriangle className="w-4 h-4 text-red-600" /> :
                          submission.status === 'ACKNOWLEDGED' ? <MessageSquare className="w-4 h-4 text-blue-600" /> :
-                         <Clock className="w-4 h-4 text-orange-600" />}
-                      </div>
-                      <div>
+                     <Clock className="w-4 h-4 text-orange-600" />}
+                  </div>
+                  <div>
                         <p className="font-medium">{title}</p>
                         <p className="text-sm text-gray-500">by {submission.assignedTo || 'Unassigned'}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
+                  </div>
+                </div>
+                <div className="text-right">
                       <Badge variant={submission.status === 'RESOLVED' ? 'default' : 'secondary'}>
                         {submission.status.replace('_', ' ')}
-                      </Badge>
+                  </Badge>
                       <p className="text-sm text-gray-500 mt-1">{timeAgo}</p>
-                    </div>
-                  </div>
+                </div>
+              </div>
                 );
               })}
           </div>

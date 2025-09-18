@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DashboardProvider } from '@/contexts/DashboardContext';
 import { FormProvider } from '@/contexts/FormContext';
@@ -39,8 +39,13 @@ import { FeedbackProvider } from '@/contexts/FeedbackContext';
 
 function ProtectedRoute({ roles }: { roles?: string[] }) {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+  
+  console.log('ProtectedRoute - authentication state:', { isAuthenticated, isLoading, user: !!user });
+  console.log('ProtectedRoute - current location:', location.pathname + location.search);
   
   if (isLoading) {
+    console.log('ProtectedRoute - still loading, showing spinner');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -49,7 +54,12 @@ function ProtectedRoute({ roles }: { roles?: string[] }) {
   }
   
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Capture the current URL and redirect to login with next parameter
+    const currentPath = location.pathname + location.search;
+    const loginUrl = `/login?next=${encodeURIComponent(currentPath)}`;
+    console.log('ProtectedRoute - user not authenticated, redirecting to login with next:', currentPath);
+    console.log('ProtectedRoute - encoded login URL:', loginUrl);
+    return <Navigate to={loginUrl} replace />;
   }
   
   if (roles && user?.roles) {

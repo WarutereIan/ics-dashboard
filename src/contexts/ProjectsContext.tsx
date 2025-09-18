@@ -61,9 +61,17 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
 
   // Load projects from API
   const loadProjects = useCallback(async () => {
+    // Don't make API calls if not authenticated
+    if (!isAuthenticated) {
+      console.log('ProjectsContext - loadProjects called but user not authenticated, skipping');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
+      console.log('ProjectsContext - making API call to getAllProjects');
       const projectsData = await projectsApi.getAllProjects();
       
       // Convert date strings back to Date objects
@@ -82,12 +90,18 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
-  // Initialize projects from API
+  // Initialize projects from API - only when authenticated
   useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
+    if (isAuthenticated && !authLoading) {
+      console.log('ProjectsContext - loading projects (user is authenticated)');
+      loadProjects();
+    } else {
+      console.log('ProjectsContext - skipping project load (not authenticated or still loading)');
+      setIsLoading(false);
+    }
+  }, [loadProjects, isAuthenticated, authLoading]);
 
   // Add a new project
   const addProject = async (projectData: Omit<Project, 'id'>): Promise<Project> => {
