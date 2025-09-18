@@ -73,6 +73,14 @@ export interface UpdateUserRequest {
   roleAssignments?: RoleAssignment[];
 }
 
+export interface UpdateRoleRequest {
+  name?: string;
+  description?: string;
+  level?: number;
+  isActive?: boolean;
+  permissions?: string[];
+}
+
 export interface QueryUsersRequest {
   search?: string;
   isActive?: boolean;
@@ -150,6 +158,29 @@ class UserManagementService {
     const response = await apiClient.get<Role[]>(`${this.baseUrl}/roles/available`);
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to fetch roles');
+    }
+    return response.data;
+  }
+
+  async updateRole(roleId: string, roleData: UpdateRoleRequest): Promise<Role> {
+    const response = await apiClient.put<Role>(`${this.baseUrl}/roles/${roleId}`, roleData);
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to update role');
+    }
+    return response.data;
+  }
+
+  async deleteRole(roleId: string): Promise<void> {
+    const response = await apiClient.delete(`${this.baseUrl}/roles/${roleId}`);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete role');
+    }
+  }
+
+  async getRolePermissions(roleId: string): Promise<string[]> {
+    const response = await apiClient.get<string[]>(`${this.baseUrl}/roles/${roleId}/permissions`);
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch role permissions');
     }
     return response.data;
   }

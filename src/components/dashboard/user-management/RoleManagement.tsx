@@ -47,7 +47,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Role, Permission } from '@/services/userManagementService';
+import { Role, Permission, userManagementService } from '@/services/userManagementService';
+import { EditRoleDialog } from './EditRoleDialog';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface RoleManagementProps {
   roles: Role[];
@@ -55,12 +57,14 @@ interface RoleManagementProps {
 }
 
 export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
+  const { addNotification } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState<'all' | '1-2' | '3-4' | '5-6'>('all');
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolePermissions, setRolePermissions] = useState<Record<string, string[]>>({});
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Load permissions when component mounts
@@ -168,6 +172,44 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
     setDetailsDialogOpen(true);
   };
 
+  const handleEditRole = (role: Role) => {
+    setSelectedRole(role);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateRole = async (roleId: string, roleData: any) => {
+    try {
+      await userManagementService.updateRole(roleId, roleData);
+      setEditDialogOpen(false);
+      setSelectedRole(null);
+      onRolesChange(); // Refresh the roles list
+    } catch (error: any) {
+      throw error; // Re-throw to let the dialog handle the error
+    }
+  };
+
+  const handleDeleteRole = async (role: Role) => {
+    if (window.confirm(`Are you sure you want to delete the role "${role.name}"? This action cannot be undone.`)) {
+      try {
+        await userManagementService.deleteRole(role.id);
+        addNotification({
+          type: 'success',
+          title: 'Role Deleted',
+          message: `Role "${role.name}" has been deleted successfully.`,
+          duration: 3000
+        });
+        onRolesChange(); // Refresh the roles list
+      } catch (error: any) {
+        addNotification({
+          type: 'error',
+          title: 'Delete Failed',
+          message: error.message || 'Failed to delete role. Please try again.',
+          duration: 5000
+        });
+      }
+    }
+  };
+
   const groupedPermissions = permissions.reduce((acc, permission) => {
     if (!acc[permission.resource]) {
       acc[permission.resource] = [];
@@ -273,15 +315,18 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                       {/*  <DropdownMenuItem onClick={() => handleEditRole(role)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Role
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
+                        {/* <DropdownMenuItem 
+                          onClick={() => handleDeleteRole(role)}
+                          className="text-red-600"
+                        >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete Role
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -384,6 +429,15 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Role Dialog */}
+      {/* <EditRoleDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        role={selectedRole}
+        permissions={permissions}
+        onSubmit={handleUpdateRole}
+      /> */}
     </div>
   );
 }
