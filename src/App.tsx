@@ -70,6 +70,11 @@ function ProtectedRoute({ roles }: { roles?: string[] }) {
   }
   
   if (!isAuthenticated) {
+    // Don't redirect to login for public routes
+    if (isPublicRoute(location.pathname)) {
+      return <Outlet />;
+    }
+    
     // Capture the current URL and redirect to login with next parameter
     const currentPath = location.pathname + location.search;
     const loginUrl = `/login?next=${encodeURIComponent(currentPath)}`;
