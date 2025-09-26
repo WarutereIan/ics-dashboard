@@ -40,9 +40,25 @@ import { FeedbackProvider } from '@/contexts/FeedbackContext';
 function ProtectedRoute({ roles }: { roles?: string[] }) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+
+  // Define public routes where auth checks should not apply
+  const isPublicRoute = (path: string) => {
+    return (
+      path === '/login' ||
+      path === '/' ||
+      path.startsWith('/fill/') ||
+      path.startsWith('/embed/') ||
+      path === '/feedback/submit'
+    );
+  };
   
   console.log('ProtectedRoute - authentication state:', { isAuthenticated, isLoading, user: !!user });
   console.log('ProtectedRoute - current location:', location.pathname + location.search);
+
+  // Skip auth checks entirely for public routes
+  if (isPublicRoute(location.pathname)) {
+    return <Outlet />;
+  }
   
   if (isLoading) {
     console.log('ProtectedRoute - still loading, showing spinner');
