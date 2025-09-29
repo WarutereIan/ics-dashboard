@@ -139,6 +139,7 @@ interface FormContextType {
   getConditionalResponses: (response: FormResponse, questionId: string) => Record<string, any>;
   validateConditionalQuestions: (form: Form, responses: Record<string, any>) => Record<string, string>;
   getFormStatistics: (form: Form) => { totalQuestions: number; conditionalQuestions: number; totalOptions: number };
+  projectForms: Record<string, Form[]>;
 }
 
 const FormContext = createContext<FormContextType | undefined>(undefined);
@@ -489,13 +490,33 @@ export function FormProvider({ children }: FormProviderProps) {
         return null;
       }
 
+      console.log('🔄 FormContext: Starting duplicate form for project:', projectId, 'formId:', formId);
       const form = await formsApi.duplicateForm(projectId, formId);
+      console.log('📥 FormContext: Received duplicated form from API:', JSON.stringify(form, null, 2));
+      
+      // Log questions and their options
+      if (form.sections) {
+        form.sections.forEach((section, sectionIndex) => {
+          console.log(`📋 FormContext: Section ${sectionIndex} (${section.title}):`, section.questions?.length || 0, 'questions');
+          section.questions?.forEach((question, questionIndex) => {
+            if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+              console.log(`🎯 FormContext: Question ${questionIndex} (${question.title}):`, {
+                type: question.type,
+                optionsCount: question.options?.length || 0,
+                options: question.options?.map(opt => ({ id: opt.id, label: opt.label, value: opt.value })) || []
+              });
+            }
+          });
+        });
+      }
       
       // Update local cache
       setProjectForms(prev => ({
         ...prev,
         [projectId]: [...(prev[projectId] || []), form]
       }));
+      
+      console.log('✅ FormContext: Updated local cache with duplicated form');
       
       toast({
         title: "Success",
@@ -504,6 +525,7 @@ export function FormProvider({ children }: FormProviderProps) {
       return form;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to duplicate form';
+      console.error('❌ FormContext: Error duplicating form:', errorMessage);
       setError(errorMessage);
       toast({
         title: "Error",
@@ -1076,6 +1098,7 @@ export function FormProvider({ children }: FormProviderProps) {
     getConditionalResponses,
     validateConditionalQuestions,
     getFormStatistics,
+    projectForms,
   };
 
   return (

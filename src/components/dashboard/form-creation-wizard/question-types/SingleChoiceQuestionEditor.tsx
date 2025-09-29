@@ -153,6 +153,16 @@ interface SingleChoiceQuestionEditorProps {
 export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProps) {
   const { question, onUpdate } = props;
 
+  // Debug logging for question rendering
+  console.log('🎨 SingleChoiceQuestionEditor: Rendering question:', {
+    id: question.id,
+    title: question.title,
+    type: question.type,
+    hasOptions: !!question.options,
+    optionsCount: question.options?.length || 0,
+    options: question.options?.map(opt => ({ id: opt.id, label: opt.label, value: opt.value })) || []
+  });
+
   // Ensure options array exists and has at least default options
   const safeOptions = question.options || [
     { id: uuidv4(), label: 'Option 1', value: 'option1', hasConditionalQuestions: false, conditionalQuestions: [] },
@@ -160,11 +170,13 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
   ];
 
   // Initialize options if they don't exist
-  if (!question.options || question.options.length === 0) {
-    onUpdate({
-      options: safeOptions
-    } as Partial<FormQuestion>);
-  }
+  useEffect(() => {
+    if (!question.options || question.options.length === 0) {
+      onUpdate({
+        options: safeOptions
+      } as Partial<FormQuestion>);
+    }
+  }, [question.options, onUpdate]);
 
   // Ensure display type is always DROPDOWN
   useEffect(() => {
@@ -248,7 +260,16 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
             <div>
               <div className="flex justify-between items-center mb-3">
                 <Label>Answer Options</Label>
-               
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addOption}
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Option
+                </Button>
               </div>
 
               <div className="space-y-2">

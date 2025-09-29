@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/contexts/FormContext';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { toast } from '@/hooks/use-toast';
 import { Form } from './form-creation-wizard/types';
 import { 
@@ -37,22 +38,23 @@ import {
   getDefaultFormManagementFilters,
   FormManagementFilters,
   addForm,
-  updateForm,
-  deleteForm as deleteFormFromStorage,
-  duplicateForm as duplicateFormInStorage
+  updateForm
 } from '@/lib/formLocalStorageUtils';
 
 export function FormManagement() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { user } = useAuth();
-  const { getProjectForms, loadProjectForms } = useForm();
+  const { getProjectForms, loadProjectForms, duplicateForm, deleteForm, projectForms } = useForm();
   
-  // Load forms from context for the current project
-  const [forms, setForms] = useState<Form[]>([]);
+  // Get forms from context for the current project
+  const forms = projectId ? (projectForms[projectId] || []) : [];
   const [isLoading, setIsLoading] = useState(true);
   const [copiedFormId, setCopiedFormId] = useState<string | null>(null);
   const [showCopyPopup, setShowCopyPopup] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [formToDelete, setFormToDelete] = useState<Form | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load forms when component mounts or projectId changes
   useEffect(() => {
@@ -62,38 +64,9 @@ export function FormManagement() {
         console.log('🔄 FormManagement: Loading fresh form data for project:', projectId);
         
         try {
-          // Always load fresh data from API instead of cached data
-          const freshForms = await loadProjectForms(projectId);
-          console.log('✅ FormManagement: Loaded', freshForms.length, 'fresh forms from API');
-          
-          // If no forms found in API, try loading from legacy storage as fallback
-          if (freshForms.length === 0) {
-            try {
-              const legacyForms = localStorage.getItem('ics_forms_data');
-              if (legacyForms) {
-                const parsedForms = JSON.parse(legacyForms);
-                const projectForms = parsedForms.filter((form: any) => form.projectId === projectId);
-                const mappedForms = projectForms.map((form: any) => ({
-                  ...form,
-                  createdAt: form.createdAt ? new Date(form.createdAt) : new Date(),
-                  updatedAt: form.updatedAt ? new Date(form.updatedAt) : new Date(),
-                  lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
-                  settings: {
-                    ...form.settings,
-                    expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
-                  },
-                }));
-                setForms(mappedForms);
-                console.log('📦 FormManagement: Loaded', mappedForms.length, 'forms from legacy storage');
-              } else {
-                console.log('⚠️ FormManagement: No forms found in legacy storage either');
-              }
-            } catch (error) {
-              console.error('❌ FormManagement: Error loading legacy forms:', error);
-            }
-          } else {
-            setForms(freshForms);
-          }
+          // Load forms using context method - this will update the context state
+          await loadProjectForms(projectId);
+          console.log('✅ FormManagement: Loaded forms from context');
         } catch (error) {
           console.error('Error loading forms:', error);
           toast({
@@ -126,52 +99,13 @@ export function FormManagement() {
     saveFormManagementFilters(filters);
   }, [filters]);
 
-  // Refresh forms when projectId changes or when component comes into focus
+  // Refresh forms when window gains focus (user returns from form wizard)
   useEffect(() => {
-    const refreshForms = async () => {
+    const handleFocus = async () => {
       if (projectId) {
-        console.log('🔄 FormManagement: Refreshing forms for project:', projectId);
-        const freshForms = await loadProjectForms(projectId);
-        console.log('✅ FormManagement: Refreshed with', freshForms.length, 'fresh forms:', freshForms.map((f: Form) => ({ id: f.id, title: f.title })));
-        
-        // If no forms found in API, try loading from legacy storage
-        if (freshForms.length === 0) {
-          try {
-            const legacyForms = localStorage.getItem('ics_forms_data');
-            if (legacyForms) {
-              const parsedForms = JSON.parse(legacyForms);
-              const projectForms = parsedForms.filter((form: any) => form.projectId === projectId);
-              const processedForms = projectForms.map((form: any) => ({
-                ...form,
-                createdAt: form.createdAt ? new Date(form.createdAt) : new Date(),
-                updatedAt: form.updatedAt ? new Date(form.updatedAt) : new Date(),
-                lastResponseAt: form.lastResponseAt ? new Date(form.lastResponseAt) : undefined,
-                settings: {
-                  ...form.settings,
-                  expiryDate: form.settings?.expiryDate ? new Date(form.settings.expiryDate) : undefined,
-                },
-              }));
-              console.log('Found forms in legacy storage:', processedForms.map((f: Form) => ({ id: f.id, title: f.title })));
-              setForms(processedForms);
-              return;
-            }
-          } catch (error) {
-            console.error('Error loading legacy forms:', error);
-          }
-        }
-        
-        setForms(freshForms);
-      } else {
-        setForms([]);
+        console.log('🔄 FormManagement: Refreshing forms on focus for project:', projectId);
+        await loadProjectForms(projectId);
       }
-    };
-
-    // Refresh forms immediately
-    refreshForms();
-
-    // Refresh forms when window gains focus (user returns from form wizard)
-    const handleFocus = () => {
-      refreshForms();
     };
 
     window.addEventListener('focus', handleFocus);
@@ -179,7 +113,7 @@ export function FormManagement() {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, [projectId]); // Only depend on stable projectId, not functions
+  }, [projectId, loadProjectForms]);
 
   // Initialize with sample data if no forms exist (for demonstration)
   useEffect(() => {
@@ -232,7 +166,6 @@ export function FormManagement() {
 ];
 
         sampleForms.forEach(form => addForm(form));
-        setForms(sampleForms);
         localStorage.setItem(`ics_forms_initialized_${projectId}`, 'true');
       } */
     }
@@ -282,14 +215,25 @@ export function FormManagement() {
   };
 
   const handleDuplicateForm = async (form: Form) => {
-    try {
-      const duplicatedForm = duplicateFormInStorage(form);
-      setForms(prev => [duplicatedForm, ...prev]);
-      
+    if (!projectId) {
       toast({
-        title: "Form Duplicated",
-        description: `"${form.title}" has been duplicated successfully.`,
+        title: "Error",
+        description: "Project ID is required to duplicate forms.",
+        variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      const duplicatedForm = await duplicateForm(projectId, form.id);
+      if (duplicatedForm) {
+        // Refresh the forms list to include the new duplicated form
+        await loadProjectForms(projectId);
+        toast({
+          title: "Form Duplicated",
+          description: `"${form.title}" has been duplicated successfully.`,
+        });
+      }
     } catch (error) {
       toast({
         title: "Duplication Failed",
@@ -299,21 +243,44 @@ export function FormManagement() {
     }
   };
 
-  const handleDeleteForm = async (formId: string) => {
-    try {
-      deleteFormFromStorage(formId);
-      setForms(prev => prev.filter(form => form.id !== formId));
-      
+  const handleDeleteForm = (form: Form) => {
+    if (!projectId) {
       toast({
-        title: "Form Deleted",
-        description: "The form has been deleted successfully.",
+        title: "Error",
+        description: "Project ID is required to delete forms.",
+        variant: "destructive",
       });
+      return;
+    }
+
+    setFormToDelete(form);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!formToDelete || !projectId) return;
+
+    setIsDeleting(true);
+    try {
+      const success = await deleteForm(projectId, formToDelete.id);
+      if (success) {
+        // The FormContext already updates the local state and shows success toast
+        // No need for additional API call or toast here
+        console.log('Form deleted successfully');
+      } else {
+        throw new Error('Delete operation failed');
+      }
     } catch (error) {
+      console.error('Error deleting form:', error);
       toast({
         title: "Delete Failed",
         description: "Could not delete the form. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setFormToDelete(null);
     }
   };
 
@@ -638,7 +605,7 @@ export function FormManagement() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={(e) => { e.stopPropagation(); handleDeleteForm(form.id); }}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteForm(form); }}
                                 className="text-red-600"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -706,7 +673,7 @@ export function FormManagement() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={(e) => { e.stopPropagation(); handleDeleteForm(form.id); }}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteForm(form); }}
                                 className="text-red-600"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -774,6 +741,19 @@ export function FormManagement() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Form"
+        description={`Are you sure you want to delete "${formToDelete?.title}"? This action cannot be undone and will permanently delete the form and all its responses.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
