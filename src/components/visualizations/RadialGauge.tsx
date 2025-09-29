@@ -10,12 +10,6 @@ interface RadialGaugeProps {
   backgroundColor?: string;
   showValue?: boolean;
   unit?: string;
-  autoColorCode?: boolean;
-  colorThresholds?: {
-    low: { threshold: number; color: string };
-    medium: { threshold: number; color: string };
-    high: { threshold: number; color: string };
-  };
 }
 
 export function RadialGauge({ 
@@ -26,36 +20,16 @@ export function RadialGauge({
   primaryColor = '#3B82F6',
   backgroundColor = '#E5E7EB',
   showValue = true,
-  unit = '%',
-  autoColorCode = false,
-  colorThresholds = {
-    low: { threshold: 50, color: '#EF4444' },
-    medium: { threshold: 80, color: '#F59E0B' },
-    high: { threshold: 100, color: '#10B981' }
-  }
+  unit = '%'
 }: RadialGaugeProps) {
   const percentage = Math.min((value / max) * 100, 100);
-  
-  const getColorBasedOnValue = () => {
-    if (!autoColorCode) return primaryColor;
-    
-    if (percentage < colorThresholds.low.threshold) {
-      return colorThresholds.low.color;
-    } else if (percentage < colorThresholds.medium.threshold) {
-      return colorThresholds.medium.color;
-    } else {
-      return colorThresholds.high.color;
-    }
-  };
-
-  const activeColor = getColorBasedOnValue();
   
   const data = [
     { name: 'completed', value: percentage },
     { name: 'remaining', value: 100 - percentage }
   ];
 
-  const COLORS = [activeColor, backgroundColor];
+  const COLORS = [primaryColor, backgroundColor];
 
   return (
     <div className="relative inline-block" style={{ width: size, height: size }}>
@@ -88,16 +62,6 @@ export function RadialGauge({
             <div className="text-sm text-muted-foreground">
               {unit}
             </div>
-          </div>
-        </div>
-      )}
-      
-      {autoColorCode && (
-        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
-          <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 rounded-full bg-red-500" title="< 50%" />
-            <div className="w-2 h-2 rounded-full bg-amber-500" title="50-79%" />
-            <div className="w-2 h-2 rounded-full bg-green-500" title="≥ 80%" />
           </div>
         </div>
       )}

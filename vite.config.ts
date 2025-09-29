@@ -12,4 +12,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  build: {
+  rollupOptions: {
+      external: ['src/lib/aaclData.ts','src/lib/cdwData.ts', 'src/lib/icsData.ts','src/lib/kuimarishaData.ts','src/lib/mamebData.ts','src/lib/npppData.ts','src/lib/vacisKeData.ts', 'src/lib/vacisTzData.ts'],
+  },
+},
 });

@@ -1,20 +1,72 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { Activity, Calendar, Users, CheckCircle2, Clock, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Activity, Calendar, Users, CheckCircle2, Clock, MapPin, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { RadialGauge } from '@/components/visualizations/RadialGauge';
-import { AreaChart } from '@/components/visualizations/AreaChart';
-import { 
-  comprehensiveActivitiesData,
-  generateProgressData,
-  getStatusColor
-} from '@/lib/mockData';
+import { Button } from '@/components/ui/button';
+import { useProjects } from '@/contexts/ProjectsContext';
+import { Activity as ActivityType } from '@/types/dashboard';
 
 export function ActivityDetail() {
-  const { activityId, outcomeId } = useParams();
-  const activity = comprehensiveActivitiesData[activityId as keyof typeof comprehensiveActivitiesData];
+  const { activityId, projectId } = useParams();
+  const navigate = useNavigate();
+  const { getProjectActivities } = useProjects();
+  const [activity, setActivity] = useState<ActivityType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadActivityData();
+  }, [activityId, projectId]);
+
+  const loadActivityData = async () => {
+    if (!projectId || !activityId) return;
+    
+    setIsLoading(true);
+    try {
+      const activities = await getProjectActivities(projectId);
+      const foundActivity = activities.find(a => a.id === activityId);
+      setActivity(foundActivity || null);
+    } catch (error) {
+      console.error('Error loading activity:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'COMPLETED':
+        return 'bg-green-100 text-green-800 border-green-300';
+      case 'IN_PROGRESS':
+        return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'ON_HOLD':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'NOT_STARTED':
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-4">Loading activity details...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!activity) {
     return (
@@ -22,26 +74,33 @@ export function ActivityDetail() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-foreground">Activity not found</h2>
           <p className="text-muted-foreground mt-2">Activity {activityId} could not be found.</p>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate(-1)}
+            className="mt-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Go Back
+          </Button>
         </div>
       </div>
     );
   }
 
-  // Generate progress data based on activity current value
-  const progressData = generateProgressData(activity.current, activity.target);
-
-  const progressPercentage = Math.round((activity.current / activity.target) * 100);
-  const budgetUsed = Math.round((activity.spent / activity.budget) * 100);
-
   return (
     <div className="space-y-8">
+      {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-          <span>Outcome {outcomeId}</span>
-          <span>•</span>
-          <span>Activity {activityId}</span>
-        </div>
-        <h1 className="text-3xl font-bold text-foreground">Activity {activityId}: {activity.title}</h1>
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate(-1)}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Activities
+        </Button>
+        
+        <h1 className="text-3xl font-bold text-foreground">{activity.title}</h1>
         <p className="text-muted-foreground mt-2">{activity.description}</p>
       </div>
 
@@ -50,30 +109,13 @@ export function ActivityDetail() {
         <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Current Progress
+              Progress
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{activity.current}</div>
-            <p className="text-xs text-muted-foreground">
-              of {activity.target} {activity.unit}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Budget Utilization
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{budgetUsed}%</div>
-            <p className="text-xs text-muted-foreground">
-              ${activity.spent.toLocaleString()} used
-            </p>
+            <div className="text-2xl font-bold text-foreground">{activity.progress}%</div>
+            <Progress value={activity.progress} className="mt-2" />
           </CardContent>
         </Card>
 
@@ -94,169 +136,122 @@ export function ActivityDetail() {
         <Card className="transition-all duration-200 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Sub-Activities
+              Start Date
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{activity.subActivities.length}</div>
-            <p className="text-xs text-muted-foreground">total sub-activities</p>
+            <div className="text-sm font-medium text-foreground">
+              {formatDate(activity.startDate)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="transition-all duration-200 hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              End Date
+            </CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm font-medium text-foreground">
+              {formatDate(activity.endDate)}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Progress Visualization */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="transition-all duration-200 hover:shadow-md">
+      {/* Activity Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
           <CardHeader>
-            <CardTitle>Activity Progress</CardTitle>
-            <CardDescription>Overall completion percentage</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Responsibility
+            </CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center justify-center">
-            <RadialGauge 
-              value={progressPercentage} 
-              size={180} 
-              thickness={12}
-              unit="%" 
-              primaryColor="#14B8A6"
-            />
+          <CardContent>
+            <p className="text-foreground">{activity.responsible}</p>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 transition-all duration-200 hover:shadow-md">
+        <Card>
           <CardHeader>
-            <CardTitle>Monthly Progress Timeline</CardTitle>
-            <CardDescription>Cumulative progress over time</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Activity ID
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <AreaChart 
-              data={progressData} 
-              height={250} 
-              areaColor="#14B8A6"
-              showCumulative={true}
-            />
+            <p className="text-foreground font-mono">{activity.id}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Sub-Activities */}
-      <Card className="transition-all duration-200 hover:shadow-md">
+      {activity.subActivities && activity.subActivities.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sub-Activities</CardTitle>
+            <CardDescription>
+              Detailed breakdown of this activity
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {activity.subActivities.map((subActivity) => (
+                <div 
+                  key={subActivity.id}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div className="flex-1">
+                    <h4 className="font-medium text-foreground">{subActivity.title}</h4>
+                    {subActivity.description && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {subActivity.description}
+                      </p>
+                    )}
+                    {subActivity.dueDate && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Due: {formatDate(new Date(subActivity.dueDate))}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="text-sm font-medium">{subActivity.progress}%</div>
+                      <Progress value={subActivity.progress} className="w-20" />
+                    </div>
+                    <Badge className={getStatusColor(subActivity.status)}>
+                      {subActivity.status.charAt(0).toUpperCase() + subActivity.status.slice(1).replace('-', ' ')}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Future Features Placeholder */}
+      <Card className="border-dashed">
         <CardHeader>
-          <CardTitle>Sub-Activities</CardTitle>
-          <CardDescription>Detailed breakdown of all sub-activities for this activity</CardDescription>
+          <CardTitle className="text-muted-foreground">Enhanced Features Coming Soon</CardTitle>
+          <CardDescription>
+            The following features will be available once the backend APIs are implemented:
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {activity.subActivities.map((subActivity) => (
-              <div key={subActivity.id} className="p-6 rounded-lg border border-border bg-card">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground mb-2">
-                      {subActivity.id}: {subActivity.title}
-                    </h4>
-                    <p className="text-sm text-muted-foreground mb-3">{subActivity.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        <span>Due: {new Date(subActivity.dueDate).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Badge className={getStatusColor(subActivity.status)}>
-                    {subActivity.status.charAt(0).toUpperCase() + subActivity.status.slice(1).replace('-', ' ')}
-                  </Badge>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">Progress</span>
-                    <span className="text-muted-foreground">{subActivity.progress}%</span>
-                  </div>
-                  <Progress value={subActivity.progress} className="h-2" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <ul className="text-sm text-muted-foreground space-y-2">
+            <li>• Budget tracking and financial data visualization</li>
+            <li>• Progress charts and trend analysis</li>
+            <li>• Activity timeline and milestone tracking</li>
+            <li>• Resource allocation and dependency mapping</li>
+            <li>• Real-time collaboration and comments</li>
+          </ul>
         </CardContent>
       </Card>
-
-      {/* Activity Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle>Timeline & Budget</CardTitle>
-            <CardDescription>Activity timeline and budget information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm font-medium text-muted-foreground mb-1">Start Date</div>
-                <div className="text-lg font-semibold text-foreground">
-                  {new Date(activity.startDate).toLocaleDateString()}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-muted-foreground mb-1">End Date</div>
-                <div className="text-lg font-semibold text-foreground">
-                  {new Date(activity.endDate).toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-            
-            <div className="pt-4 border-t">
-              <div className="text-sm font-medium text-muted-foreground mb-2">Budget Utilization</div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Total Budget</span>
-                  <span>${activity.budget.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Amount Spent</span>
-                  <span>${activity.spent.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm font-medium">
-                  <span>Remaining</span>
-                  <span>${(activity.budget - activity.spent).toLocaleString()}</span>
-                </div>
-                <Progress value={budgetUsed} className="h-2" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle>Key Details</CardTitle>
-            <CardDescription>Important activity information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Responsible Team</div>
-              <div className="text-lg font-semibold text-foreground">{activity.responsible}</div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground mb-1">Location</div>
-              <div className="text-lg font-semibold text-foreground">{activity.location}</div>
-            </div>
-            <div className="pt-4 border-t">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {activity.subActivities.filter(sa => sa.status === 'completed').length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Completed</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {activity.subActivities.filter(sa => sa.status === 'in-progress').length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">In Progress</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
-} 
+}

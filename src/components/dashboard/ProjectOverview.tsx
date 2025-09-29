@@ -1,43 +1,79 @@
-import React from 'react';
-import { Calendar, DollarSign, Target, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Calendar, DollarSign, Target, AlertTriangle, FileText, MapPin, Edit } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { RadialGauge } from '@/components/visualizations/RadialGauge';
 import { BulletChart } from '@/components/visualizations/BulletChart';
 import { StackedBarChart } from '@/components/visualizations/StackedBarChart';
-import { useDashboard } from '@/contexts/DashboardContext';
-import { mockOutcomes, mockActivities } from '@/lib/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProjects } from '@/contexts/ProjectsContext';
 import { format } from 'date-fns';
+import { ProjectMapVisualization } from './ProjectMapVisualization';
+import { Outcome, Activity } from '@/types/dashboard';
 
 export function ProjectOverview() {
-  const { currentProject } = useDashboard();
+  const { projectId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { 
+    projects, 
+    getProjectById,
+    getProjectOutcomes, 
+    getProjectActivities, 
+    getProjectSubActivities,
+    dataRefreshTrigger
+  } = useProjects();
 
-  if (!currentProject) {
+  if (!user) return null;
+  if (!projectId) {
     return <div>No project selected</div>;
   }
 
-  const projectOutcomes = mockOutcomes.filter(outcome => outcome.projectId === currentProject.id);
-  const recentActivities = mockActivities.slice(0, 3);
+  // Get project details for title and other info
+  const currentProject = getProjectById(projectId);
+  const projectName = currentProject?.name || projectId.toUpperCase();
 
-  // Data for outcome progress comparison
-  const outcomeProgressData = [
-    { name: 'Outcome 1', completed: 45, inProgress: 30, planned: 25 },
-    { name: 'Outcome 2', completed: 68, inProgress: 20, planned: 12 },
-    { name: 'Outcome 3', completed: 72, inProgress: 18, planned: 10 },
-    { name: 'Outcome 4', completed: 60, inProgress: 25, planned: 15 },
-    { name: 'Outcome 5', completed: 58, inProgress: 22, planned: 20 }
-  ];
+  // Get project data for stats (these are now async functions, we'll need to handle them differently)
+  const [outcomes, setOutcomes] = useState<Outcome[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [subactivities, setSubactivities] = useState<any[]>([]);
+
+  // Load project data
+  useEffect(() => {
+    const loadProjectData = async () => {
+      if (projectId && user) {
+        try {
+          console.log(`🔄 ProjectOverview: Loading data for project ${projectId} (refresh trigger: ${dataRefreshTrigger})`);
+          const [outcomesData, activitiesData, subactivitiesData] = await Promise.all([
+            getProjectOutcomes(projectId),
+            getProjectActivities(projectId),
+            getProjectSubActivities(projectId)
+          ]);
+          setOutcomes(outcomesData);
+          setActivities(activitiesData);
+          setSubactivities(subactivitiesData);
+          console.log(`✅ ProjectOverview: Loaded ${outcomesData.length} outcomes, ${activitiesData.length} activities, ${subactivitiesData.length} subactivities`);
+        } catch (error) {
+          console.error('Error loading project data:', error);
+        }
+      }
+    };
+
+    loadProjectData();
+  }, [projectId, user, getProjectOutcomes, getProjectActivities, getProjectSubActivities, dataRefreshTrigger]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'on-track':
+      case 'ON_TRACK':
         return 'bg-green-100 text-green-800';
-      case 'at-risk':
+      case 'AT_RISK':
         return 'bg-yellow-100 text-yellow-800';
-      case 'behind':
+      case 'BEHIND':
         return 'bg-red-100 text-red-800';
-      case 'completed':
+      case 'COMPLETED':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -47,201 +83,210 @@ export function ProjectOverview() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">{currentProject.name}</h1>
-        <p className="text-muted-foreground">{currentProject.description}</p>
+        <h1 className="text-3xl font-bold text-foreground">{projectName}</h1>
+        <p className="text-muted-foreground">{currentProject?.description || 'Project overview and details'}</p>
       </div>
 
-      {/* Project Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Progress
-            </CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{currentProject.progress}%</div>
-            <Progress value={currentProject.progress} className="mt-2" />
-          </CardContent>
-        </Card>
+      {/* Project Navigation Links */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/dashboard/projects/${projectId}/kpi`)}
+          className="flex items-center gap-2"
+        >
+          <Target className="h-4 w-4" />
+          KPI Analytics
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/dashboard/projects/${projectId}/forms`)}
+          className="flex items-center gap-2"
+        >
+          <FileText className="h-4 w-4" />
+          Forms
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/dashboard/projects/${projectId}/financial`)}
+          className="flex items-center gap-2"
+        >
+          <DollarSign className="h-4 w-4" />
+          Financial
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate(`/dashboard/projects/${projectId}/media`)}
+          className="flex items-center gap-2"
+        >
+          <MapPin className="h-4 w-4" />
+          Media
+        </Button>
+      </div>
 
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Budget Utilization
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              ${(currentProject.spent / 1000000).toFixed(1)}M
+      {/* Project Overview Information - Main Content */}
+      {currentProject && (
+        <div className="space-y-6">
+          {/* Project Overview Header */}
+          <div className="border-b pb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Project Overview</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Comprehensive project information including background, map visualization, and theory of change
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              of ${(currentProject.budget / 1000000).toFixed(1)}M budget
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Duration
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-              5 years
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {format(currentProject.startDate, 'MMM yyyy')} - {format(currentProject.endDate, 'MMM yyyy')}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Status
-            </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <Badge className={getStatusColor(currentProject.status)}>
-              {currentProject.status.charAt(0).toUpperCase() + currentProject.status.slice(1)}
-            </Badge>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Outcomes and Activities */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Outcomes */}
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle>Outcomes</CardTitle>
-            <CardDescription>Progress tracking with appropriate visualizations</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <StackedBarChart 
-              data={outcomeProgressData} 
-              height={300}
-              colors={['#10B981', '#F59E0B', '#E5E7EB']}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Recent Activities */}
-        <Card className="transition-all duration-200 hover:shadow-md">
-          <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
-            <CardDescription>Latest project activities and updates</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {recentActivities.map((activity) => (
-              <div key={activity.id} className="p-4 rounded-lg bg-muted/50">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-foreground">{activity.title}</h4>
-                  <Badge className={getStatusColor(activity.status)}>
-                    {activity.status.charAt(0).toUpperCase() + activity.status.slice(1).replace('-', ' ')}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">{activity.description}</p>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-medium">{activity.progress}%</span>
-                  </div>
-                  <Progress value={activity.progress} className="h-2" />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Responsible: {activity.responsible}</span>
-                    <span>{format(activity.endDate, 'MMM dd, yyyy')}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Key Performance Indicators */}
-      <Card className="transition-all duration-200 hover:shadow-md">
-        <CardHeader>
-          <CardTitle>Key Performance Indicators</CardTitle>
-          <CardDescription>Target vs actual performance across key metrics</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <BulletChart
-              current={1350}
-              target={3000}
-              title="Children with Rights Knowledge"
-              unit="children"
-              qualitativeRanges={{ poor: 1200, satisfactory: 2400, good: 3000 }}
-            />
-            <BulletChart
-              current={4}
-              target={5}
-              title="Mentors Trained"
-              unit="mentors"
-              qualitativeRanges={{ poor: 2, satisfactory: 4, good: 5 }}
-            />
-            <BulletChart
-              current={7}
-              target={10}
-              title="Child Rights Clubs"
-              unit="clubs"
-              qualitativeRanges={{ poor: 4, satisfactory: 7, good: 10 }}
-            />
-            <BulletChart
-              current={72}
-              target={100}
-              title="Community Leaders Trained"
-              unit="leaders"
-              qualitativeRanges={{ poor: 40, satisfactory: 70, good: 100 }}
-            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/dashboard/projects/${projectId}/edit`)}
+              className="flex items-center gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              Edit Overview
+            </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Key Risks and Issues */}
-      <Card className="transition-all duration-200 hover:shadow-md">
-        <CardHeader>
-          <CardTitle>Key Risks and Issues</CardTitle>
-          <CardDescription>Current risks and mitigation strategies</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { risk: 'Low community participation', impact: 'High', probability: 'Medium', mitigation: 'Enhanced community engagement strategies', status: 'monitoring' },
-              { risk: 'School administration resistance', impact: 'Medium', probability: 'Low', mitigation: 'Stakeholder meetings and capacity building', status: 'resolved' },
-              { risk: 'Child safety concerns', impact: 'High', probability: 'Low', mitigation: 'Robust safeguarding protocols implemented', status: 'monitoring' },
-              { risk: 'Limited mentor availability', impact: 'Medium', probability: 'Medium', mitigation: 'Expanded recruitment and incentive programs', status: 'monitoring' }
-            ].map((item, index) => (
-              <div key={index} className="p-4 rounded-lg border border-border">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-foreground">{item.risk}</h4>
-                  <Badge variant={item.status === 'resolved' ? 'default' : 'destructive'}>
-                    {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                  </Badge>
+          {/* Background Information */}
+          {currentProject.backgroundInformation && (
+            <Card className="transition-all duration-200 hover:shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  Background Information
+                </CardTitle>
+                <CardDescription>
+                  Project context, challenges, and objectives
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-sm leading-relaxed text-gray-700">{currentProject.backgroundInformation}</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Impact: </span>
-                    <span className="font-medium">{item.impact}</span>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Map Visualization */}
+          {currentProject.mapData && (
+            <ProjectMapVisualization 
+              project={currentProject}
+              mapData={currentProject.mapData}
+            />
+          )}
+
+          {/* Theory of Change */}
+          {currentProject.theoryOfChange && (
+            <Card className="transition-all duration-200 hover:shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-purple-600" />
+                  Theory of Change
+                  {currentProject.theoryOfChange.lastUpdated && (
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      Updated {format(currentProject.theoryOfChange.lastUpdated, 'MMM dd, yyyy')}
+                    </Badge>
+                  )}
+                </CardTitle>
+                {currentProject.theoryOfChange.description && (
+                  <CardDescription>{currentProject.theoryOfChange.description}</CardDescription>
+                )}
+              </CardHeader>
+              <CardContent>
+                {currentProject.theoryOfChange.type === 'image' ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-center">
+                      <img 
+                        src={currentProject.theoryOfChange.content} 
+                        alt="Theory of Change" 
+                        className="w-full max-w-2xl border rounded-lg shadow-sm"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Probability: </span>
-                    <span className="font-medium">{item.probability}</span>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <pre className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap font-sans">
+                        {currentProject.theoryOfChange.content}
+                      </pre>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Mitigation: </span>
-                    <span className="font-medium">{item.mitigation}</span>
-                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Project Quick Stats */}
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-lg text-blue-900">Project Quick Stats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">{outcomes.length}</div>
+                  <div className="text-sm text-blue-700">Outcomes</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{activities.length}</div>
+                  <div className="text-sm text-green-700">Activities</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">{subactivities.length}</div>
+                  <div className="text-sm text-purple-700">Sub-activities</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">{currentProject.progress}%</div>
+                  <div className="text-sm text-orange-700">Progress</div>
                 </div>
               </div>
-            ))}
+            </CardContent>
+          </Card>
+
+          {/* No Overview Data Message */}
+          {!currentProject.backgroundInformation && !currentProject.mapData && !currentProject.theoryOfChange && (
+            <Card className="border-dashed">
+              <CardContent className="p-8 text-center">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Overview Information</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  This project doesn't have background information, map visualization, or theory of change configured yet.
+                </p>
+                <p className="text-xs text-gray-500">
+                  Project overview information can be added when editing the project.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Project Duration and Status Summary */}
+      <Card className="bg-gradient-to-r from-gray-50 to-gray-100">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{currentProject?.progress || 0}%</div>
+              <div className="text-sm text-gray-600">Overall Progress</div>
+              <Progress value={currentProject?.progress || 0} className="mt-2" />
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">
+                {currentProject?.startDate && currentProject?.endDate 
+                  ? `${format(currentProject.startDate, 'MMM yyyy')} - ${format(currentProject.endDate, 'MMM yyyy')}`
+                  : 'Dates not available'
+                }
+              </div>
+              <div className="text-sm text-gray-600">Project Duration</div>
+            </div>
+            <div className="text-center">
+              <Badge className={getStatusColor(currentProject?.status || 'active')}>
+                {(currentProject?.status?.charAt(0)?.toUpperCase() || 'A') + (currentProject?.status?.slice(1) || 'ctive')}
+              </Badge>
+              <div className="text-sm text-gray-600 mt-1">Project Status</div>
+            </div>
           </div>
         </CardContent>
       </Card>
