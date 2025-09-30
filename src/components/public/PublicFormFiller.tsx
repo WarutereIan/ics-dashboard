@@ -146,7 +146,9 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     if (!form || !currentSection) return true;
     
     const allResponses = { ...responses, ...conditionalResponses };
-    const errors = validateConditionalQuestions(form, allResponses);
+    // Only validate conditional questions within the current section to avoid blocking on other sections
+    const sectionOnlyForm = { ...form, sections: [currentSection] } as Form;
+    const errors = validateConditionalQuestions(sectionOnlyForm, allResponses);
     
     // Also validate main questions
     currentSection.questions.forEach(question => {
