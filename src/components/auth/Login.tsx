@@ -19,8 +19,13 @@ export const Login: React.FC<LoginProps> = () => {
   const [searchParams] = useSearchParams();
   const { login, isAuthenticated, isLoading } = useAuth();
   
-  // Get the 'next' parameter from URL and validate it
-  const rawNext = searchParams.get('next');
+  // Get the 'next' (preferred) or legacy 'returnTo' parameter from URL and validate it
+  let rawNext = searchParams.get('next') || searchParams.get('returnTo');
+  if (!rawNext && typeof window !== 'undefined') {
+    // Fallback to window.location.search parsing to handle edge cases
+    const sp = new URLSearchParams(window.location.search);
+    rawNext = sp.get('next') || sp.get('returnTo');
+  }
   
   // Debug logging
   console.log('Login component - nextUrl from searchParams:', rawNext);

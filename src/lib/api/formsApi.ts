@@ -329,13 +329,29 @@ export const formsApi = {
     throw new Error(response.error || 'Failed to fetch public form');
   },
 
+  async getSecureForm(formId: string): Promise<Form> {
+    const response = await apiClient.get(`/forms/secure/${formId}`);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to fetch secure form');
+  },
+
   // ========================================
   // UTILITY METHODS
   // ========================================
 
   async getFormByIdOnly(formId: string): Promise<Form | null> {
     try {
-      // Try to fetch as public form first
+      // If user is authenticated, try secure first
+      const token = localStorage.getItem('ics-auth-token');
+      if (token) {
+        try {
+          return await this.getSecureForm(formId);
+        } catch {
+          // Fallback to public endpoint
+        }
+      }
       return await this.getPublicForm(formId);
     } catch (error) {
       console.error('Error fetching form:', error);
