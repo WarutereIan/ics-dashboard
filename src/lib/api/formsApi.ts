@@ -96,9 +96,39 @@ export const formsApi = {
   },
 
   async duplicateForm(projectId: string, formId: string): Promise<Form> {
+    console.log('🌐 FormsAPI: Making duplicate request for project:', projectId, 'formId:', formId);
     const response = await apiClient.post(`/forms/projects/${projectId}/forms/${formId}/duplicate`);
+    console.log('📡 FormsAPI: Received response from backend:', {
+      success: response.success,
+      hasData: !!response.data,
+      error: response.error
+    });
+    
     if (response.success && response.data) {
-      return response.data as Form;
+      const form = response.data as Form;
+      console.log('📋 FormsAPI: Duplicated form structure:', {
+        id: form.id,
+        title: form.title,
+        sectionsCount: form.sections?.length || 0,
+        totalQuestions: form.sections?.reduce((total, section) => total + (section.questions?.length || 0), 0) || 0
+      });
+      
+      // Log choice questions and their options
+      if (form.sections) {
+        form.sections.forEach((section, sectionIndex) => {
+          section.questions?.forEach((question, questionIndex) => {
+            if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+              console.log(`🎯 FormsAPI: Question ${sectionIndex}-${questionIndex} (${question.title}):`, {
+                type: question.type,
+                optionsCount: question.options?.length || 0,
+                options: question.options?.map(opt => ({ id: opt.id, label: opt.label, value: opt.value })) || []
+              });
+            }
+          });
+        });
+      }
+      
+      return form;
     }
     throw new Error(response.error || 'Failed to duplicate form');
   },
@@ -299,13 +329,29 @@ export const formsApi = {
     throw new Error(response.error || 'Failed to fetch public form');
   },
 
+  async getSecureForm(formId: string): Promise<Form> {
+    const response = await apiClient.get(`/forms/secure/${formId}`);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to fetch secure form');
+  },
+
   // ========================================
   // UTILITY METHODS
   // ========================================
 
   async getFormByIdOnly(formId: string): Promise<Form | null> {
     try {
-      // Try to fetch as public form first
+      // If user is authenticated, try secure first
+      const token = localStorage.getItem('ics-auth-token');
+      if (token) {
+        try {
+          return await this.getSecureForm(formId);
+        } catch {
+          // Fallback to public endpoint
+        }
+      }
       return await this.getPublicForm(formId);
     } catch (error) {
       console.error('Error fetching form:', error);

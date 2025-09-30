@@ -155,6 +155,16 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
   const [selectedOptions, setSelectedOptions] = React.useState<string[]>([]);
   const [otherText, setOtherText] = React.useState('');
 
+  // Debug logging for question rendering
+  console.log('🎨 MultipleChoiceQuestionEditor: Rendering question:', {
+    id: question.id,
+    title: question.title,
+    type: question.type,
+    hasOptions: !!question.options,
+    optionsCount: question.options?.length || 0,
+    options: question.options?.map(opt => ({ id: opt.id, label: opt.label, value: opt.value })) || []
+  });
+
   // Ensure options array exists and has at least default options
   const safeOptions = question.options || [
     { id: uuidv4(), label: 'Option 1', value: 'option1', hasConditionalQuestions: false, conditionalQuestions: [] },
@@ -162,11 +172,13 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
   ];
 
   // Initialize options if they don't exist
-  if (!question.options || question.options.length === 0) {
-    onUpdate({
-      options: safeOptions
-    } as Partial<FormQuestion>);
-  }
+  useEffect(() => {
+    if (!question.options || question.options.length === 0) {
+      onUpdate({
+        options: safeOptions
+      } as Partial<FormQuestion>);
+    }
+  }, [question.options, onUpdate]);
 
   // Ensure display type is always RADIO
   useEffect(() => {

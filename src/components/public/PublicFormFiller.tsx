@@ -41,6 +41,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [requiresAuth, setRequiresAuth] = useState(false);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [conditionalResponses, setConditionalResponses] = useState<Record<string, any>>({});
@@ -66,13 +67,29 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
         setLoading(false);
       } catch (err: any) {
         console.error('Failed to load public form:', err);
-        
-        // Handle specific error cases
-        if (err.message?.includes('requires authentication')) {
-          setError('This form requires login to access. Please contact the form owner.');
-        } else if (err.message?.includes('expired')) {
+        const msg: string = err?.message || '';
+
+        // If form requires authentication, try secure endpoint when token exists
+        if (msg.includes('requires authentication')) {
+          const token = localStorage.getItem('ics-auth-token');
+          if (token) {
+            try {
+              console.log('Retrying with secure endpoint for authenticated user');
+              const secureForm = await formsApi.getSecureForm(formId);
+              setForm(secureForm);
+              setRequiresAuth(false);
+              setLoading(false);
+              return;
+            } catch (secureErr: any) {
+              console.error('Secure form fetch failed:', secureErr);
+              // Fall through to show auth required UI
+            }
+          }
+          setRequiresAuth(true);
+          setError('This form requires authentication. Please log in to continue.');
+        } else if (msg.includes('expired')) {
           setError('This form has expired and is no longer accepting responses');
-        } else if (err.message?.includes('not found') || err.message?.includes('not published')) {
+        } else if (msg.includes('not found') || msg.includes('not published')) {
           setError('Form not found or not available');
         } else {
           setError('Failed to load form. Please try again later.');
@@ -129,7 +146,9 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     if (!form || !currentSection) return true;
     
     const allResponses = { ...responses, ...conditionalResponses };
-    const errors = validateConditionalQuestions(form, allResponses);
+    // Only validate conditional questions within the current section to avoid blocking on other sections
+    const sectionOnlyForm = { ...form, sections: [currentSection] } as Form;
+    const errors = validateConditionalQuestions(sectionOnlyForm, allResponses);
     
     // Also validate main questions
     currentSection.questions.forEach(question => {
@@ -213,6 +232,12 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     }
   };
 
+  const handleLoginRedirect = () => {
+    // Preserve return path to this public form
+    const next = encodeURIComponent(`/fill/${formId}`);
+    navigate(`/login?next=${next}`);
+  };
+
   const saveDraft = () => {
     if (form?.id) {
       const previewData: Omit<FormPreviewData, 'formId'> = {
@@ -255,6 +280,11 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+            {requiresAuth && (
+              <div className="mt-4">
+                <Button onClick={handleLoginRedirect} className="w-full">Login to continue</Button>
+              </div>
+            )}
             <div className="mt-4">
               <Button 
                 variant="outline" 

@@ -57,7 +57,42 @@ export class APIClient {
         };
       }
 
+      // Handle 204 No Content responses (empty body)
+      if (response.status === 204) {
+        return { success: true, data: undefined };
+      }
+
       const data = await response.json();
+      
+      // Debug logging for duplicate form requests
+      if (endpoint.includes('/duplicate')) {
+        console.log('🔍 APIClient: Raw response for duplicate request:', {
+          status: response.status,
+          ok: response.ok,
+          hasData: !!data,
+          dataKeys: data ? Object.keys(data) : []
+        });
+        
+        if (data && data.sections) {
+          console.log('🔍 APIClient: Form sections in response:', data.sections.length);
+          data.sections.forEach((section: any, sectionIndex: number) => {
+            console.log(`🔍 APIClient: Section ${sectionIndex}:`, {
+              title: section.title,
+              questionsCount: section.questions?.length || 0
+            });
+            section.questions?.forEach((question: any, questionIndex: number) => {
+              if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+                console.log(`🔍 APIClient: Question ${sectionIndex}-${questionIndex} (${question.title}):`, {
+                  type: question.type,
+                  hasOptions: !!question.options,
+                  optionsCount: question.options?.length || 0,
+                  options: question.options?.map((opt: any) => ({ id: opt.id, label: opt.label, value: opt.value })) || []
+                });
+              }
+            });
+          });
+        }
+      }
 
       if (response.ok) {
         return { success: true, data };
@@ -133,7 +168,42 @@ export class APIClient {
         };
       }
 
+      // Handle 204 No Content responses (empty body)
+      if (response.status === 204) {
+        return { success: true, data: undefined };
+      }
+
       const data = await response.json();
+      
+      // Debug logging for duplicate form requests
+      if (endpoint.includes('/duplicate')) {
+        console.log('🔍 APIClient: Raw response for duplicate request:', {
+          status: response.status,
+          ok: response.ok,
+          hasData: !!data,
+          dataKeys: data ? Object.keys(data) : []
+        });
+        
+        if (data && data.sections) {
+          console.log('🔍 APIClient: Form sections in response:', data.sections.length);
+          data.sections.forEach((section: any, sectionIndex: number) => {
+            console.log(`🔍 APIClient: Section ${sectionIndex}:`, {
+              title: section.title,
+              questionsCount: section.questions?.length || 0
+            });
+            section.questions?.forEach((question: any, questionIndex: number) => {
+              if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+                console.log(`🔍 APIClient: Question ${sectionIndex}-${questionIndex} (${question.title}):`, {
+                  type: question.type,
+                  hasOptions: !!question.options,
+                  optionsCount: question.options?.length || 0,
+                  options: question.options?.map((opt: any) => ({ id: opt.id, label: opt.label, value: opt.value })) || []
+                });
+              }
+            });
+          });
+        }
+      }
 
       if (response.ok) {
         return { success: true, data };
