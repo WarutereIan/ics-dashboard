@@ -98,7 +98,7 @@ export function FinancialCharts({ summary }: FinancialChartsProps) {
         </CardHeader>
         <CardContent>
           <div style={{ height: 350 }}>
-            <HiChartPie
+            <PieChart
               series={[
                 {
                   data: pieData,

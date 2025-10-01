@@ -20,7 +20,8 @@ import {
   ShieldCheckIcon,
   EnvelopeIcon,
   PlusIcon,
-  XMarkIcon
+  XMarkIcon,
+  PaintBrushIcon
 } from '@heroicons/react/24/outline';
 import { FormSettings } from './types';
 
@@ -76,7 +77,7 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Shield className="w-5 h-5" />
+                <ShieldCheckIcon className="w-5 h-5" />
                 Access Control
               </CardTitle>
             </CardHeader>
@@ -97,7 +98,7 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
                 {settings.requireAuthentication && (
                   <div className="border rounded-lg p-4 bg-emerald-50 space-y-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <Users className="w-4 h-4 text-emerald-600" />
+                      <UsersIcon className="w-4 h-4 text-emerald-600" />
                       <Label className="text-base font-medium text-emerald-900">User Role Access Control</Label>
                     </div>
 
@@ -163,7 +164,7 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="w-5 h-5" />
+                <UsersIcon className="w-5 h-5" />
                 User Experience
               </CardTitle>
             </CardHeader>
@@ -204,7 +205,7 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Bell className="w-5 h-5" />
+                <BellIcon className="w-5 h-5" />
                 Email Notifications
               </CardTitle>
             </CardHeader>
@@ -219,14 +220,14 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
                     onClick={addNotificationEmail}
                     className="flex items-center gap-2"
                   >
-                    <Plus className="w-4 h-4" />
+                    <PlusIcon className="w-4 h-4" />
                     Add Email
                   </Button>
                 </div>
 
                 {settings.notificationEmails.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <EnvelopeIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 mb-2">No notification emails configured</p>
                     <p className="text-sm text-gray-500">
                       Add email addresses to receive notifications when users submit responses
@@ -237,7 +238,7 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
                     {settings.notificationEmails.map((email, index) => (
                       <div key={index} className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-gray-400" />
+                          <EnvelopeIcon className="w-4 h-4 text-gray-400" />
                           <span className="text-sm">{email}</span>
                         </div>
                         <Button
@@ -247,7 +248,7 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
                           onClick={() => removeNotificationEmail(email)}
                           className="text-emerald-600 hover:text-emerald-700"
                         >
-                          <X className="w-4 h-4" />
+                          <XMarkIcon className="w-4 h-4" />
                         </Button>
                       </div>
                     ))}
@@ -273,7 +274,7 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Palette className="w-5 h-5" />
+                <PaintBrushIcon className="w-5 h-5" />
                 Advanced Settings
               </CardTitle>
             </CardHeader>

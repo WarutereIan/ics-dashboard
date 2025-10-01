@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { HiClipboard } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { HelpCircle, GripVertical } from 'lucide-react';
 
 import { FeedbackForm, FeedbackFormSection, FeedbackQuestion, FeedbackQuestionType } from '@/types/feedback';
@@ -188,7 +188,7 @@ export function QuestionsStep({
                                 size="sm"
                                 onClick={() => onDuplicateQuestion(question.id)}
                               >
-                                <ClipboardIcon className="w-4 h-4" />
+                                <ClipboardDocumentIcon className="w-4 h-4" />
                               </Button>
                               <Button
                                 variant="ghost"

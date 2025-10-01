@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon, CheckIcon, EyeIcon, EyeSlashIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { HiArrowLeft, HiArrowRight } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 
 import { Form } from '@/components/dashboard/form-creation-wizard/types';
