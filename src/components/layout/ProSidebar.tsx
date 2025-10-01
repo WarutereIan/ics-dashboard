@@ -1,7 +1,27 @@
 import React from 'react';
 import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
 import { Link, useLocation } from 'react-router-dom';
-import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText, Plus, ClipboardList, X, DollarSign, MessageSquare, Database, BookOpen, Edit3 } from 'lucide-react';
+import { 
+  ChartBarIcon, 
+  UsersIcon, 
+  Cog6ToothIcon, 
+  FolderIcon, 
+  CheckCircleIcon, 
+  FlagIcon, 
+  DocumentTextIcon, 
+  PlusIcon, 
+  ClipboardDocumentListIcon, 
+  XMarkIcon, 
+  CurrencyDollarIcon, 
+  ChatBubbleLeftRightIcon, 
+  CircleStackIcon, 
+  BookOpenIcon, 
+  PencilIcon,
+  InformationCircleIcon,
+  MapIcon,
+  PhotoIcon,
+  DocumentChartBarIcon
+} from '@heroicons/react/24/outline';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { useProjects } from '@/contexts/ProjectsContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,14 +99,14 @@ export function ProSidebar() {
           {/* Header */}
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-800">ICS Dashboard</h2>
+              <h2 className="text-lg font-semibold text-gray-800">DIMES</h2>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleCloseSidebar}
                 className="md:hidden"
               >
-                <X className="h-4 w-4" />
+                <XMarkIcon className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -96,40 +116,40 @@ export function ProSidebar() {
             <Menu>
               {/* Global Overview */}
              <SubMenu 
-            label="Organization" 
-            icon={<Users className="h-4 w-4" />}
+            label="Global" 
+            icon={<UsersIcon className="h-4 w-4" />}
             className="text-sm"
             >
               <MenuItem 
-            icon={<Target className="h-4 w-4" />} 
+            icon={<FlagIcon className="h-4 w-4" />} 
             component={<Link to="/dashboard" onClick={handleCloseSidebar} />}
             className="text-sm"
           >
-            Organization Goals
+            Goals
           </MenuItem>
             {isAdmin() && (
               <SubMenu 
                 label="Strategic Plan" 
-                icon={<BookOpen className="h-4 w-4" />}
+                icon={<BookOpenIcon className="h-4 w-4" />}
                 className="text-sm"
               >
                 <MenuItem 
                   component={<Link to="/dashboard/strategic-plan/create" onClick={handleCloseSidebar} />}
                   className="text-sm"
                 >
-                  Create Strategic Plan
+                  Create Organizational Plan
                 </MenuItem>
                 <MenuItem 
                   component={<Link to="/dashboard/strategic-plan/edit" onClick={handleCloseSidebar} />}
                   className="text-sm"
                 >
-                  Edit Strategic Plan
+                  Edit Organizational Plan
                 </MenuItem>
               </SubMenu>
             )}
             <SubMenu 
-              label="Feedback " 
-              icon={<MessageSquare className="h-4 w-4" />}
+              label="Feedback & Submissions" 
+              icon={<ChatBubbleLeftRightIcon className="h-4 w-4" />}
               className="text-sm"
             >
               <MenuItem 
@@ -138,37 +158,27 @@ export function ProSidebar() {
               >
                 Submit Feedback
               </MenuItem>
-              <MenuItem 
-                component={<Link to="/dashboard/feedback/forms" onClick={handleCloseSidebar} />}
-                className="text-sm"
-              >
-                Manage Forms
-              </MenuItem>
+              
               <MenuItem 
                 component={<Link to="/dashboard/feedback/submissions" onClick={handleCloseSidebar} />}
                 className="text-sm"
               >
                 View Submissions
               </MenuItem>
-              <MenuItem 
-                component={<Link to="/dashboard/feedback/analytics" onClick={handleCloseSidebar} />}
-                className="text-sm"
-              >
-                Analytics
-              </MenuItem>
+             
             </SubMenu>
           </SubMenu>
 
               {/* Projects Section */}
               <SubMenu 
                 label="Projects" 
-                icon={<Folder className="h-4 w-4" />}
+                icon={<FolderIcon className="h-4 w-4" />}
                 className="text-sm"
               >
                 {/* Create Project (admin only) */}
                 {isAdmin() && (
                   <MenuItem 
-                    icon={<Plus className="h-4 w-4" />} 
+                    icon={<PlusIcon className="h-4 w-4" />} 
                     component={<Link to="/dashboard/projects/create" onClick={handleCloseSidebar} />}
                     className="text-sm"
                   >
@@ -209,119 +219,142 @@ export function ProSidebar() {
                         label={project.name.toUpperCase()}
                         className="text-sm"
                       >
+                        {/* Background */}
                         <MenuItem 
                           component={<Link to={`/dashboard/projects/${project.id}`} onClick={handleCloseSidebar} />}
                           className="text-sm"
+                          icon={<InformationCircleIcon className="h-4 w-4" />}
                         >
-                          Overview
+                          Background
                         </MenuItem>
-                        {/* KPI Analytics - Check for KPI permissions */}
+                        
+                        {/* ToC Tracker */}
+                        <SubMenu 
+                          label="ToC Tracker" 
+                          icon={<ChartBarIcon className="h-4 w-4" />}
+                          className="text-sm"
+                        >
+                          {/* Outcomes - Check for project read permissions */}
+                          {permissionManager.canAccessProject(project.id, 'read') && (
+                            <MenuItem 
+                              component={<Link to={`/dashboard/projects/${project.id}/outcomes`} onClick={handleCloseSidebar} />}
+                              className="text-sm"
+                            >
+                              Outcomes
+                            </MenuItem>
+                          )}
+                          
+                          {/* Outputs - Check for project read permissions */}
+                          {permissionManager.canAccessProject(project.id, 'read') && (
+                            <MenuItem 
+                              component={<Link to={`/dashboard/projects/${project.id}/outputs`} onClick={handleCloseSidebar} />}
+                              className="text-sm"
+                            >
+                              Outputs
+                            </MenuItem>
+                          )}
+                          
+                          {/* Activities - Check for project read permissions */}
+                          {permissionManager.canAccessProject(project.id, 'read') && (
+                            <MenuItem 
+                              component={<Link to={`/dashboard/projects/${project.id}/activities`} onClick={handleCloseSidebar} />}
+                              className="text-sm"
+                            >
+                              Activities
+                            </MenuItem>
+                          )}
+                          
+                          {/* Subactivities - Check for project read permissions */}
+                          {permissionManager.canAccessProject(project.id, 'read') && (
+                            <MenuItem 
+                              component={<Link to={`/dashboard/projects/${project.id}/subactivities`} onClick={handleCloseSidebar} />}
+                              className="text-sm"
+                            >
+                              Sub-activities
+                            </MenuItem>
+                          )}
+                        </SubMenu>
+                        
+                        {/* KPI Tracker */}
                         {permissionManager.canAccessProjectComponent(project.id, 'kpis', 'read') && (
                           <MenuItem 
                             component={<Link to={`/dashboard/projects/${project.id}/kpi`} onClick={handleCloseSidebar} />}
                             className="text-sm"
+                            icon={<DocumentChartBarIcon className="h-4 w-4" />}
                           >
-                            KPI Analytics
+                            KPI Tracker
                           </MenuItem>
                         )}
                         
-                        {/* Outcomes - Check for project read permissions */}
-                        {permissionManager.canAccessProject(project.id, 'read') && (
-                          <MenuItem 
-                            component={<Link to={`/dashboard/projects/${project.id}/outcomes`} onClick={handleCloseSidebar} />}
-                            className="text-sm"
-                          >
-                            Outcomes
-                          </MenuItem>
-                        )}
-                        
-                        {/* Outputs - Check for project read permissions */}
-                        {permissionManager.canAccessProject(project.id, 'read') && (
-                          <MenuItem 
-                            component={<Link to={`/dashboard/projects/${project.id}/outputs`} onClick={handleCloseSidebar} />}
-                            className="text-sm"
-                          >
-                            Outputs
-                          </MenuItem>
-                        )}
-                        
-                        {/* Activities - Check for project read permissions */}
-                        {permissionManager.canAccessProject(project.id, 'read') && (
-                          <MenuItem 
-                            component={<Link to={`/dashboard/projects/${project.id}/activities`} onClick={handleCloseSidebar} />}
-                            className="text-sm"
-                          >
-                            Activities
-                          </MenuItem>
-                        )}
-                        
-                        {/* Subactivities - Check for project read permissions */}
-                        {permissionManager.canAccessProject(project.id, 'read') && (
-                          <MenuItem 
-                            component={<Link to={`/dashboard/projects/${project.id}/subactivities`} onClick={handleCloseSidebar} />}
-                            className="text-sm"
-                          >
-                            Subactivities
-                          </MenuItem>
-                        )}
-                        
-                        {/* Forms - Check for project read permissions */}
+                        {/* Forms Management */}
                         {permissionManager.canAccessProject(project.id, 'read') && (
                           <MenuItem 
                             component={<Link to={`/dashboard/projects/${project.id}/forms`} onClick={handleCloseSidebar} />}
                             className="text-sm"
+                            icon={<DocumentTextIcon className="h-4 w-4" />}
                           >
-                            Forms
+                            Forms Management
                           </MenuItem>
                         )}
                         
-                        {/* Financial tracking - Check for finance permissions */}
+                        {/* Budget Tracker */}
                         {permissionManager.canAccessProjectComponent(project.id, 'finance', 'read') && (
                           <MenuItem 
                             component={<Link to={`/dashboard/projects/${project.id}/financial`} onClick={handleCloseSidebar} />}
                             className="text-sm"
+                            icon={<CurrencyDollarIcon className="h-4 w-4" />}
                           >
-                            Financial
+                            Budget Tracker
                           </MenuItem>
                         )}
                         
-                        {/* Reports - Check for reports permissions */}
+                        {/* Media */}
+                        {permissionManager.canAccessProject(project.id, 'read') && (
+                          <MenuItem 
+                            component={<Link to={`/dashboard/projects/${project.id}/media`} onClick={handleCloseSidebar} />}
+                            className="text-sm"
+                            icon={<PhotoIcon className="h-4 w-4" />}
+                          >
+                            Media
+                          </MenuItem>
+                        )}
+                        
+                        {/* Reports */}
                         {permissionManager.canAccessProjectComponent(project.id, 'reports', 'read') && (
                           <MenuItem 
                             component={<Link to={`/dashboard/projects/${project.id}/reports`} onClick={handleCloseSidebar} />}
                             className="text-sm"
+                            icon={<DocumentTextIcon className="h-4 w-4" />}
                           >
                             Reports
                           </MenuItem>
                         )}
                         
-                        {/* Kobo Data - Check for kobo permissions */}
-                        {permissionManager.canAccessProjectComponent(project.id, 'kobo', 'read') && (
-                          <MenuItem 
-                            component={<Link to={`/dashboard/projects/${project.id}/kobo-data`} onClick={handleCloseSidebar} />}
-                            className="text-sm"
-                          >
-                            Kobo Data
-                          </MenuItem>
-                        )}
+                        {/* Data Imports */}
+                        <SubMenu 
+                          label="Data Imports" 
+                          icon={<CircleStackIcon className="h-4 w-4" />}
+                          className="text-sm"
+                        >
+                          {/* Kobo Data - Check for kobo permissions */}
+                          {permissionManager.canAccessProjectComponent(project.id, 'kobo', 'read') && (
+                            <MenuItem 
+                              component={<Link to={`/dashboard/projects/${project.id}/kobo-data`} onClick={handleCloseSidebar} />}
+                              className="text-sm"
+                            >
+                              Kobo
+                            </MenuItem>
+                          )}
+                        </SubMenu>
                         
-                        {/* Maps - Check for project read permissions */}
+                        {/* Maps */}
                         {permissionManager.canAccessProject(project.id, 'read') && (
                           <MenuItem 
                             component={<Link to={`/dashboard/projects/${project.id}/maps`} onClick={handleCloseSidebar} />}
                             className="text-sm"
+                            icon={<MapIcon className="h-4 w-4" />}
                           >
                             Maps
-                          </MenuItem>
-                        )}
-                        
-                        {/* Media - Check for project read permissions */}
-                        {permissionManager.canAccessProject(project.id, 'read') && (
-                          <MenuItem 
-                            component={<Link to={`/dashboard/projects/${project.id}/media`} onClick={handleCloseSidebar} />}
-                            className="text-sm"
-                          >
-                            Media
                           </MenuItem>
                         )}
                         
@@ -330,6 +363,7 @@ export function ProSidebar() {
                           <MenuItem 
                             component={<Link to={`/dashboard/projects/${project.id}/edit`} onClick={handleCloseSidebar} />}
                             className="text-sm"
+                            icon={<PencilIcon className="h-4 w-4" />}
                           >
                             Edit Project
                           </MenuItem>
@@ -344,14 +378,14 @@ export function ProSidebar() {
               {(permissionManager.canManageUsers('global') || isRegionalCoordinator()) && (
                 <SubMenu 
                   label="Administration" 
-                  icon={<Settings className="h-4 w-4" />}
+                  icon={<Cog6ToothIcon className="h-4 w-4" />}
                   className="text-sm"
                 >
                   {(permissionManager.hasResourcePermission('users', 'read', 'global') || isRegionalCoordinator()) && (
                     <MenuItem 
                       component={<Link to="/dashboard/admin/users" onClick={handleCloseSidebar} />}
                       className="text-sm"
-                      icon={<Users className="h-4 w-4" />}
+                      icon={<UsersIcon className="h-4 w-4" />}
                     >
                       User Management
                     </MenuItem>
@@ -360,7 +394,7 @@ export function ProSidebar() {
                     <MenuItem 
                       component={<Link to="/dashboard/admin/settings" onClick={handleCloseSidebar} />}
                       className="text-sm"
-                      icon={<Settings className="h-4 w-4" />}
+                      icon={<Cog6ToothIcon className="h-4 w-4" />}
                     >
                       System Settings
                     </MenuItem>

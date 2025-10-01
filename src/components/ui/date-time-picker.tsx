@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { ClockIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon } from '@heroicons/react/24/outline';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import ReactDatePicker from 'react-datepicker';
@@ -78,7 +80,7 @@ export function DateTimePicker({
             disabled={disabled}
           >
             {showTimeSelectOnly ? (
-              <Clock className="mr-2 h-4 w-4" />
+              <ClockIcon className="mr-2 h-4 w-4" />
             ) : (
               <CalendarIcon className="mr-2 h-4 w-4" />
             )}

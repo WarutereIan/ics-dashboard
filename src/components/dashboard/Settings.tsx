@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff } from 'lucide-react';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+
 import { authService } from '@/services/authService';
 import { useNotification } from '@/hooks/useNotification';
 
@@ -124,9 +125,9 @@ export function Settings() {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
               >
                 {showCurrentPassword ? (
-                  <EyeOff className="h-4 w-4" />
+                  <EyeSlashIcon className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-4 w-4" />
+                  <EyeIcon className="h-4 w-4" />
                 )}
               </button>
             </div>
@@ -150,9 +151,9 @@ export function Settings() {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
               >
                 {showNewPassword ? (
-                  <EyeOff className="h-4 w-4" />
+                  <EyeSlashIcon className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-4 w-4" />
+                  <EyeIcon className="h-4 w-4" />
                 )}
               </button>
             </div>
@@ -176,9 +177,9 @@ export function Settings() {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="h-4 w-4" />
+                  <EyeSlashIcon className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-4 w-4" />
+                  <EyeIcon className="h-4 w-4" />
                 )}
               </button>
             </div>

@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2 } from 'lucide-react';
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+
 import { OutcomeFormData } from './types';
 
 interface OutcomesFormProps {
@@ -25,7 +26,7 @@ export function OutcomesForm({
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Project Outcomes</h3>
         <Button onClick={onAddOutcome} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
+          <PlusIcon className="w-4 h-4" />
           Add Outcome
         </Button>
       </div>
@@ -45,9 +46,9 @@ export function OutcomesForm({
                     variant="outline"
                     size="sm"
                     onClick={() => onRemoveOutcome(index)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-emerald-600 hover:text-emerald-700"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <TrashIcon className="w-4 h-4" />
                   </Button>
                 </div>
 

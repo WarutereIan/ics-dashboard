@@ -5,7 +5,8 @@ import { DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, MessageSquare, Clock } from 'lucide-react';
+import { CheckCircleIcon, XCircleIcon, ChatBubbleLeftRightIcon, ClockIcon } from '@heroicons/react/24/outline';
+
 import { reportWorkflowService } from '@/services/reportWorkflowService';
 import { useToast } from '@/hooks/use-toast';
 import { log } from 'console';
@@ -149,7 +150,7 @@ export function ReportWorkflowDetail({ reportId, onClose, onChanged }: ReportWor
                   disabled={isSubmitting || hasActed}
                   className="gap-2"
                 >
-                  <CheckCircle className="h-4 w-4" /> Approve
+                  <CheckCircleIcon className="h-4 w-4" /> Approve
                 </Button>
                 <Button 
                   variant="destructive" 
@@ -172,7 +173,7 @@ export function ReportWorkflowDetail({ reportId, onClose, onChanged }: ReportWor
                   disabled={isSubmitting || hasActed}
                   className="gap-2"
                 >
-                  <XCircle className="h-4 w-4" /> Reject
+                  <XCircleIcon className="h-4 w-4" /> Reject
                 </Button>
                 <Button 
                   variant="outline" 
@@ -195,7 +196,7 @@ export function ReportWorkflowDetail({ reportId, onClose, onChanged }: ReportWor
                   className="gap-2" 
                   disabled={!note.trim() || isSubmitting || hasActed}
                 >
-                  <MessageSquare className="h-4 w-4" /> Request Changes
+                  <ChatBubbleLeftRightIcon className="h-4 w-4" /> Request Changes
                 </Button>
               </div>
             </CardContent>
@@ -213,7 +214,7 @@ export function ReportWorkflowDetail({ reportId, onClose, onChanged }: ReportWor
                   <div key={s.id} className="p-3 border rounded">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
+                        <ClockIcon className="h-4 w-4" />
                         <span>Step {s.stepOrder}</span>
                       </div>
                       <Badge variant={s.isCompleted ? 'default' : 'secondary'}>{s.isCompleted ? 'Completed' : 'Pending'}</Badge>

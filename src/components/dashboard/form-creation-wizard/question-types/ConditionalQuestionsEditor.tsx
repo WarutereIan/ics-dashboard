@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, ChevronDown, ChevronRight, Trash2, Copy } from 'lucide-react';
+import { PlusIcon, ChevronDownIcon, ChevronRightIcon, TrashIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+
 import { FormQuestion, QuestionType, ActivityKPIMapping } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -269,29 +270,29 @@ export function ConditionalQuestionsEditor({
 
     return (
     <div onClick={(e) => e.stopPropagation()}>
-      <Card className="border-l-4 border-l-blue-500 bg-blue-50">
+      <Card className="border-l-4 border-l-blue-500 bg-emerald-50">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="p-1 h-auto hover:bg-blue-100"
+                className="p-1 h-auto hover:bg-emerald-100"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsOpen(!isOpen);
                 }}
               >
                 {isOpen ? (
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDownIcon className="w-4 h-4" />
                 ) : (
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRightIcon className="w-4 h-4" />
                 )}
               </Button>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+              <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
                 Conditional Questions
               </Badge>
-              <span className="text-sm font-medium text-blue-900">
+              <span className="text-sm font-medium text-emerald-900">
                 When "{optionLabel}" is selected
               </span>
             </div>
@@ -304,13 +305,13 @@ export function ConditionalQuestionsEditor({
         {isOpen && (
           <CardContent className="space-y-4">
             {/* Add Conditional Question */}
-            <Card className="border-dashed border-2 border-blue-300 bg-blue-50">
+            <Card className="border-dashed border-2 border-blue-300 bg-emerald-50">
               <CardContent className="pt-4">
                 <div className="space-y-4">
                   <div className="text-center">
-                    <Plus className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                    <h4 className="font-medium text-blue-900">Add Conditional Question</h4>
-                    <p className="text-sm text-blue-700">
+                    <PlusIcon className="w-6 h-6 text-emerald-600 mx-auto mb-2" />
+                    <h4 className="font-medium text-emerald-900">Add Conditional Question</h4>
+                    <p className="text-sm text-emerald-700">
                       Add a question that appears when "{optionLabel}" is selected
                     </p>
                   </div>
@@ -342,9 +343,9 @@ export function ConditionalQuestionsEditor({
                     <div className="flex items-end">
                       <Button 
                         onClick={() => addConditionalQuestion(selectedQuestionType)}
-                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700"
                       >
-                        <Plus className="w-4 h-4 mr-2" />
+                        <PlusIcon className="w-4 h-4 mr-2" />
                         Add Question
                       </Button>
                     </div>
@@ -358,10 +359,10 @@ export function ConditionalQuestionsEditor({
               <Card className="border-dashed border-2 border-blue-300">
                 <CardContent className="pt-4">
                   <div className="text-center py-6">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Plus className="w-6 h-6 text-blue-600" />
+                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <PlusIcon className="w-6 h-6 text-emerald-600" />
                     </div>
-                    <p className="text-blue-600 mb-1">No conditional questions yet</p>
+                    <p className="text-emerald-600 mb-1">No conditional questions yet</p>
                     <p className="text-sm text-blue-500">
                       Add questions that will appear when this option is selected
                     </p>
@@ -374,7 +375,7 @@ export function ConditionalQuestionsEditor({
                   <div key={question.id} className="relative">
                     {/* Question Number Badge */}
                     <div className="absolute -top-2 -left-2 z-10">
-                      <Badge variant="secondary" className="bg-blue-600 text-white text-xs">
+                      <Badge variant="secondary" className="bg-emerald-600 text-white text-xs">
                         {index + 1}
                       </Badge>
                     </div>

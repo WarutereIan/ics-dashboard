@@ -9,25 +9,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Upload, 
-  FileText, 
-  Download, 
-  Trash2, 
-  CheckCircle, 
-  AlertCircle,
-  Plus,
-  File,
-  FileImage,
-  FileVideo,
-  FileAudio,
-  FileArchive,
-  MapPin,
-  Building,
-  Calendar,
-  Clock,
-  Hash
-} from 'lucide-react';
+import { ArrowUpTrayIcon, DocumentTextIcon, ArrowDownTrayIcon, TrashIcon, CheckCircleIcon, ExclamationCircleIcon, PlusIcon, DocumentIcon, MapPinIcon, CalendarIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { FileImage, FileVideo, FileAudio, FileArchive, Building, Hash } from 'lucide-react';
+
 import { toast } from '@/hooks/use-toast';
 import { NamingConventionForm } from './NamingConventionForm';
 import { 
@@ -260,7 +244,7 @@ export function ReportUpload({
     if (fileType.includes('video')) return <FileVideo className="w-4 h-4" />;
     if (fileType.includes('audio')) return <FileAudio className="w-4 h-4" />;
     if (fileType.includes('zip') || fileType.includes('rar')) return <FileArchive className="w-4 h-4" />;
-    return <FileText className="w-4 h-4" />;
+    return <DocumentTextIcon className="w-4 h-4" />;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -626,7 +610,7 @@ export function ReportUpload({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Upload className="w-5 h-5" />
+            <ArrowUpTrayIcon className="w-5 h-5" />
             Upload Reports
           </CardTitle>
         </CardHeader>
@@ -644,7 +628,7 @@ export function ReportUpload({
             {/* Auto-categorization Summary */}
             {(categorization.countryCode || categorization.projectCode) && (
               <Alert className="border-green-200 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircleIcon className="h-4 w-4 text-green-600" />
                 <AlertDescription>
                   <div className="font-medium text-green-800 mb-2">Auto-Categorization Applied</div>
                   <div className="space-y-1 text-sm text-green-700">
@@ -666,7 +650,7 @@ export function ReportUpload({
               {/* Country Selection */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
+                  <MapPinIcon className="w-4 h-4" />
                   Country *
                 </Label>
                 <Select
@@ -678,7 +662,7 @@ export function ReportUpload({
                     <SelectValue>
                       {categorization.countryCode ? (
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <CheckCircleIcon className="w-4 h-4 text-green-600" />
                           <span>
                             {COUNTRIES.find(c => c.code === categorization.countryCode)?.name || currentProject?.country}
                             <span className="text-gray-500 ml-1">({categorization.countryCode})</span>
@@ -698,7 +682,7 @@ export function ReportUpload({
                   </SelectContent>
                 </Select>
                 <div className="flex items-center gap-2 text-xs text-green-600">
-                  <CheckCircle className="w-3 h-3" />
+                  <CheckCircleIcon className="w-3 h-3" />
                   <span>Auto-detected: {currentProject?.country}</span>
                 </div>
               </div>
@@ -706,7 +690,7 @@ export function ReportUpload({
               {/* Region Selection */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
+                  <MapPinIcon className="w-4 h-4" />
                   Administrative Region *
                 </Label>
                 <Select
@@ -718,7 +702,7 @@ export function ReportUpload({
                     <SelectValue placeholder="Select a region">
                       {categorization.regionCode && (
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <CheckCircleIcon className="w-4 h-4 text-green-600" />
                           <span>
                             {availableRegions.find(r => r.code === categorization.regionCode)?.name}
                             <span className="text-gray-500 ml-1">({categorization.regionCode})</span>
@@ -737,7 +721,7 @@ export function ReportUpload({
                 </Select>
                 {categorization.regionCode && (
                   <div className="flex items-center gap-2 text-xs text-green-600">
-                    <CheckCircle className="w-3 h-3" />
+                    <CheckCircleIcon className="w-3 h-3" />
                     <span>Auto-detected from project data</span>
                   </div>
                 )}
@@ -758,7 +742,7 @@ export function ReportUpload({
                     <SelectValue>
                       {categorization.projectCode ? (
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <CheckCircleIcon className="w-4 h-4 text-green-600" />
                           <span>
                             {availableProjects.find(p => p.code === categorization.projectCode)?.name || currentProject?.name} 
                             <span className="text-gray-500 ml-1">({categorization.projectCode})</span>
@@ -778,7 +762,7 @@ export function ReportUpload({
                   </SelectContent>
                 </Select>
                 <div className="flex items-center gap-2 text-xs text-green-600">
-                  <CheckCircle className="w-3 h-3" />
+                  <CheckCircleIcon className="w-3 h-3" />
                   <span>Auto-detected from current project: {currentProject?.name}</span>
                 </div>
               </div>
@@ -786,7 +770,7 @@ export function ReportUpload({
               {/* Report Type Selection */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
+                  <DocumentTextIcon className="w-4 h-4" />
                   Report Type *
                 </Label>
                 <Select
@@ -840,7 +824,7 @@ export function ReportUpload({
               {/* Report Frequency Selection */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
+                  <CalendarIcon className="w-4 h-4" />
                   Report Frequency *
                 </Label>
                 <Select
@@ -868,7 +852,7 @@ export function ReportUpload({
               {/* Version Control */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
+                  <ClockIcon className="w-4 h-4" />
                   Version Control (Optional)
                 </Label>
                 <Select
@@ -913,7 +897,7 @@ export function ReportUpload({
               ? 'border-gray-300 hover:border-gray-400'
               : 'border-gray-200 bg-gray-50'
           }`}>
-            <Upload className={`w-12 h-12 mx-auto mb-4 ${
+            <ArrowUpTrayIcon className={`w-12 h-12 mx-auto mb-4 ${
               isCategorizationComplete()
                 ? 'text-gray-400'
                 : 'text-gray-300'
@@ -937,7 +921,7 @@ export function ReportUpload({
                   Maximum {maxFiles} files allowed
                 </p>
                 {!isCategorizationComplete() && (
-                  <p className="text-sm text-orange-600 font-medium">
+                  <p className="text-sm text-lime-600 font-medium">
                     Please complete all required categorization fields and select report frequency above
                     {categorization.reportTypeCode === 'ACT' && !categorization.activityId && (
                       <span className="block mt-1">• Activity selection is required for Activity Reports</span>
@@ -960,7 +944,7 @@ export function ReportUpload({
           {/* Upload Progress */}
           {isUploading && (
             <Alert>
-              <AlertCircle className="w-4 h-4" />
+              <ExclamationCircleIcon className="w-4 h-4" />
               <AlertDescription>
                 Processing files... Please wait.
               </AlertDescription>
@@ -1020,14 +1004,14 @@ export function ReportUpload({
                       variant="outline"
                       onClick={() => downloadFile(file)}
                     >
-                      <Download className="w-4 h-4" />
+                      <ArrowDownTrayIcon className="w-4 h-4" />
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => removeFile(file.id)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <TrashIcon className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>

@@ -7,19 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { 
-  AlertTriangle, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  Users, 
-  Camera,
-  FileText,
-  Send,
-  User,
-  Mail,
-  Phone
-} from 'lucide-react';
+import { ExclamationTriangleIcon, MapPinIcon, CalendarIcon, ClockIcon, UsersIcon, DocumentTextIcon, UserIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { Camera, Send, Phone } from 'lucide-react';
+
 
 interface SafetyIncidentFormProps {
   onSubmit: (data: any) => void;
@@ -199,7 +189,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
+            <UserIcon className="w-5 h-5" />
             Reporter Information
           </CardTitle>
         </CardHeader>
@@ -227,7 +217,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
                   placeholder="Your full name"
                 />
                 {errors.name && (
-                  <p className="text-sm text-red-600">{errors.name}</p>
+                  <p className="text-sm text-emerald-600">{errors.name}</p>
                 )}
               </div>
 
@@ -242,7 +232,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
                   placeholder="your.email@example.com"
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email}</p>
+                  <p className="text-sm text-emerald-600">{errors.email}</p>
                 )}
               </div>
 
@@ -283,7 +273,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
+            <ExclamationTriangleIcon className="w-5 h-5" />
             Incident Details
           </CardTitle>
         </CardHeader>
@@ -307,7 +297,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
                 </SelectContent>
               </Select>
               {errors.incidentType && (
-                <p className="text-sm text-red-600">{errors.incidentType}</p>
+                <p className="text-sm text-emerald-600">{errors.incidentType}</p>
               )}
             </div>
 
@@ -329,7 +319,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
                 </SelectContent>
               </Select>
               {errors.severity && (
-                <p className="text-sm text-red-600">{errors.severity}</p>
+                <p className="text-sm text-emerald-600">{errors.severity}</p>
               )}
             </div>
           </div>
@@ -344,7 +334,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
               placeholder="Brief title describing the incident"
             />
             {errors.title && (
-              <p className="text-sm text-red-600">{errors.title}</p>
+              <p className="text-sm text-emerald-600">{errors.title}</p>
             )}
           </div>
 
@@ -359,7 +349,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
               placeholder="Please provide a detailed description of what happened, including the sequence of events..."
             />
             {errors.description && (
-              <p className="text-sm text-red-600">{errors.description}</p>
+              <p className="text-sm text-emerald-600">{errors.description}</p>
             )}
           </div>
 
@@ -374,7 +364,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
                 placeholder="General location (e.g., Community Center, School)"
               />
               {errors.location && (
-                <p className="text-sm text-red-600">{errors.location}</p>
+                <p className="text-sm text-emerald-600">{errors.location}</p>
               )}
             </div>
 
@@ -400,7 +390,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
                 className={errors.incidentDate ? 'border-red-500' : ''}
               />
               {errors.incidentDate && (
-                <p className="text-sm text-red-600">{errors.incidentDate}</p>
+                <p className="text-sm text-emerald-600">{errors.incidentDate}</p>
               )}
             </div>
 
@@ -421,7 +411,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
+            <UsersIcon className="w-5 h-5" />
             People Involved
           </CardTitle>
         </CardHeader>
@@ -632,7 +622,7 @@ export function SafetyIncidentForm({ onSubmit, isSubmitting }: SafetyIncidentFor
                 </SelectContent>
               </Select>
               {errors.followUpMethod && (
-                <p className="text-sm text-red-600">{errors.followUpMethod}</p>
+                <p className="text-sm text-emerald-600">{errors.followUpMethod}</p>
               )}
             </div>
           )}

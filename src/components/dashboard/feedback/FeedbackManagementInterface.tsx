@@ -4,17 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  MessageSquare, 
-  Search, 
-  Filter, 
-  Eye, 
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  User,
-  Calendar
-} from 'lucide-react';
+import { ChatBubbleLeftRightIcon, MagnifyingGlassIcon, FunnelIcon, EyeIcon, ClockIcon, ExclamationTriangleIcon, CheckCircleIcon, UserIcon, CalendarIcon } from '@heroicons/react/24/outline';
+
 import { FeedbackSubmission, FeedbackForm } from '@/types/feedback';
 
 interface FeedbackManagementInterfaceProps {
@@ -80,19 +71,19 @@ export function FeedbackManagementInterface({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'SUBMITTED':
-        return <MessageSquare className="w-4 h-4" />;
+        return <ChatBubbleLeftRightIcon className="w-4 h-4" />;
       case 'ACKNOWLEDGED':
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircleIcon className="w-4 h-4" />;
       case 'IN_PROGRESS':
-        return <Clock className="w-4 h-4" />;
+        return <ClockIcon className="w-4 h-4" />;
       case 'RESOLVED':
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircleIcon className="w-4 h-4" />;
       case 'CLOSED':
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircleIcon className="w-4 h-4" />;
       case 'ESCALATED':
-        return <AlertTriangle className="w-4 h-4" />;
+        return <ExclamationTriangleIcon className="w-4 h-4" />;
       default:
-        return <MessageSquare className="w-4 h-4" />;
+        return <ChatBubbleLeftRightIcon className="w-4 h-4" />;
     }
   };
 
@@ -107,7 +98,7 @@ export function FeedbackManagementInterface({
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search submissions..."
                   value={searchTerm}
@@ -147,7 +138,7 @@ export function FeedbackManagementInterface({
           {/* Submissions List */}
           {filteredSubmissions.length === 0 ? (
             <div className="text-center py-12">
-              <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <ChatBubbleLeftRightIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No submissions found</h3>
               <p className="text-gray-600">
                 {submissions.length === 0 
@@ -190,17 +181,17 @@ export function FeedbackManagementInterface({
                         
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <div className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
+                            <CalendarIcon className="w-3 h-3" />
                             {submission.submittedAt.toLocaleDateString()}
                           </div>
                           {submission.submitterName && (
                             <div className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
+                              <UserIcon className="w-3 h-3" />
                               {submission.submitterName}
                             </div>
                           )}
                           <div className="flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" />
+                            <ExclamationTriangleIcon className="w-3 h-3" />
                             {submission.escalationLevel}
                           </div>
                         </div>
@@ -208,7 +199,7 @@ export function FeedbackManagementInterface({
                       
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4 mr-1" />
+                          <EyeIcon className="w-4 h-4 mr-1" />
                           View
                         </Button>
                         <Button variant="outline" size="sm">
@@ -229,7 +220,7 @@ export function FeedbackManagementInterface({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <MessageSquare className="w-8 h-8 text-blue-600" />
+              <ChatBubbleLeftRightIcon className="w-8 h-8 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">{submissions.length}</p>
                 <p className="text-sm text-gray-600">Total Submissions</p>
@@ -241,7 +232,7 @@ export function FeedbackManagementInterface({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <Clock className="w-8 h-8 text-yellow-600" />
+              <ClockIcon className="w-8 h-8 text-yellow-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {submissions.filter(s => s.status === 'SUBMITTED' || s.status === 'ACKNOWLEDGED').length}
@@ -255,7 +246,7 @@ export function FeedbackManagementInterface({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
+              <ExclamationTriangleIcon className="w-8 h-8 text-emerald-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {submissions.filter(s => s.priority === 'HIGH' || s.priority === 'CRITICAL').length}
@@ -269,7 +260,7 @@ export function FeedbackManagementInterface({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircleIcon className="w-8 h-8 text-green-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {submissions.filter(s => s.status === 'RESOLVED' || s.status === 'CLOSED').length}

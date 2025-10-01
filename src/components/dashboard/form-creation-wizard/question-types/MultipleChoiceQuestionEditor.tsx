@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { GripVertical } from 'lucide-react';
+
 import { BaseQuestionEditor } from './BaseQuestionEditor';
 import { ConditionalQuestionsEditor } from './ConditionalQuestionsEditor';
 import { MultipleChoiceQuestion, ActivityKPIMapping, ChoiceOption, FormQuestion, QuestionType } from '../types';
@@ -326,7 +328,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
                   onClick={addOption}
                   className="flex items-center gap-2"
                 >
-                  <Plus className="w-4 h-4" />
+                  <PlusIcon className="w-4 h-4" />
                   Add Option
                 </Button>
               </div>
@@ -375,9 +377,9 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
                         size="sm"
                         onClick={() => removeOption(option.id)}
                         disabled={safeOptions.length <= 2}
-                        className="text-red-600"
+                        className="text-emerald-600"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <TrashIcon className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -474,7 +476,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
 
         {/* Preview */}
         <div className="p-4 border rounded-lg bg-white">
-          <Label className="text-sm font-medium mb-2 block text-blue-600">Preview</Label>
+          <Label className="text-sm font-medium mb-2 block text-emerald-600">Preview</Label>
           <div className="space-y-2">
             <Label className="font-medium">
               {question.title || 'Question Title'}
@@ -492,7 +494,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
                      id={`preview-${option.id}`}
                      checked={selectedOptions.includes(option.id)}
                      onChange={() => handleOptionToggle(option.id)}
-                     className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                     className="w-4 h-4 border-gray-300 text-emerald-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                    />
                    <Label htmlFor={`preview-${option.id}`}>{option.label}</Label>
                  </div>
@@ -504,7 +506,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
                      id="preview-other"
                      checked={selectedOptions.includes('other')}
                      onChange={(e) => handleOtherToggle(e.target.checked)}
-                     className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                     className="w-4 h-4 border-gray-300 text-emerald-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                    />
                    <Label htmlFor="preview-other">Other:</Label>
                    <Input 
@@ -543,7 +545,7 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
         </div>
 
         {/* Data Information */}
-      {/*   <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+      {/*   <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
           <div>
             <p className="text-sm font-medium">Database Storage</p>
             <p className="text-xs text-gray-600">

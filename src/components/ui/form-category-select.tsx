@@ -1,7 +1,8 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Tag } from 'lucide-react';
+import { TagIcon } from '@heroicons/react/24/outline';
+
 import { FORM_CATEGORIES, GROUPED_FORM_CATEGORIES } from '@/lib/constants/formCategories';
 
 interface FormCategorySelectProps {
@@ -38,7 +39,7 @@ export function FormCategorySelect({
   return (
     <div className={className}>
       <Label htmlFor="form-category" className="flex items-center gap-2">
-        <Tag className="w-4 h-4" />
+        <TagIcon className="w-4 h-4" />
         {label} {required && <span className="text-red-500">*</span>}
       </Label>
       
@@ -76,11 +77,11 @@ export function FormCategorySelect({
       </p>
       
       {selectedCategory && showDescription && (
-        <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm font-medium text-blue-900">
+        <div className="mt-2 p-2 bg-emerald-50 rounded-lg border border-blue-200">
+          <p className="text-sm font-medium text-emerald-900">
             {selectedCategory.label}
           </p>
-          <p className="text-xs text-blue-700">
+          <p className="text-xs text-emerald-700">
             {selectedCategory.description}
           </p>
         </div>

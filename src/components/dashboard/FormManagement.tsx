@@ -8,24 +8,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { 
-  Plus, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Eye, 
-  Edit, 
-  Share2, 
-  BarChart3, 
-  Download,
-  Trash2,
-  Copy,
-  FileText,
-  Calendar,
-  Users,
-  ArrowLeft,
-  FolderOpen,
-  CheckCircle
-} from 'lucide-react';
+  PlusIcon, 
+  MagnifyingGlassIcon, 
+  FunnelIcon, 
+  EllipsisVerticalIcon, 
+  EyeIcon, 
+  PencilIcon, 
+  ShareIcon, 
+  ChartBarIcon, 
+  ArrowDownTrayIcon,
+  TrashIcon,
+  ClipboardDocumentIcon,
+  DocumentTextIcon,
+  CalendarIcon,
+  UsersIcon,
+  ArrowLeftIcon,
+  FolderOpenIcon,
+  CheckCircleIcon
+} from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/contexts/FormContext';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
@@ -51,7 +51,7 @@ export function FormManagement() {
   const forms = projectId ? (projectForms[projectId] || []) : [];
   const [isLoading, setIsLoading] = useState(true);
   const [copiedFormId, setCopiedFormId] = useState<string | null>(null);
-  const [showCopyPopup, setShowCopyPopup] = useState(false);
+  const [showClipboardDocumentIconPopup, setShowClipboardDocumentIconPopup] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formToDelete, setFormToDelete] = useState<Form | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -112,6 +112,24 @@ export function FormManagement() {
     
     return () => {
       window.removeEventListener('focus', handleFocus);
+    };
+  }, [projectId, loadProjectForms]);
+
+  // Periodic refresh to update response counts
+  useEffect(() => {
+    if (!projectId) return;
+
+    const refreshInterval = setInterval(async () => {
+      console.log('🔄 FormManagement: Periodic refresh for project:', projectId);
+      try {
+        await loadProjectForms(projectId);
+      } catch (error) {
+        console.warn('Periodic refresh failed:', error);
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => {
+      clearInterval(refreshInterval);
     };
   }, [projectId, loadProjectForms]);
 
@@ -202,7 +220,7 @@ export function FormManagement() {
     navigate(`/dashboard/projects/${projectId}/forms/create`);
   };
 
-  const handleEditForm = (formId: string) => {
+  const handlePencilIconForm = (formId: string) => {
     navigate(`/dashboard/projects/${projectId}/forms/edit/${formId}`);
   };
 
@@ -302,8 +320,8 @@ export function FormManagement() {
       await navigator.clipboard.writeText(formUrl);
       
       // Show popup feedback
-      setShowCopyPopup(true);
-      setTimeout(() => setShowCopyPopup(false), 2000);
+      setShowClipboardDocumentIconPopup(true);
+      setTimeout(() => setShowClipboardDocumentIconPopup(false), 2000);
       
       toast({
         title: "Link Copied!",
@@ -312,7 +330,7 @@ export function FormManagement() {
       });
     } catch (error) {
       toast({
-        title: "Copy Failed",
+        title: "ClipboardDocumentIcon Failed",
         description: "Could not copy link to clipboard. Please try again.",
         variant: "destructive",
         duration: 4000,
@@ -353,11 +371,11 @@ export function FormManagement() {
           onClick={() => navigate(`/dashboard/projects/${projectId}`)}
           className="flex items-center gap-2"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeftIcon className="w-4 h-4" />
           Back to Project
         </Button>
         <div className="flex items-center gap-2">
-          <FolderOpen className="w-5 h-5 text-blue-600" />
+          <FolderOpenIcon className="w-5 h-5 text-emerald-600" />
           <span className="text-lg font-medium text-gray-700">{projectName}</span>
         </div>
       </div>
@@ -370,7 +388,7 @@ export function FormManagement() {
         </div>
         
         <Button onClick={handleCreateForm} className="flex items-center gap-2 w-full lg:w-auto justify-center lg:justify-start">
-          <Plus className="w-4 h-4" />
+          <PlusIcon className="w-4 h-4" />
           <span className="whitespace-nowrap">Create New Form</span>
         </Button>
       </div>
@@ -380,7 +398,7 @@ export function FormManagement() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <FileText className="w-8 h-8 text-blue-600" />
+              <DocumentTextIcon className="w-8 h-8 text-emerald-600" />
               <div className="ml-4">
                 <p className="text-2xl font-bold">{forms.length}</p>
                 <p className="text-xs text-gray-500">Total Forms</p>
@@ -392,7 +410,7 @@ export function FormManagement() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <Eye className="w-8 h-8 text-green-600" />
+              <EyeIcon className="w-8 h-8 text-emerald-600" />
               <div className="ml-4">
                 <p className="text-2xl font-bold">{forms.filter(f => f.status === 'PUBLISHED').length}</p>
                 <p className="text-xs text-gray-500">Published</p>
@@ -404,7 +422,7 @@ export function FormManagement() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <Users className="w-8 h-8 text-purple-600" />
+              <UsersIcon className="w-8 h-8 text-emerald-600" />
               <div className="ml-4">
                 <p className="text-2xl font-bold">{forms.reduce((sum, form) => sum + form.responseCount, 0)}</p>
                 <p className="text-xs text-gray-500">Total Responses</p>
@@ -416,7 +434,7 @@ export function FormManagement() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <Edit className="w-8 h-8 text-orange-600" />
+              <PencilIcon className="w-8 h-8 text-lime-600" />
               <div className="ml-4">
                 <p className="text-2xl font-bold">{forms.filter(f => f.status === 'DRAFT').length}</p>
                 <p className="text-xs text-gray-500">Drafts</p>
@@ -432,7 +450,7 @@ export function FormManagement() {
           <div className="flex flex-col gap-4">
             <div className="w-full">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search forms by title, description, or tags..."
                   value={searchTerm}
@@ -491,7 +509,7 @@ export function FormManagement() {
         <CardContent>
           {filteredForms.length === 0 ? (
             <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <DocumentTextIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-2">
                 {forms.length === 0 ? 'No forms created yet' : 'No forms match your filters'}
               </p>
@@ -503,7 +521,7 @@ export function FormManagement() {
               </p>
               {forms.length === 0 && (
                 <Button onClick={handleCreateForm}>
-                  <Plus className="w-4 h-4 mr-2" />
+                  <PlusIcon className="w-4 h-4 mr-2" />
                   Create Your First Form
                 </Button>
               )}
@@ -550,13 +568,13 @@ export function FormManagement() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Users className="w-4 h-4 text-gray-400" />
+                            <UsersIcon className="w-4 h-4 text-gray-400" />
                             {form.responseCount}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <CalendarIcon className="w-4 h-4 text-gray-400" />
                             {form.lastResponseAt
                               ? new Date(form.lastResponseAt).toLocaleDateString()
                               : 'None'
@@ -574,41 +592,41 @@ export function FormManagement() {
                                   className="h-8 w-8 p-0"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                <MoreVertical className="h-4 w-4" />
+                                <EllipsisVerticalIcon className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewForm(form.id); }}>
-                                <Eye className="mr-2 h-4 w-4" />
+                                <EyeIcon className="mr-2 h-4 w-4" />
                                 Preview Form
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditForm(form.id); }}>
-                                <Edit className="mr-2 h-4 w-4" />
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePencilIconForm(form.id); }}>
+                                <PencilIcon className="mr-2 h-4 w-4" />
                                 Edit Form
                               </DropdownMenuItem>
                               {form.responseCount > 0 && (
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewResponses(form.id); }}>
-                                  <BarChart3 className="mr-2 h-4 w-4" />
+                                  <ChartBarIcon className="mr-2 h-4 w-4" />
                                   View Responses ({form.responseCount})
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
                               {form.status === 'PUBLISHED' && (
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareForm(form); }}>
-                                <Share2 className="mr-2 h-4 w-4" />
+                                <ShareIcon className="mr-2 h-4 w-4" />
                                 Share Link
                               </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
-                                <Copy className="mr-2 h-4 w-4" />
+                                <ClipboardDocumentIcon className="mr-2 h-4 w-4" />
                                 Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={(e) => { e.stopPropagation(); handleDeleteForm(form); }}
-                                className="text-red-600"
+                                className="text-emerald-600"
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
+                                <TrashIcon className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -642,41 +660,41 @@ export function FormManagement() {
                                 className="h-8 w-8 p-0 flex-shrink-0 ml-2"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <MoreVertical className="h-4 w-4" />
+                                <EllipsisVerticalIcon className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewForm(form.id); }}>
-                                <Eye className="mr-2 h-4 w-4" />
+                                <EyeIcon className="mr-2 h-4 w-4" />
                                 Preview Form
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditForm(form.id); }}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Form
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePencilIconForm(form.id); }}>
+                                <PencilIcon className="mr-2 h-4 w-4" />
+                                PencilIcon Form
                               </DropdownMenuItem>
                               {form.responseCount > 0 && (
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewResponses(form.id); }}>
-                                  <BarChart3 className="mr-2 h-4 w-4" />
+                                  <ChartBarIcon className="mr-2 h-4 w-4" />
                                   View Responses ({form.responseCount})
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
                               {form.status === 'PUBLISHED' && (
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareForm(form); }}>
-                                <Share2 className="mr-2 h-4 w-4" />
+                                <ShareIcon className="mr-2 h-4 w-4" />
                                 Share Link
                               </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
-                                <Copy className="mr-2 h-4 w-4" />
+                                <ClipboardDocumentIcon className="mr-2 h-4 w-4" />
                                 Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={(e) => { e.stopPropagation(); handleDeleteForm(form); }}
-                                className="text-red-600"
+                                className="text-emerald-600"
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
+                                <TrashIcon className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -701,14 +719,14 @@ export function FormManagement() {
                           <div className="flex justify-between">
                             <span className="text-gray-500">Responses:</span>
                             <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4 text-gray-400" />
+                              <UsersIcon className="w-4 h-4 text-gray-400" />
                               {form.responseCount}
                             </div>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-500">Last Response:</span>
                             <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4 text-gray-400" />
+                              <CalendarIcon className="w-4 h-4 text-gray-400" />
                               <span className="text-right">
                                 {form.lastResponseAt
                                   ? new Date(form.lastResponseAt).toLocaleDateString()
@@ -732,11 +750,11 @@ export function FormManagement() {
         </CardContent>
       </Card>
 
-      {/* Copy Success Popup */}
-      {showCopyPopup && (
+      {/* ClipboardDocumentIcon Success Popup */}
+      {showClipboardDocumentIconPopup && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300">
           <div className="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
-            <CheckCircle className="w-5 h-5" />
+            <CheckCircleIcon className="w-5 h-5" />
             <span className="font-medium">Link copied to clipboard!</span>
           </div>
         </div>

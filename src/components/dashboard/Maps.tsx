@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
+import { MapPinIcon } from '@heroicons/react/24/outline';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProjectMapVisualization } from './ProjectMapVisualization';
 import { useProjects } from '@/contexts/ProjectsContext';
@@ -36,7 +37,7 @@ export function Maps() {
         </div>
         <Card>
           <CardContent className="p-6 text-center">
-            <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <MapPinIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">Project Not Found</h3>
             <p className="text-sm text-muted-foreground">
               The requested project could not be found or you don't have access to it.

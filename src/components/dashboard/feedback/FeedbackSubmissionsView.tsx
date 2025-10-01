@@ -6,22 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Eye, 
-  MessageSquare, 
-  AlertTriangle,
-  Phone,
-  Users,
-  Calendar,
-  User,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle
-} from 'lucide-react';
+import { MagnifyingGlassIcon, FunnelIcon, ArrowDownTrayIcon, EyeIcon, ChatBubbleLeftRightIcon, ExclamationTriangleIcon, UsersIcon, CalendarIcon, UserIcon, ClockIcon, CheckCircleIcon, XCircleIcon, ExclamationCircleIcon, PhoneIcon } from '@heroicons/react/24/outline';
+
 import { FeedbackSubmissionDetail } from './FeedbackSubmissionDetail';
 
 interface FeedbackSubmissionsViewProps {
@@ -99,34 +85,34 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
   const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case 'SUBMITTED':
-        return <Clock className="w-4 h-4" />;
+        return <ClockIcon className="w-4 h-4" />;
       case 'ACKNOWLEDGED':
-        return <MessageSquare className="w-4 h-4" />;
+        return <ChatBubbleLeftRightIcon className="w-4 h-4" />;
       case 'IN_PROGRESS':
-        return <AlertCircle className="w-4 h-4" />;
+        return <ExclamationCircleIcon className="w-4 h-4" />;
       case 'RESOLVED':
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircleIcon className="w-4 h-4" />;
       case 'CLOSED':
-        return <XCircle className="w-4 h-4" />;
+        return <XCircleIcon className="w-4 h-4" />;
       case 'ESCALATED':
-        return <AlertTriangle className="w-4 h-4" />;
+        return <ExclamationTriangleIcon className="w-4 h-4" />;
       default:
-        return <Clock className="w-4 h-4" />;
+        return <ClockIcon className="w-4 h-4" />;
     }
   }, []);
 
   const getTypeIcon = useCallback((type: string) => {
     switch (type) {
       case 'General':
-        return <MessageSquare className="w-4 h-4" />;
+        return <ChatBubbleLeftRightIcon className="w-4 h-4" />;
       case 'Safety':
-        return <AlertTriangle className="w-4 h-4" />;
+        return <ExclamationTriangleIcon className="w-4 h-4" />;
       case 'Emergency':
-        return <Phone className="w-4 h-4" />;
+        return <PhoneIcon className="w-4 h-4" />;
       case 'Staff':
-        return <Users className="w-4 h-4" />;
+        return <UsersIcon className="w-4 h-4" />;
       default:
-        return <MessageSquare className="w-4 h-4" />;
+        return <ChatBubbleLeftRightIcon className="w-4 h-4" />;
     }
   }, []);
 
@@ -214,7 +200,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
           </p>
         </div>
         <Button onClick={handleExportSubmissions} variant="outline" className="flex items-center gap-2">
-          <Download className="w-4 h-4" />
+          <ArrowDownTrayIcon className="w-4 h-4" />
           Export
         </Button>
       </div>
@@ -224,8 +210,8 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <MessageSquare className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <ChatBubbleLeftRightIcon className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total</p>
@@ -238,7 +224,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
+                <ClockIcon className="w-5 h-5 text-yellow-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Pending</p>
@@ -250,8 +236,8 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
+              <div className="p-2 bg-lime-100 rounded-lg">
+                <ExclamationCircleIcon className="w-5 h-5 text-lime-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">In Progress</p>
@@ -264,7 +250,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+                <CheckCircleIcon className="w-5 h-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Resolved</p>
@@ -276,8 +262,8 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <ExclamationTriangleIcon className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Critical</p>
@@ -294,7 +280,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search submissions..."
                   value={searchTerm}
@@ -341,7 +327,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
         <CardContent>
           {filteredSubmissions.length === 0 ? (
             <div className="text-center py-12">
-              <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <ChatBubbleLeftRightIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No submissions found</h3>
               <p className="text-gray-500">
                 {transformedSubmissions.length === 0 
@@ -371,16 +357,16 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
                     <p className="text-gray-600 mb-3 line-clamp-2">{submission.description}</p>
                     <div className="flex items-center gap-6 text-sm text-gray-500">
                       <div className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
+                        <UserIcon className="w-4 h-4" />
                         {submission.isAnonymous ? 'Anonymous' : submission.submitter}
                       </div>
                       <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
+                        <CalendarIcon className="w-4 h-4" />
                         {new Date(submission.submittedAt).toLocaleDateString()}
                       </div>
                       {submission.assignedTo && (
                         <div className="flex items-center gap-1">
-                          <User className="w-4 h-4" />
+                          <UserIcon className="w-4 h-4" />
                           Assigned to: {submission.assignedTo}
                         </div>
                       )}
@@ -392,7 +378,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
                       size="sm"
                       onClick={() => handleViewSubmission(submission.id)}
                     >
-                      <Eye className="w-4 h-4" />
+                      <EyeIcon className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>

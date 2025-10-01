@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormCategorySelect } from '@/components/ui/form-category-select';
-import { AlertCircle, FileText, FolderOpen } from 'lucide-react';
+import { ExclamationCircleIcon, DocumentTextIcon, FolderOpenIcon } from '@heroicons/react/24/outline';
+
 import { Form } from './types';
 
 interface BasicInfoStepProps {
@@ -38,7 +39,7 @@ export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoSt
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
+            <DocumentTextIcon className="w-5 h-5" />
             Form Information
           </CardTitle>
         </CardHeader>
@@ -73,9 +74,9 @@ export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoSt
           </div>
 
           {form.id && (
-            <div className="p-3 bg-blue-50 rounded-lg border">
-              <p className="text-sm font-medium text-blue-900">Form ID</p>
-              <p className="text-sm text-blue-700 font-mono">{form.id}</p>
+            <div className="p-3 bg-emerald-50 rounded-lg border">
+              <p className="text-sm font-medium text-emerald-900">Form ID</p>
+              <p className="text-sm text-emerald-700 font-mono">{form.id}</p>
             </div>
           )}
         </CardContent>
@@ -85,7 +86,7 @@ export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoSt
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FolderOpen className="w-5 h-5" />
+            <FolderOpenIcon className="w-5 h-5" />
             Project Association
           </CardTitle>
         </CardHeader>
@@ -172,13 +173,13 @@ export function BasicInfoStep({ form, availableProjects, onUpdate }: BasicInfoSt
 
       {/* Validation Notice */}
       {(!form.title || !form.projectId) && (
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className="border-orange-200 bg-lime-50">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+              <ExclamationCircleIcon className="w-5 h-5 text-lime-600 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-orange-900">Required Information</p>
-                <p className="text-sm text-orange-700">
+                <p className="text-sm text-lime-700">
                   {availableProjects.length === 1 
                     ? "Please provide a form title to continue."
                     : "Please provide a form title and select a project to continue."

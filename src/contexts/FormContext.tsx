@@ -624,6 +624,15 @@ export function FormProvider({ children }: FormProviderProps) {
         [response.formId]: [...(prev[response.formId] || []), submittedResponse]
       }));
 
+      // Refresh form stats to update response count
+      try {
+        await formsApi.refreshFormStats(response.formId);
+        // Note: We can't refresh project forms here since we don't have projectId
+        // The FormManagement component will refresh on focus or manual refresh
+      } catch (refreshErr) {
+        console.warn('Failed to refresh form stats:', refreshErr);
+      }
+
       toast({
         title: "Success",
         description: "Response submitted successfully",
@@ -640,7 +649,7 @@ export function FormProvider({ children }: FormProviderProps) {
       addToOfflineQueue('form_response', response);
       return null;
     }
-  }, [isOnline, addToOfflineQueue]);
+  }, [isOnline, addToOfflineQueue, loadProjectForms]);
 
   const updateFormResponse = useCallback(async (projectId: string, formId: string, responseId: string, updates: UpdateFormResponseDto): Promise<FormResponse | null> => {
     try {

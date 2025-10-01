@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Download, X } from 'lucide-react';
+import { ArrowDownTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
+
 import { formatDraftAge, getDraftAge } from '@/lib/localStorageUtils';
 import {
   useProjectWizard,
@@ -139,9 +140,9 @@ export function ProjectCreationWizard() {
 
         {/* Draft Alert */}
         {showDraftAlert && !isEditMode && (
-          <Alert className="mb-6 border-blue-200 bg-blue-50">
-            <Download className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
+          <Alert className="mb-6 border-blue-200 bg-emerald-50">
+            <ArrowDownTrayIcon className="h-4 w-4 text-emerald-600" />
+            <AlertDescription className="text-emerald-800">
               <div className="flex items-center justify-between">
                 <div>
                   <span>A draft of your project is available{draftAgeText && ` (saved ${draftAgeText})`}. You can restore it to continue where you left off.</span>
@@ -154,7 +155,7 @@ export function ProjectCreationWizard() {
                       // The draft is already loaded by the hook, just hide the alert
                       setShowDraftAlert(false);
                     }}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                    className="text-emerald-600 border-blue-300 hover:bg-emerald-100"
                   >
                     Restore Draft
                   </Button>
@@ -162,9 +163,9 @@ export function ProjectCreationWizard() {
                     size="sm"
                     variant="outline"
                     onClick={() => setShowDraftAlert(false)}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                    className="text-emerald-600 border-blue-300 hover:bg-emerald-100"
                   >
-                    <X className="h-3 w-3" />
+                    <XMarkIcon className="h-3 w-3" />
                   </Button>
                 </div>
               </div>

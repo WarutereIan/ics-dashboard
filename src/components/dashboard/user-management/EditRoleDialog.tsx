@@ -22,7 +22,8 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Settings, Key } from 'lucide-react';
+import { Cog6ToothIcon, ShieldCheckIcon, KeyIcon } from '@heroicons/react/24/outline';
+
 import { Checkbox } from '@/components/ui/checkbox';
 import { Role, Permission, userManagementService } from '@/services/userManagementService';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -183,7 +184,7 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+            <ShieldCheckIcon className="h-5 w-5" />
             Edit Role: {role.name}
           </DialogTitle>
           <DialogDescription>
@@ -195,11 +196,11 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="basic" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
+                <Cog6ToothIcon className="h-4 w-4" />
                 Basic Info
               </TabsTrigger>
               <TabsTrigger value="permissions" className="flex items-center gap-2">
-                <Key className="h-4 w-4" />
+                <KeyIcon className="h-4 w-4" />
                 Permissions
               </TabsTrigger>
             </TabsList>
@@ -279,7 +280,7 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Key className="h-5 w-5" />
+                    <KeyIcon className="h-5 w-5" />
                     Role Permissions
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
@@ -332,7 +333,7 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
                               key={permission.id} 
                               className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
                                 selectedPermissions.includes(permission.id) 
-                                  ? 'border-blue-500 bg-blue-50' 
+                                  ? 'border-blue-500 bg-emerald-50' 
                                   : 'border-gray-200 hover:border-gray-300'
                               }`}
                               onClick={() => togglePermission(permission.id)}
@@ -342,7 +343,7 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
                                   type="checkbox"
                                   checked={selectedPermissions.includes(permission.id)}
                                   onChange={() => togglePermission(permission.id)}
-                                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                  className="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-blue-500"
                                 />
                               </div>
                               <Badge variant={getPermissionBadgeVariant(permission.scope)} className="text-xs">
@@ -361,7 +362,7 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
                     ))}
                       
                       {selectedPermissions.length > 0 && (
-                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="mt-6 p-4 bg-emerald-50 border border-blue-200 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
                             <Checkbox className="h-4 w-4" checked={true} disabled />
                             <span className="text-sm font-medium">Selected Permissions ({selectedPermissions.length})</span>

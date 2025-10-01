@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, Home } from 'lucide-react';
+import { ChevronRightIcon, HomeIcon } from '@heroicons/react/24/outline';
+
 import { cn } from '@/lib/utils';
 
 export function Breadcrumbs() {
@@ -40,12 +41,12 @@ export function Breadcrumbs() {
         to="/dashboard" 
         className="flex items-center hover:text-foreground transition-colors flex-shrink-0"
       >
-        <Home className="w-3 h-3 sm:w-4 sm:h-4" />
+        <HomeIcon className="w-3 h-3 sm:w-4 sm:h-4" />
       </Link>
       
       {displaySegments.map((segment, index) => (
         <React.Fragment key={index}>
-          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+          <ChevronRightIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
           {segment === '...' ? (
             <span className="text-muted-foreground flex-shrink-0">...</span>
           ) : index === displaySegments.length - 1 ? (

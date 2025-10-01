@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Bell, WifiOff } from 'lucide-react';
+import { Bars3Icon, BellIcon, WifiIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumbs } from './Breadcrumbs';
@@ -23,7 +23,7 @@ export function Header() {
             className="md:hidden flex-shrink-0"
             onClick={() => setSidebarOpen(true)}
           >
-            <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
+            <Bars3Icon className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
           
           <div className="min-w-0 flex-1">
@@ -36,14 +36,14 @@ export function Header() {
           {/* Offline indicator */}
           {!isOnline && (
             <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-md text-xs">
-              <WifiOff className="h-3 w-3" />
+              <WifiIcon className="h-3 w-3" />
               <span className="hidden sm:inline">Offline</span>
             </div>
           )}
           
           {/* Pending sync indicator */}
           {isOnline && syncStatus.pendingItems > 0 && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs">
+            <div className="flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-800 rounded-md text-xs">
               <span>{syncStatus.pendingItems} pending</span>
             </div>
           )}
@@ -53,7 +53,7 @@ export function Header() {
             size="icon" 
             className="relative h-8 w-8 sm:h-9 sm:w-9"
           >
-            <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+            <BellIcon className="h-4 w-4 sm:h-5 sm:w-5" />
             <Badge 
               variant="destructive" 
               className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-xs"

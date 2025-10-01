@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus } from 'lucide-react';
+import { PlusIcon } from '@heroicons/react/24/outline';
+
 import { QuestionType } from './types';
 import {
   QUESTION_TYPE_LABELS,
@@ -32,13 +33,13 @@ export function AddNextQuestionModal({ sectionId, onAddQuestion }: AddNextQuesti
            size="icon"
            className="w-12 h-12 rounded-full bg-white hover:bg-gray-50 text-green-600 shadow-lg hover:shadow-xl transition-all duration-200  border-green-600"
          >
-           <Plus className="w-10 h-10 font-bold" />
+           <PlusIcon className="w-10 h-10 font-bold" />
          </Button>
        </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5 text-green-600" />
+            <PlusIcon className="w-5 h-5 text-green-600" />
             Add Next Question
           </DialogTitle>
         </DialogHeader>
@@ -83,7 +84,7 @@ export function AddNextQuestionModal({ sectionId, onAddQuestion }: AddNextQuesti
               Cancel
             </Button>
             <Button onClick={handleAddQuestion} className="bg-green-600 hover:bg-green-700">
-              <Plus className="w-4 h-4 mr-2" />
+              <PlusIcon className="w-4 h-4 mr-2" />
               Add Question
             </Button>
           </div>

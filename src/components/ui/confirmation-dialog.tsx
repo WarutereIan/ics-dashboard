@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+
 import {
   Dialog,
   DialogContent,
@@ -52,10 +53,10 @@ export function ConfirmationDialog({
           <div className="flex items-center gap-3">
             <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
               variant === 'destructive' 
-                ? 'bg-red-100 text-red-600' 
-                : 'bg-blue-100 text-blue-600'
+                ? 'bg-emerald-100 text-emerald-600' 
+                : 'bg-emerald-100 text-emerald-600'
             }`}>
-              <AlertTriangle className="h-5 w-5" />
+              <ExclamationTriangleIcon className="h-5 w-5" />
             </div>
             <div>
               <DialogTitle className="text-left">{title}</DialogTitle>

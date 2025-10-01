@@ -96,8 +96,8 @@ export function ProjectDetailsForm({ projectData, onProjectChange }: ProjectDeta
       </div>
 
       {projectData.id && (
-        <div className="p-3 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-700">
+        <div className="p-3 bg-emerald-50 rounded-lg">
+          <p className="text-sm text-emerald-700">
             <strong>Project ID:</strong> {projectData.id}
           </p>
         </div>

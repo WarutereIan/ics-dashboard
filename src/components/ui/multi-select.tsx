@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { Check, ChevronsUpDown, X } from 'lucide-react';
+import { CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ChevronUpDownIcon } from '@heroicons/react/24/outline';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -101,7 +103,7 @@ export function MultiSelect({
                           handleRemove(option.value);
                         }}
                       >
-                        <X className="h-3 w-3" />
+                        <XMarkIcon className="h-3 w-3" />
                       </button>
                     </Badge>
                   ))}
@@ -113,7 +115,7 @@ export function MultiSelect({
                 </>
               )}
             </div>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" align="start">
@@ -129,7 +131,7 @@ export function MultiSelect({
                     onSelect={() => handleSelect(option.value)}
                     className="cursor-pointer"
                   >
-                    <Check
+                    <CheckIcon
                       className={cn(
                         "mr-2 h-4 w-4",
                         value.includes(option.value) ? "opacity-100" : "opacity-0"

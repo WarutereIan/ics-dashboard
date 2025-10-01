@@ -5,20 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Users, 
-  UserPlus, 
-  Search, 
-  Filter, 
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Eye,
-  Shield,
-  Globe,
-  Building,
-  User as UserIcon
-} from 'lucide-react';
+import { UsersIcon, MagnifyingGlassIcon, FunnelIcon, PencilIcon, TrashIcon, EyeIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon, EllipsisHorizontalIcon, ShieldCheckIcon, BuildingOfficeIcon, UserIcon } from '@heroicons/react/24/outline';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -157,7 +146,7 @@ export function UserManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Users className="h-8 w-8" />
+            <UsersIcon className="h-8 w-8" />
             User Management
           </h1>
           <p className="text-muted-foreground">
@@ -165,7 +154,7 @@ export function UserManagement() {
           </p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)} className="flex items-center gap-2">
-          <UserPlus className="h-4 w-4" />
+          <UserPlusIcon className="h-4 w-4" />
           Add User
         </Button>
       </div>
@@ -182,7 +171,7 @@ export function UserManagement() {
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search users by name or email..."
                     value={searchTerm}
@@ -193,7 +182,7 @@ export function UserManagement() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
+                      <FunnelIcon className="h-4 w-4" />
                       Filter
                     </Button>
                   </DropdownMenuTrigger>
@@ -228,7 +217,7 @@ export function UserManagement() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
+                <UsersIcon className="h-5 w-5" />
                 Users ({pagination.total})
               </CardTitle>
             </CardHeader>
@@ -289,7 +278,7 @@ export function UserManagement() {
                           <div className="flex flex-wrap gap-1">
                             {user.projectAccess.slice(0, 2).map((access) => (
                               <div key={access.projectId} className="flex items-center gap-1">
-                                <Building className="h-3 w-3 text-muted-foreground" />
+                                <BuildingOfficeIcon className="h-3 w-3 text-muted-foreground" />
                                 {getAccessLevelBadge(access.accessLevel)}
                               </div>
                             ))}
@@ -315,7 +304,7 @@ export function UserManagement() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
+                                <EllipsisHorizontalIcon className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -327,7 +316,7 @@ export function UserManagement() {
                                   setDetailsDialogOpen(true);
                                 }}
                               >
-                                <Eye className="h-4 w-4 mr-2" />
+                                <EyeIcon className="h-4 w-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
                               <DropdownMenuItem 
@@ -336,15 +325,15 @@ export function UserManagement() {
                                   setEditDialogOpen(true);
                                 }}
                               >
-                                <Edit className="h-4 w-4 mr-2" />
+                                <PencilIcon className="h-4 w-4 mr-2" />
                                 Edit User
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteUser(user.id)}
-                                className="text-red-600"
+                                className="text-emerald-600"
                               >
-                                <Trash2 className="h-4 w-4 mr-2" />
+                                <TrashIcon className="h-4 w-4 mr-2" />
                                 Delete User
                               </DropdownMenuItem>
                             </DropdownMenuContent>

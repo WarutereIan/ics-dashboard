@@ -4,20 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Eye,
-  CheckCircle2,
-  AlertTriangle,
-  FileText,
-  Settings,
-  Link,
-  Users,
-  BarChart3,
-  Calendar,
-  Globe,
-  Share2,
-  Download
-} from 'lucide-react';
+import { EyeIcon, CheckCircleIcon, ExclamationTriangleIcon, DocumentTextIcon, Cog6ToothIcon, UsersIcon, ChartBarIcon, CalendarIcon, GlobeAltIcon, ArrowDownTrayIcon, ShareIcon, LinkIcon } from '@heroicons/react/24/outline';
+
 import { Form } from './types';
 
 interface ReviewStepProps {
@@ -118,7 +106,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
           )}
           {(question.linkedActivities?.length > 0 || question.linkedActivity) && (
             <Badge variant="secondary" className="text-xs">
-              <Link className="w-3 h-3 mr-1" />
+              <LinkIcon className="w-3 h-3 mr-1" />
               Linked
             </Badge>
           )}
@@ -141,7 +129,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Eye className="w-5 h-5" />
+              <EyeIcon className="w-5 h-5" />
               Review & Publish Form
             </div>
             <Badge variant={form.status === 'PUBLISHED' ? 'default' : 'secondary'}>
@@ -156,21 +144,21 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-600">{totalSections}</p>
-              <p className="text-xs text-blue-700">Sections</p>
+            <div className="text-center p-3 bg-emerald-50 rounded-lg">
+              <p className="text-2xl font-bold text-emerald-600">{totalSections}</p>
+              <p className="text-xs text-emerald-700">Sections</p>
             </div>
             <div className="text-center p-3 bg-green-50 rounded-lg">
               <p className="text-2xl font-bold text-green-600">{totalQuestions}</p>
               <p className="text-xs text-green-700">Questions</p>
             </div>
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <p className="text-2xl font-bold text-purple-600">{linkedQuestions}</p>
-              <p className="text-xs text-purple-700">Linked to Activities</p>
+            <div className="text-center p-3 bg-emerald-50 rounded-lg">
+              <p className="text-2xl font-bold text-emerald-600">{linkedQuestions}</p>
+              <p className="text-xs text-emerald-700">Linked to Activities</p>
             </div>
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <p className="text-2xl font-bold text-orange-600">{requiredQuestions}</p>
-              <p className="text-xs text-orange-700">Required</p>
+            <div className="text-center p-3 bg-lime-50 rounded-lg">
+              <p className="text-2xl font-bold text-lime-600">{requiredQuestions}</p>
+              <p className="text-xs text-lime-700">Required</p>
             </div>
           </div>
         </CardContent>
@@ -180,7 +168,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5" />
+            <CheckCircleIcon className="w-5 h-5" />
             Pre-publish Validation
           </CardTitle>
         </CardHeader>
@@ -188,13 +176,13 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
           <div className="space-y-4">
             {/* Errors */}
             {errors.length > 0 && (
-              <Alert className="border-red-200 bg-red-50">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
+              <Alert className="border-red-200 bg-emerald-50">
+                <ExclamationTriangleIcon className="h-4 w-4 text-emerald-600" />
                 <AlertDescription>
                   <p className="font-medium text-red-900 mb-2">
                     {errors.length} error{errors.length > 1 ? 's' : ''} must be fixed before publishing:
                   </p>
-                  <ul className="text-sm text-red-800 space-y-1">
+                  <ul className="text-sm text-emerald-800 space-y-1">
                     {errors.map((error) => (
                       <li key={error.id}>• {error.label}</li>
                     ))}
@@ -205,8 +193,8 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
 
             {/* Warnings */}
             {warnings.length > 0 && (
-              <Alert className="border-orange-200 bg-orange-50">
-                <AlertTriangle className="h-4 w-4 text-orange-600" />
+              <Alert className="border-orange-200 bg-lime-50">
+                <ExclamationTriangleIcon className="h-4 w-4 text-lime-600" />
                 <AlertDescription>
                   <p className="font-medium text-orange-900 mb-2">
                     {warnings.length} recommendation{warnings.length > 1 ? 's' : ''}:
@@ -223,7 +211,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
             {/* Success */}
             {canPublish && (
               <Alert className="border-green-200 bg-green-50">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircleIcon className="h-4 w-4 text-green-600" />
                 <AlertDescription>
                   <p className="font-medium text-green-900">
                     Form is ready to publish! All required validations have passed.
@@ -237,11 +225,11 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
               {validationChecks.map((check) => (
                 <div key={check.id} className="flex items-center gap-2 text-sm">
                   {check.passed ? (
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <CheckCircleIcon className="w-4 h-4 text-green-600" />
                   ) : (
                     <div className={`w-4 h-4 rounded-full ${
-                      check.severity === 'error' ? 'bg-red-500' : 
-                      check.severity === 'warning' ? 'bg-orange-500' : 'bg-gray-400'
+                      check.severity === 'error' ? 'bg-emerald-500' : 
+                      check.severity === 'warning' ? 'bg-lime-500' : 'bg-gray-400'
                     }`} />
                   )}
                   <span className={check.passed ? 'text-green-700' : 'text-gray-600'}>
@@ -268,7 +256,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
+                <DocumentTextIcon className="w-5 h-5" />
                 Form Overview
               </CardTitle>
             </CardHeader>
@@ -356,7 +344,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
+                <Cog6ToothIcon className="w-5 h-5" />
                 Configuration Summary
               </CardTitle>
             </CardHeader>
@@ -426,18 +414,18 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5" />
+                <GlobeAltIcon className="w-5 h-5" />
                 Deployment Information
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h5 className="font-medium text-blue-900 mb-2">Form URL</h5>
-                  <p className="text-sm text-blue-700 font-mono">
+                <div className="p-4 bg-emerald-50 rounded-lg border border-blue-200">
+                  <h5 className="font-medium text-emerald-900 mb-2">Form URL</h5>
+                  <p className="text-sm text-emerald-700 font-mono">
                     https://forms.yourorganization.org/f/{form.id}
                   </p>
-                  <p className="text-xs text-blue-600 mt-1">
+                  <p className="text-xs text-emerald-600 mt-1">
                     This URL will be available after publishing
                   </p>
                 </div>
@@ -445,7 +433,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-3 border rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <Share2 className="w-4 h-4 text-gray-600" />
+                      <ShareIcon className="w-4 h-4 text-gray-600" />
                       <span className="font-medium text-sm">Sharing Options</span>
                     </div>
                     <ul className="text-sm text-gray-600 space-y-1">
@@ -458,7 +446,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
 
                   <div className="p-3 border rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <BarChart3 className="w-4 h-4 text-gray-600" />
+                      <ChartBarIcon className="w-4 h-4 text-gray-600" />
                       <span className="font-medium text-sm">Analytics</span>
                     </div>
                     <ul className="text-sm text-gray-600 space-y-1">
@@ -492,7 +480,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
                 </>
               ) : (
                 <>
-                  <Globe className="w-4 h-4 mr-2" />
+                  <GlobeAltIcon className="w-4 h-4 mr-2" />
                   Publish Form
                 </>
               )}
@@ -500,7 +488,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
           </div>
           
           {!canPublish && (
-            <p className="text-center text-sm text-red-600 mt-2">
+            <p className="text-center text-sm text-emerald-600 mt-2">
               Please fix the validation errors above before publishing
             </p>
           )}

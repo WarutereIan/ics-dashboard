@@ -2,7 +2,8 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { ExclamationCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+
 
 interface Props {
   children: ReactNode;
@@ -47,14 +48,14 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-[400px] flex items-center justify-center p-4">
           <Card className="max-w-md w-full">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-600">
-                <AlertCircle className="w-5 h-5" />
+              <CardTitle className="flex items-center gap-2 text-emerald-600">
+                <ExclamationCircleIcon className="w-5 h-5" />
                 Something went wrong
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
+                <ExclamationCircleIcon className="h-4 w-4" />
                 <AlertDescription>
                   An unexpected error occurred while rendering this component.
                 </AlertDescription>
@@ -78,7 +79,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   size="sm"
                   className="flex items-center gap-2"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <ArrowPathIcon className="w-4 h-4" />
                   Try Again
                 </Button>
                 

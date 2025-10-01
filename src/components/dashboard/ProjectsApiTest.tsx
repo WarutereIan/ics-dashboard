@@ -3,7 +3,9 @@ import { useProjects } from '@/contexts/ProjectsContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Plus, Trash2, Edit } from 'lucide-react';
+import { ArrowPathIcon, PlusIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { Loader2 } from 'lucide-react';
+
 
 export function ProjectsApiTest() {
   const { 
@@ -72,8 +74,8 @@ export function ProjectsApiTest() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE': return 'bg-green-100 text-green-800';
-      case 'PLANNING': return 'bg-blue-100 text-blue-800';
-      case 'COMPLETED': return 'bg-purple-100 text-purple-800';
+      case 'PLANNING': return 'bg-emerald-100 text-emerald-800';
+      case 'COMPLETED': return 'bg-emerald-100 text-purple-800';
       case 'ON_HOLD': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -103,7 +105,7 @@ export function ProjectsApiTest() {
                 {isCreating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Plus className="h-4 w-4" />
+                  <PlusIcon className="h-4 w-4" />
                 )}
                 {isCreating ? 'Creating...' : 'Add Test Project'}
               </Button>
@@ -112,7 +114,7 @@ export function ProjectsApiTest() {
                 variant="outline" 
                 size="sm"
               >
-                <RefreshCw className="h-4 w-4" />
+                <ArrowPathIcon className="h-4 w-4" />
                 Refresh
               </Button>
             </div>
@@ -120,7 +122,7 @@ export function ProjectsApiTest() {
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded text-red-700">
+            <div className="mb-4 p-3 bg-emerald-100 border border-red-300 rounded text-emerald-700">
               Error: {error}
             </div>
           )}
@@ -160,7 +162,7 @@ export function ProjectsApiTest() {
                       {isUpdating === project.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Edit className="h-4 w-4" />
+                        <PencilIcon className="h-4 w-4" />
                       )}
                     </Button>
                     <Button
@@ -172,7 +174,7 @@ export function ProjectsApiTest() {
                       {isDeleting === project.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Trash2 className="h-4 w-4" />
+                        <TrashIcon className="h-4 w-4" />
                       )}
                     </Button>
                   </div>

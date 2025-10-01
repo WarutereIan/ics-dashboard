@@ -7,27 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-import { 
-  ArrowLeft,
-  Download,
-  Filter,
-  Search,
-  Calendar,
-  BarChart3,
-  PieChart,
-  Users,
-  Clock,
-  Eye,
-  Edit,
-  Trash2,
-  MoreVertical,
-  Loader2,
-  File,
-  Image,
-  Video,
-  Music,
-  Paperclip
-} from 'lucide-react';
+import { ArrowLeftIcon, ArrowDownTrayIcon, FunnelIcon, MagnifyingGlassIcon, CalendarIcon, ChartBarIcon, ChartPieIcon, UsersIcon, ClockIcon, EyeIcon, PencilIcon, TrashIcon, EllipsisVerticalIcon, ArrowPathIcon, DocumentTextIcon, PhotoIcon, VideoCameraIcon, SpeakerWaveIcon, PaperClipIcon } from '@heroicons/react/24/outline';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
@@ -420,7 +400,7 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
                             href={fileUrl} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline"
+                            className="text-emerald-600 hover:text-emerald-800 underline"
                             title={fileUrl}
                           >
                             {fileUrl}
@@ -442,7 +422,7 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
                       }}
                       title="Download file"
                     >
-                      <Download className="h-3 w-3" />
+                      <ArrowDownTrayIcon className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
@@ -928,7 +908,7 @@ export function FormResponseViewer() {
                 <div className="flex items-center gap-2">
                   <div className="w-20 bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-blue-600 h-2 rounded-full"
+                      className="bg-emerald-600 h-2 rounded-full"
                       style={{ width: `${((count as number) / questionResponses.length) * 100}%` }}
                     />
                   </div>
@@ -992,7 +972,7 @@ export function FormResponseViewer() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto mb-4 text-emerald-600" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             {isLoading ? 'Loading Fresh Data' : 'Form Not Found'}
           </h3>
@@ -1010,7 +990,7 @@ export function FormResponseViewer() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={() => navigate(`/dashboard/projects/${projectId}/forms`)}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Back to Forms
           </Button>
           <div>
@@ -1024,7 +1004,7 @@ export function FormResponseViewer() {
             {form.status}
           </Badge>
           <Button onClick={handleExportData} className="flex items-center gap-2">
-            <Download className="w-4 h-4" />
+            <ArrowDownTrayIcon className="w-4 h-4" />
             Export CSV
           </Button>
         </div>
@@ -1035,7 +1015,7 @@ export function FormResponseViewer() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <Users className="w-8 h-8 text-blue-600" />
+              <UsersIcon className="w-8 h-8 text-emerald-600" />
               <div className="ml-4">
                 <p className="text-2xl font-bold">{analytics.totalResponses}</p>
                 <p className="text-xs text-gray-500">Total Responses</p>
@@ -1047,7 +1027,7 @@ export function FormResponseViewer() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <BarChart3 className="w-8 h-8 text-green-600" />
+              <ChartBarIcon className="w-8 h-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-2xl font-bold">{analytics.completeResponses}</p>
                 <p className="text-xs text-gray-500">Complete</p>
@@ -1059,7 +1039,7 @@ export function FormResponseViewer() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <PieChart className="w-8 h-8 text-orange-600" />
+              <ChartPieIcon className="w-8 h-8 text-lime-600" />
               <div className="ml-4">
                 <p className="text-2xl font-bold">{analytics.incompleteResponses}</p>
                 <p className="text-xs text-gray-500">Incomplete</p>
@@ -1071,7 +1051,7 @@ export function FormResponseViewer() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center">
-              <Clock className="w-8 h-8 text-purple-600" />
+              <ClockIcon className="w-8 h-8 text-emerald-600" />
               <div className="ml-4">
                 <p className="text-2xl font-bold">{analytics.averageCompletionTime.toFixed(1)}m</p>
                 <p className="text-xs text-gray-500">Avg. Time</p>
@@ -1093,7 +1073,7 @@ export function FormResponseViewer() {
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
                       placeholder="Search responses by email or content..."
                       value={searchTerm}
@@ -1139,7 +1119,7 @@ export function FormResponseViewer() {
             <CardContent>
               {filteredResponses.length === 0 ? (
                 <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <UsersIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 mb-2">No responses found</p>
                   <p className="text-sm text-gray-500">
                     {responses.length === 0 ? 'No responses have been submitted yet' : 'Try adjusting your filters'}
@@ -1245,21 +1225,21 @@ export function FormResponseViewer() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" className="h-6 w-6 p-0">
-                                      <MoreVertical className="h-3 w-3" />
+                                      <EllipsisVerticalIcon className="h-3 w-3" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem 
                                   onClick={() => handleEditResponse(row)}
                                 >
-                                  <Edit className="mr-2 h-4 w-4" />
+                                  <PencilIcon className="mr-2 h-4 w-4" />
                                   Edit Response
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                       onClick={() => handleDeleteResponse(row.responseId!)}
-                                  className="text-red-600"
+                                  className="text-emerald-600"
                                 >
-                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  <TrashIcon className="mr-2 h-4 w-4" />
                                   Delete
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -1378,11 +1358,11 @@ export function FormResponseViewer() {
                 <div>
                   <h4 className="font-medium mb-2">Form Performance</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <p className="text-2xl font-bold text-blue-600">
+                    <div className="text-center p-4 bg-emerald-50 rounded-lg">
+                      <p className="text-2xl font-bold text-emerald-600">
                         {((analytics.completeResponses / analytics.totalResponses) * 100).toFixed(1)}%
                       </p>
-                      <p className="text-sm text-blue-700">Completion Rate</p>
+                      <p className="text-sm text-emerald-700">Completion Rate</p>
                     </div>
                     <div className="text-center p-4 bg-green-50 rounded-lg">
                       <p className="text-2xl font-bold text-green-600">
@@ -1390,17 +1370,17 @@ export function FormResponseViewer() {
                       </p>
                       <p className="text-sm text-green-700">Avg. Minutes</p>
                     </div>
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <p className="text-2xl font-bold text-purple-600">
+                    <div className="text-center p-4 bg-emerald-50 rounded-lg">
+                      <p className="text-2xl font-bold text-emerald-600">
                         {form.sections.reduce((total, section) => total + section.questions.length, 0)}
                       </p>
-                      <p className="text-sm text-purple-700">Total Questions</p>
+                      <p className="text-sm text-emerald-700">Total Questions</p>
                     </div>
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <p className="text-2xl font-bold text-orange-600">
+                    <div className="text-center p-4 bg-lime-50 rounded-lg">
+                      <p className="text-2xl font-bold text-lime-600">
                         {responses.filter(r => r.startedAt && (new Date(r.startedAt)).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000).length}
                       </p>
-                      <p className="text-sm text-orange-700">This Week</p>
+                      <p className="text-sm text-lime-700">This Week</p>
                     </div>
                   </div>
                 </div>

@@ -11,17 +11,17 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  User, 
-  Shield, 
-  Building, 
-  Globe, 
-  Calendar, 
-  Mail, 
-  Activity,
-  Clock,
-  CheckCircle,
-  XCircle
-} from 'lucide-react';
+  UserIcon, 
+  ShieldCheckIcon, 
+  BuildingOfficeIcon, 
+  GlobeAltIcon, 
+  CalendarIcon, 
+  EnvelopeIcon, 
+  ChartBarIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon
+} from '@heroicons/react/24/outline';
 import { User as UserType } from '@/services/userManagementService';
 
 interface UserDetailsDialogProps {
@@ -63,7 +63,7 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+            <UserIcon className="h-5 w-5" />
             User Details: {user.firstName} {user.lastName}
           </DialogTitle>
           <DialogDescription>
@@ -85,14 +85,14 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <User className="h-5 w-5" />
+                    <UserIcon className="h-5 w-5" />
                     Basic Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="h-6 w-6 text-gray-600" />
+                      <UserIcon className="h-6 w-6 text-gray-600" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">
@@ -104,15 +104,15 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
 
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <EnvelopeIcon className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">{user.email}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
                       {user.isActive ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircleIcon className="h-4 w-4 text-green-600" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
+                        <XCircleIcon className="h-4 w-4 text-emerald-600" />
                       )}
                       <Badge variant={user.isActive ? 'default' : 'secondary'}>
                         {user.isActive ? 'Active' : 'Inactive'}
@@ -120,14 +120,14 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
                         Created: {formatDate(user.createdAt)}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <ClockIcon className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">
                         Last updated: {formatDate(user.updatedAt)}
                       </span>
@@ -135,7 +135,7 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
 
                     {user.lastLoginAt && (
                       <div className="flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-muted-foreground" />
+                        <ChartBarIcon className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">
                           Last login: {formatDate(user.lastLoginAt)}
                         </span>
@@ -149,17 +149,17 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
+                    <ShieldCheckIcon className="h-5 w-5" />
                     Quick Stats
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
+                    <div className="text-center p-4 bg-emerald-50 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-600">
                         {user.roles.length}
                       </div>
-                      <div className="text-sm text-blue-800">Roles Assigned</div>
+                      <div className="text-sm text-emerald-800">Roles Assigned</div>
                     </div>
                     <div className="text-center p-4 bg-green-50 rounded-lg">
                       <div className="text-2xl font-bold text-green-600">
@@ -188,14 +188,14 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
+                  <ShieldCheckIcon className="h-5 w-5" />
                   Assigned Roles ({user.roles.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {user.roles.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <ShieldCheckIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No roles assigned to this user.</p>
                   </div>
                 ) : (
@@ -223,13 +223,13 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           {role.projectName && (
                             <div className="flex items-center gap-1">
-                              <Building className="h-3 w-3" />
+                              <BuildingOfficeIcon className="h-3 w-3" />
                               <span>Project: {role.projectName}</span>
                             </div>
                           )}
                           {role.country && (
                             <div className="flex items-center gap-1">
-                              <Globe className="h-3 w-3" />
+                              <GlobeAltIcon className="h-3 w-3" />
                               <span>Country: {role.country}</span>
                             </div>
                           )}
@@ -246,14 +246,14 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Building className="h-5 w-5" />
+                  <BuildingOfficeIcon className="h-5 w-5" />
                   Project Access ({user.projectAccess.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {user.projectAccess.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <BuildingOfficeIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No project access assigned to this user.</p>
                   </div>
                 ) : (
@@ -284,7 +284,7 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
+                  <ChartBarIcon className="h-5 w-5" />
                   Account Activity
                 </CardTitle>
               </CardHeader>
@@ -292,7 +292,7 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">Account Created</span>
                     </div>
                     <span className="text-sm font-medium">
@@ -302,7 +302,7 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
 
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <ClockIcon className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">Last Updated</span>
                     </div>
                     <span className="text-sm font-medium">
@@ -313,7 +313,7 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
                   {user.lastLoginAt ? (
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-muted-foreground" />
+                        <ChartBarIcon className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Last Login</span>
                       </div>
                       <span className="text-sm font-medium">
@@ -323,7 +323,7 @@ export function UserDetailsDialog({ open, onOpenChange, user }: UserDetailsDialo
                   ) : (
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-muted-foreground" />
+                        <ChartBarIcon className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Last Login</span>
                       </div>
                       <span className="text-sm font-medium text-muted-foreground">

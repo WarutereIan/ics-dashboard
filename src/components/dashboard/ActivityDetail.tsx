@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Activity, Calendar, Users, CheckCircle2, Clock, MapPin, ArrowLeft } from 'lucide-react';
+import { BoltIcon, CalendarIcon, UsersIcon, CheckCircleIcon, ClockIcon, MapPinIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -39,7 +40,7 @@ export function ActivityDetail() {
       case 'COMPLETED':
         return 'bg-green-100 text-green-800 border-green-300';
       case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return 'bg-emerald-100 text-emerald-800 border-blue-300';
       case 'ON_HOLD':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case 'NOT_STARTED':
@@ -79,7 +80,7 @@ export function ActivityDetail() {
             onClick={() => navigate(-1)}
             className="mt-4"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Go Back
           </Button>
         </div>
@@ -96,7 +97,7 @@ export function ActivityDetail() {
           onClick={() => navigate(-1)}
           className="mb-4"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeftIcon className="h-4 w-4 mr-2" />
           Back to Activities
         </Button>
         
@@ -111,7 +112,7 @@ export function ActivityDetail() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Progress
             </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <BoltIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">{activity.progress}%</div>
@@ -124,7 +125,7 @@ export function ActivityDetail() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Status
             </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            <CheckCircleIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <Badge className={getStatusColor(activity.status)}>
@@ -138,7 +139,7 @@ export function ActivityDetail() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Start Date
             </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-sm font-medium text-foreground">
@@ -152,7 +153,7 @@ export function ActivityDetail() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               End Date
             </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <ClockIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-sm font-medium text-foreground">
@@ -167,7 +168,7 @@ export function ActivityDetail() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+              <UsersIcon className="h-5 w-5" />
               Responsibility
             </CardTitle>
           </CardHeader>
@@ -179,7 +180,7 @@ export function ActivityDetail() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
+              <MapPinIcon className="h-5 w-5" />
               Activity ID
             </CardTitle>
           </CardHeader>

@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Navigation, Globe, Clock, Target } from 'lucide-react';
+import { MapPinIcon, MapIcon, GlobeAltIcon, ClockIcon, FlagIcon } from '@heroicons/react/24/outline';
+
 import { LocationQuestion } from '../../form-creation-wizard/types';
 import { BaseQuestionRenderer } from './BaseQuestionRenderer';
 
@@ -170,7 +171,7 @@ export function LocationQuestionRenderer({
           <Card className="border-green-200 bg-green-50">
             <CardContent className="p-4">
               <div className="flex items-start space-x-3">
-                <MapPin className="w-5 h-5 text-green-600 mt-0.5" />
+                <MapPinIcon className="w-5 h-5 text-green-600 mt-0.5" />
                 <div className="flex-1">
                   <h4 className="font-medium text-green-900 mb-2">Location Captured</h4>
                   <div className="space-y-1 text-sm">
@@ -220,12 +221,12 @@ export function LocationQuestionRenderer({
             >
               {isCapturing ? (
                 <>
-                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                  <ClockIcon className="w-4 h-4 mr-2 animate-spin" />
                   Getting Location...
                 </>
               ) : (
                 <>
-                  <Navigation className="w-4 h-4 mr-2" />
+                  <MapIcon className="w-4 h-4 mr-2" />
                   Get Current Location
                 </>
               )}
@@ -240,7 +241,7 @@ export function LocationQuestionRenderer({
                 variant="ghost"
                 className="w-full"
               >
-                <Globe className="w-4 h-4 mr-2" />
+                <GlobeAltIcon className="w-4 h-4 mr-2" />
                 {showManualInput ? 'Hide' : 'Enter Coordinates Manually'}
               </Button>
             )}
@@ -283,7 +284,7 @@ export function LocationQuestionRenderer({
                     disabled={disabled || isPreviewMode || !manualLat || !manualLng}
                     className="w-full"
                   >
-                    <Target className="w-4 h-4 mr-2" />
+                    <FlagIcon className="w-4 h-4 mr-2" />
                     Set Location
                   </Button>
                 </CardContent>
@@ -292,8 +293,8 @@ export function LocationQuestionRenderer({
 
             {/* Error Display */}
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="p-3 bg-emerald-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-emerald-700">{error}</p>
               </div>
             )}
 

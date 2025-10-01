@@ -7,23 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Globe, 
-  Link, 
-  QrCode, 
-  Share2, 
-  Copy, 
-  Download, 
-  Mail,
-  Smartphone,
-  Monitor,
-  Eye,
-  Settings,
-  BarChart3,
-  Users,
-  AlertCircle,
-  Clock
-} from 'lucide-react';
+import { GlobeAltIcon, ArrowDownTrayIcon, EnvelopeIcon, EyeIcon, Cog6ToothIcon, ChartBarIcon, UsersIcon, ExclamationCircleIcon, ClockIcon, ShareIcon, ClipboardDocumentIcon, LinkIcon, QrCodeIcon, DevicePhoneMobileIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline';
+
 import { Form } from '../types';
 import { FormPreview } from '../../form-preview/FormPreview';
 import { toast } from '@/hooks/use-toast';
@@ -105,7 +90,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
               className="absolute right-1 top-1"
               onClick={() => copyToClipboard(embedCode, "Embed code")}
             >
-              <Copy className="w-4 h-4" />
+              <ClipboardDocumentIcon className="w-4 h-4" />
             </Button>
           </div>
           <p className="text-xs text-gray-500 mt-1">
@@ -123,7 +108,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Globe className="w-5 h-5" />
+              <GlobeAltIcon className="w-5 h-5" />
               Form Deployment
             </div>
             <Badge variant={form.status === 'PUBLISHED' ? 'default' : 'secondary'}>
@@ -134,7 +119,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
         <CardContent>
           {form.status !== 'PUBLISHED' && (
             <Alert className="mb-4 border-amber-200 bg-amber-50">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <ExclamationCircleIcon className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-800">
                 This form is not published yet. You need to publish the form before it can be shared with others.
               </AlertDescription>
@@ -144,15 +129,15 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="p-4">
               <div className="text-center">
-                <Eye className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-blue-600">{form.responseCount || 0}</p>
+                <EyeIcon className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-emerald-600">{form.responseCount || 0}</p>
                 <p className="text-sm text-gray-600">Total Responses</p>
               </div>
             </Card>
             
             <Card className="p-4">
               <div className="text-center">
-                <BarChart3 className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                <ChartBarIcon className="w-8 h-8 text-green-600 mx-auto mb-2" />
                 <p className="text-2xl font-bold text-green-600">
                   {form.lastResponseAt ? new Date(form.lastResponseAt).toLocaleDateString() : 'None'}
                 </p>
@@ -162,8 +147,8 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
             
             <Card className="p-4">
               <div className="text-center">
-                <Settings className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-purple-600">
+                <Cog6ToothIcon className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-emerald-600">
                   v{form.version || 1}
                 </p>
                 <p className="text-sm text-gray-600">Form Version</p>
@@ -173,8 +158,8 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
             {form.settings?.expiryDate && (
               <Card className="p-4">
                 <div className="text-center">
-                  <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                  <p className="text-lg font-bold text-orange-600">
+                  <ClockIcon className="w-8 h-8 text-lime-600 mx-auto mb-2" />
+                  <p className="text-lg font-bold text-lime-600">
                     {new Date(form.settings.expiryDate).toLocaleDateString()}
                   </p>
                   <p className="text-sm text-gray-600">Expires On</p>
@@ -199,7 +184,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Share2 className="w-5 h-5" />
+                <ShareIcon className="w-5 h-5" />
                 Share Your Form
               </CardTitle>
             </CardHeader>
@@ -218,7 +203,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                     onClick={() => copyToClipboard(formUrl, "Form URL")}
                     disabled={form.status !== 'PUBLISHED'}
                   >
-                    {copiedUrl ? 'Copied!' : <Copy className="w-4 h-4" />}
+                    {copiedUrl ? 'Copied!' : <ClipboardDocumentIcon className="w-4 h-4" />}
                   </Button>
                 </div>
                 {form.status !== 'PUBLISHED' && (
@@ -236,7 +221,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                   disabled={form.status !== 'PUBLISHED'}
                   className="flex items-center gap-2"
                 >
-                  <Mail className="w-4 h-4" />
+                  <EnvelopeIcon className="w-4 h-4" />
                   Email
                 </Button>
                 
@@ -246,7 +231,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                   disabled={form.status !== 'PUBLISHED'}
                   className="flex items-center gap-2"
                 >
-                  <Share2 className="w-4 h-4" />
+                  <ShareIcon className="w-4 h-4" />
                   WhatsApp
                 </Button>
                 
@@ -256,7 +241,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                   disabled={form.status !== 'PUBLISHED'}
                   className="flex items-center gap-2"
                 >
-                  <Share2 className="w-4 h-4" />
+                  <ShareIcon className="w-4 h-4" />
                   Twitter
                 </Button>
                 
@@ -266,7 +251,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                   disabled={form.status !== 'PUBLISHED'}
                   className="flex items-center gap-2"
                 >
-                  <Share2 className="w-4 h-4" />
+                  <ShareIcon className="w-4 h-4" />
                   LinkedIn
                 </Button>
               </div>
@@ -278,7 +263,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                   onClick={() => window.open(previewUrl, '_blank')}
                   className="flex items-center gap-2"
                 >
-                  <Eye className="w-4 h-4" />
+                  <EyeIcon className="w-4 h-4" />
                   Preview
                 </Button>
                 
@@ -288,7 +273,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                   disabled={form.status !== 'PUBLISHED'}
                   className="flex items-center gap-2"
                 >
-                  <Link className="w-4 h-4" />
+                  <LinkIcon className="w-4 h-4" />
                   Copy Link
                 </Button>
                 
@@ -297,7 +282,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                   onClick={() => window.print()}
                   className="flex items-center gap-2"
                 >
-                  <Download className="w-4 h-4" />
+                  <ArrowDownTrayIcon className="w-4 h-4" />
                   Print
                 </Button>
               </div>
@@ -310,7 +295,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Monitor className="w-5 h-5" />
+                <ComputerDesktopIcon className="w-5 h-5" />
                 Embed in Website
               </CardTitle>
             </CardHeader>
@@ -325,7 +310,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <QrCode className="w-5 h-5" />
+                <QrCodeIcon className="w-5 h-5" />
                 QR Code Access
               </CardTitle>
             </CardHeader>
@@ -348,7 +333,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                   <>
                     <div className="w-48 h-48 mx-auto border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                       <div className="text-center text-gray-500">
-                        <QrCode className="w-16 h-16 mx-auto mb-2 opacity-50" />
+                        <QrCodeIcon className="w-16 h-16 mx-auto mb-2 opacity-50" />
                         <p className="text-sm">QR Code will be available after publishing</p>
                       </div>
                     </div>
@@ -368,7 +353,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                     }}
                     disabled={form.status !== 'PUBLISHED'}
                   >
-                    <Download className="w-4 h-4 mr-2" />
+                    <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
                     Download QR Code
                   </Button>
                   <Button
@@ -376,7 +361,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                     onClick={() => copyToClipboard(formUrl, "Form URL")}
                     disabled={form.status !== 'PUBLISHED'}
                   >
-                    <Copy className="w-4 h-4 mr-2" />
+                    <ClipboardDocumentIcon className="w-4 h-4 mr-2" />
                     Copy URL
                   </Button>
                 </div>
@@ -390,7 +375,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
+                <Cog6ToothIcon className="w-5 h-5" />
                 Deployment Settings
               </CardTitle>
             </CardHeader>
@@ -418,7 +403,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
                 {form.settings?.requireAuthentication && (
                   <div className="border rounded-lg p-3 bg-amber-50 space-y-3">
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-amber-600" />
+                      <UsersIcon className="w-4 h-4 text-amber-600" />
                       <Label className="text-sm font-medium text-amber-900">Access Control Active</Label>
                     </div>
                     
@@ -459,7 +444,7 @@ export function FormDeployment({ form, onUpdateForm }: FormDeploymentProps) {
               size="sm"
               onClick={() => window.open(previewUrl, '_blank')}
             >
-              <Monitor className="w-4 h-4 mr-2" />
+              <ComputerDesktopIcon className="w-4 h-4 mr-2" />
               Open Full Preview
             </Button>
           </div>

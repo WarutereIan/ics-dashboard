@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Target, Activity, TrendingUp, AlertTriangle } from 'lucide-react';
+import { ArrowLeftIcon, FlagIcon, ChartBarIcon, ArrowTrendingUpIcon, ExclamationTriangleIcon, ChartPieIcon } from '@heroicons/react/24/outline';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -41,7 +41,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
           <p className="text-muted-foreground">The requested organizational goal could not be found.</p>
           <Link to="/dashboard">
             <Button className="mt-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
           </Link>
@@ -59,7 +59,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
         return 'bg-yellow-100 text-yellow-800';
       case 'not-contributing':
       case 'not_contributing':
-        return 'bg-red-100 text-red-800';
+        return 'bg-emerald-100 text-emerald-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -68,7 +68,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case 'high':
-        return 'bg-red-100 text-red-800';
+        return 'bg-emerald-100 text-emerald-800';
       case 'medium':
         return 'bg-yellow-100 text-yellow-800';
       case 'low':
@@ -142,7 +142,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
           
           <Link to={`/dashboard/projects/${activity.projectId}/activities`}>
             <Button variant="outline" size="sm" className="w-full mt-2">
-              <Activity className="w-3 h-3 mr-1" />
+              <ChartBarIcon className="w-3 h-3 mr-1" />
               View in Project
             </Button>
           </Link>
@@ -162,7 +162,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
             state={{ goal, goals: [goal] }}
           >
             <Button variant="outline" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
               Back to Goal
             </Button>
           </Link>
@@ -176,7 +176,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5" />
+              <FlagIcon className="w-5 h-5" />
               Key Performance Indicator
             </CardTitle>
           </CardHeader>
@@ -191,7 +191,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5" />
+              <ChartBarIcon className="w-5 h-5" />
               Contributing Project Activities ({specificSubGoal.activityLinks.length})
             </CardTitle>
           </CardHeader>
@@ -238,7 +238,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
       <div className="flex items-center gap-4">
         <Link to="/dashboard">
           <Button variant="outline" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
         </Link>
@@ -265,7 +265,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
                 <p className="text-sm font-medium text-muted-foreground">Sub-Goals</p>
                 <p className="text-3xl font-bold text-foreground">{goal.subgoals.length}</p>
               </div>
-              <Target className="h-8 w-8 text-blue-500" />
+              <FlagIcon className="h-8 w-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -277,7 +277,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
                 <p className="text-sm font-medium text-muted-foreground">Contributing Projects</p>
                 <p className="text-3xl font-bold text-foreground">{projectContributions.size}</p>
               </div>
-              <Activity className="h-8 w-8 text-green-500" />
+              <ChartBarIcon className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -291,7 +291,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
                   {goal.subgoals.reduce((sum: number, sg: StrategicSubGoal) => sum + sg.activityLinks.length, 0)}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-purple-500" />
+              <ArrowTrendingUpIcon className="h-8 w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
@@ -349,7 +349,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
                 {/* Contributing Activities */}
                 <div>
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <Activity className="w-4 h-4" />
+                    <ChartBarIcon className="w-4 h-4" />
                     Contributing Activities ({subGoal.activityLinks.length})
                   </h4>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -368,7 +368,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
                           </Badge>
                           <Link to={`/dashboard/projects/${activity.projectId}/activities`}>
                             <Button variant="ghost" size="sm">
-                              <Activity className="w-3 h-3" />
+                              <ChartBarIcon className="w-3 h-3" />
                             </Button>
                           </Link>
                         </div>

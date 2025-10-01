@@ -7,19 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Users, 
-  Star, 
-  MessageSquare, 
-  Calendar, 
-  Clock, 
-  Send,
-  User,
-  Mail,
-  Phone,
-  Shield,
-  AlertTriangle
-} from 'lucide-react';
+import { UsersIcon, ChatBubbleLeftRightIcon, CalendarIcon, ClockIcon, UserIcon, EnvelopeIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { Star, Send, Phone, Shield } from 'lucide-react';
+
 
 interface StaffFeedbackFormProps {
   onSubmit: (data: any) => void;
@@ -193,7 +183,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
+            <UserIcon className="w-5 h-5" />
             Your Information
           </CardTitle>
         </CardHeader>
@@ -221,7 +211,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
                   placeholder="Your full name"
                 />
                 {errors.name && (
-                  <p className="text-sm text-red-600">{errors.name}</p>
+                  <p className="text-sm text-emerald-600">{errors.name}</p>
                 )}
               </div>
 
@@ -236,7 +226,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
                   placeholder="your.email@example.com"
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email}</p>
+                  <p className="text-sm text-emerald-600">{errors.email}</p>
                 )}
               </div>
 
@@ -277,7 +267,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
+            <UsersIcon className="w-5 h-5" />
             Staff Member Information
           </CardTitle>
         </CardHeader>
@@ -293,7 +283,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
                 placeholder="Full name of the staff member"
               />
               {errors.staffName && (
-                <p className="text-sm text-red-600">{errors.staffName}</p>
+                <p className="text-sm text-emerald-600">{errors.staffName}</p>
               )}
             </div>
 
@@ -355,7 +345,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
+            <ChatBubbleLeftRightIcon className="w-5 h-5" />
             Feedback Details
           </CardTitle>
         </CardHeader>
@@ -379,7 +369,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
                 </SelectContent>
               </Select>
               {errors.feedbackType && (
-                <p className="text-sm text-red-600">{errors.feedbackType}</p>
+                <p className="text-sm text-emerald-600">{errors.feedbackType}</p>
               )}
             </div>
 
@@ -413,7 +403,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
               placeholder="Brief title for your feedback"
             />
             {errors.title && (
-              <p className="text-sm text-red-600">{errors.title}</p>
+              <p className="text-sm text-emerald-600">{errors.title}</p>
             )}
           </div>
 
@@ -428,7 +418,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
               placeholder="Please provide detailed feedback about your interaction with the staff member..."
             />
             {errors.description && (
-              <p className="text-sm text-red-600">{errors.description}</p>
+              <p className="text-sm text-emerald-600">{errors.description}</p>
             )}
           </div>
         </CardContent>
@@ -698,7 +688,7 @@ export function StaffFeedbackForm({ onSubmit, isSubmitting }: StaffFeedbackFormP
                 </SelectContent>
               </Select>
               {errors.followUpMethod && (
-                <p className="text-sm text-red-600">{errors.followUpMethod}</p>
+                <p className="text-sm text-emerald-600">{errors.followUpMethod}</p>
               )}
             </div>
           )}

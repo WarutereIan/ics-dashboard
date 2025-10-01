@@ -6,16 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { 
-  Link, 
-  Unlink, 
-  Target, 
-  TrendingUp, 
-  BarChart3,
-  AlertCircle,
-  CheckCircle2,
-  Settings
-} from 'lucide-react';
+import { FlagIcon, ArrowTrendingUpIcon, ChartBarIcon, ExclamationCircleIcon, CheckCircleIcon, Cog6ToothIcon, LinkIcon, XMarkIcon } from '@heroicons/react/24/outline';
+
 import { Form, FormQuestion, ActivityKPIMapping } from './types';
 
 interface ActivityLinksStepProps {
@@ -97,12 +89,12 @@ export function ActivityLinksStep({
   const getQuestionTypeIcon = (type: string) => {
     switch (type) {
       case 'NUMBER':
-        return <BarChart3 className="w-4 h-4 text-blue-600" />;
+        return <ChartBarIcon className="w-4 h-4 text-emerald-600" />;
       case 'SINGLE_CHOICE':
       case 'MULTIPLE_CHOICE':
-        return <Target className="w-4 h-4 text-green-600" />;
+        return <FlagIcon className="w-4 h-4 text-green-600" />;
       default:
-        return <Settings className="w-4 h-4 text-gray-600" />;
+        return <Cog6ToothIcon className="w-4 h-4 text-gray-600" />;
     }
   };
 
@@ -117,13 +109,13 @@ export function ActivityLinksStep({
 
   if (allQuestions.length === 0) {
     return (
-      <Card className="border-orange-200 bg-orange-50">
+      <Card className="border-orange-200 bg-lime-50">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+            <ExclamationCircleIcon className="w-5 h-5 text-lime-600 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-orange-900">No Questions Available</p>
-              <p className="text-sm text-orange-700">
+              <p className="text-sm text-lime-700">
                 Please go back and add questions to your form before setting up activity links.
               </p>
             </div>
@@ -139,7 +131,7 @@ export function ActivityLinksStep({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Link className="w-5 h-5" />
+            <LinkIcon className="w-5 h-5" />
             Activity & KPI Integration
           </CardTitle>
         </CardHeader>
@@ -150,9 +142,9 @@ export function ActivityLinksStep({
           </p>
           
           <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-600">{linkedQuestions.length}</p>
-              <p className="text-sm text-blue-700">Linked Questions</p>
+            <div className="text-center p-4 bg-emerald-50 rounded-lg">
+              <p className="text-2xl font-bold text-emerald-600">{linkedQuestions.length}</p>
+              <p className="text-sm text-emerald-700">Linked Questions</p>
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <p className="text-2xl font-bold text-gray-600">{unlinkedQuestions.length}</p>
@@ -214,7 +206,7 @@ export function ActivityLinksStep({
                           onLinkQuestionToActivities(question.sectionId, question.id, activitiesToLink);
                         }}
                       >
-                        <Link className="w-4 h-4 mr-1" />
+                        <LinkIcon className="w-4 h-4 mr-1" />
                         Link to {selectedActivities.length} {selectedActivities.length === 1 ? 'Activity' : 'Activities'}
                       </Button>
                     </div>
@@ -236,7 +228,7 @@ export function ActivityLinksStep({
         <CardContent>
           {linkedQuestions.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <Link className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <LinkIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-2">No questions linked yet</p>
               <p className="text-sm text-gray-500">
                 Use the quick link section above to start linking questions to activities.
@@ -270,7 +262,7 @@ export function ActivityLinksStep({
                                 </Badge>
                                 {hasKPIContribution && (
                                   <Badge variant="default" className="text-xs">
-                                    <TrendingUp className="w-3 h-3 mr-1" />
+                                    <ArrowTrendingUpIcon className="w-3 h-3 mr-1" />
                                     KPI Linked
                                   </Badge>
                                 )}
@@ -282,9 +274,9 @@ export function ActivityLinksStep({
                             variant="outline"
                             size="sm"
                             onClick={() => unlinkQuestion(question)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-emerald-600 hover:text-emerald-700"
                           >
-                            <Unlink className="w-4 h-4 mr-1" />
+                            <XMarkIcon className="w-4 h-4 mr-1" />
                             Unlink
                           </Button>
                         </div>
@@ -292,15 +284,15 @@ export function ActivityLinksStep({
                         {/* Activity Info */}
                         {linkedActivities.length > 0 && (
                           <div className="space-y-2">
-                            <p className="text-sm font-medium text-blue-900">
+                            <p className="text-sm font-medium text-emerald-900">
                               {linkedActivities.length === 1 ? 'Linked Activity' : `Linked Activities (${linkedActivities.length})`}
                             </p>
                             {linkedActivities.map((linkedActivity, index) => {
                               const activity = getActivityById(linkedActivity.activityId);
                               return activity ? (
-                                <div key={index} className="p-3 bg-blue-50 rounded-lg">
-                                  <p className="text-sm text-blue-700">{activity.projectName}</p>
-                                  <p className="text-xs text-blue-600">
+                                <div key={index} className="p-3 bg-emerald-50 rounded-lg">
+                                  <p className="text-sm text-emerald-700">{activity.projectName}</p>
+                                  <p className="text-xs text-emerald-600">
                                     {activity.outcomeName} → {activity.activityName}
                                   </p>
                                 </div>
@@ -313,7 +305,7 @@ export function ActivityLinksStep({
                         {canContributeToKPI(question) && (
                           <div className="p-3 border rounded-lg bg-green-50 border-green-200">
                             <div className="flex items-center gap-2 mb-3">
-                              <TrendingUp className="w-4 h-4 text-green-600" />
+                              <ArrowTrendingUpIcon className="w-4 h-4 text-green-600" />
                               <p className="text-sm font-medium text-green-900">KPI Contribution</p>
                             </div>
 
@@ -378,13 +370,13 @@ export function ActivityLinksStep({
       </Card>
 
       {/* Integration Benefits */}
-      <Card className="bg-blue-50 border-blue-200">
+      <Card className="bg-emerald-50 border-blue-200">
         <CardContent className="pt-6">
-          <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5" />
+          <h4 className="font-medium text-emerald-900 mb-2 flex items-center gap-2">
+            <CheckCircleIcon className="w-5 h-5" />
             Benefits of Activity Integration
           </h4>
-          <ul className="text-sm text-blue-700 space-y-1">
+          <ul className="text-sm text-emerald-700 space-y-1">
             <li>• <strong>Automatic Progress Tracking:</strong> Form responses update activity progress in real-time</li>
             <li>• <strong>KPI Calculations:</strong> Numeric responses contribute directly to KPI measurements</li>
             <li>• <strong>Data Consistency:</strong> Eliminates manual data entry and reduces errors</li>

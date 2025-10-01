@@ -12,7 +12,7 @@ import { AreaChart } from '@/components/visualizations/AreaChart';
 import { BulletChart } from '@/components/visualizations/BulletChart';
 import { PieChart } from '@/components/visualizations/PieChart';
 import { Progress } from '@/components/ui/progress';
-import { Target, Activity, TrendingUp, ChevronRight, Calendar } from 'lucide-react';
+import { FlagIcon, ChartBarIcon, ArrowTrendingUpIcon, ChevronRightIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { strategicPlanApi, StrategicPlan, StrategicGoal } from '@/lib/api/strategicPlanApi';
 import { toast } from 'sonner';
 
@@ -20,9 +20,9 @@ import { toast } from 'sonner';
 const getPriorityColor = (priority: string) => {
   switch (priority) {
     case 'high':
-      return 'bg-red-100 text-red-800';
+      return 'bg-emerald-100 text-emerald-800';
     case 'medium':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-lime-100 text-lime-800';
     case 'low':
       return 'bg-green-100 text-green-800';
     default:
@@ -30,12 +30,26 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
+const toNumber = (val: any, fallback = 0) => {
+  const n = Number(val);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const percentSafe = (currentRaw: any, targetRaw: any) => {
+  const current = toNumber(currentRaw, 0);
+  const target = toNumber(targetRaw, 0);
+  if (!target || target <= 0) return 0;
+  const pct = (current / target) * 100;
+  if (!Number.isFinite(pct) || Number.isNaN(pct)) return 0;
+  return Math.max(0, Math.min(100, pct));
+};
+
 const getOverallProgress = (subgoals: any[]) => {
   if (subgoals.length === 0) return 0;
   const totalProgress = subgoals.reduce((sum, subgoal) => {
-    const currentValue = subgoal.kpi?.currentValue || subgoal.kpi?.value || 0;
-    const targetValue = subgoal.kpi?.targetValue || subgoal.kpi?.target || 1;
-    return sum + (currentValue / targetValue) * 100;
+    const currentValue = subgoal.kpi?.currentValue ?? subgoal.kpi?.value ?? 0;
+    const targetValue = subgoal.kpi?.targetValue ?? subgoal.kpi?.target ?? 0;
+    return sum + percentSafe(currentValue, targetValue);
   }, 0);
   return Math.round(totalProgress / subgoals.length);
 };
@@ -139,7 +153,7 @@ export function GlobalOverview() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5" />
+              <CalendarIcon className="h-5 w-5" />
               <span>Strategic Plan Filter</span>
             </CardTitle>
             <CardDescription>Select a strategic plan to view its goals and activities</CardDescription>
@@ -182,7 +196,7 @@ export function GlobalOverview() {
                 <p className="text-sm font-medium text-muted-foreground">Strategic Goals</p>
                 <p className="text-3xl font-bold text-foreground">{goals.length}</p>
               </div>
-              <Target className="h-8 w-8 text-blue-500" />
+              <FlagIcon className="h-8 w-8 text-emerald-500" />
             </div>
           </CardContent>
         </Card>
@@ -194,7 +208,7 @@ export function GlobalOverview() {
                 <p className="text-sm font-medium text-muted-foreground">Sub-Goals</p>
                 <p className="text-3xl font-bold text-foreground">{totalSubgoals}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
+              <ArrowTrendingUpIcon className="h-8 w-8 text-emerald-500" />
             </div>
           </CardContent>
         </Card>
@@ -206,7 +220,7 @@ export function GlobalOverview() {
                 <p className="text-sm font-medium text-muted-foreground">Contributing Projects</p>
                 <p className="text-3xl font-bold text-foreground">{uniqueProjects.size}</p>
               </div>
-              <Activity className="h-8 w-8 text-purple-500" />
+              <ChartBarIcon className="h-8 w-8 text-emerald-500" />
             </div>
           </CardContent>
         </Card>
@@ -218,7 +232,7 @@ export function GlobalOverview() {
                 <p className="text-sm font-medium text-muted-foreground">Total Activities</p>
                 <p className="text-3xl font-bold text-foreground">{totalActivities}</p>
               </div>
-              <Activity className="h-8 w-8 text-orange-500" />
+              <ChartBarIcon className="h-8 w-8 text-lime-500" />
             </div>
           </CardContent>
         </Card>
@@ -241,7 +255,7 @@ export function GlobalOverview() {
           <Card>
             <CardContent className="p-12 text-center">
               <div className="flex flex-col items-center space-y-4">
-                <Target className="h-12 w-12 text-muted-foreground" />
+                <FlagIcon className="h-12 w-12 text-muted-foreground" />
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">No Strategic Plan Data</h3>
                   <p className="text-muted-foreground">
@@ -264,7 +278,7 @@ export function GlobalOverview() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <CardTitle className="text-xl group-hover:text-blue-600 transition-colors">
+                      <CardTitle className="text-xl group-hover:text-emerald-600 transition-colors">
                         {goal.title}
                       </CardTitle>
                       <Badge className={getPriorityColor(goal.priority.toLowerCase())}>
@@ -274,13 +288,13 @@ export function GlobalOverview() {
                     <CardDescription className="text-base">{goal.description}</CardDescription>
                     <div className="mt-3 flex items-center gap-4">
                       <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4 text-muted-foreground" />
+                        <FlagIcon className="w-4 h-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
                           {goal.subgoals.length} sub-goals
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-muted-foreground" />
+                        <ChartBarIcon className="w-4 h-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
                           {goal.subgoals.reduce((sum, sg) => sum + sg.activityLinks.length, 0)} activities
                         </span>
@@ -297,9 +311,9 @@ export function GlobalOverview() {
                       to={`/dashboard/goals/${goal.id}`}
                       state={{ goal, goals }}
                     >
-                      <Button variant="outline" className="group-hover:bg-blue-50 group-hover:border-blue-200">
+                      <Button variant="outline" className="group-hover:bg-emerald-50 group-hover:border-blue-200">
                         View Details
-                        <ChevronRight className="w-4 h-4 ml-1" />
+                        <ChevronRightIcon className="w-4 h-4 ml-1" />
                       </Button>
                     </Link>
                     <div className="text-right">
@@ -322,12 +336,12 @@ export function GlobalOverview() {
                             state={{ goal, goals }}
                           >
                             <Button variant="ghost" size="sm">
-                              <ChevronRight className="w-3 h-3" />
+                              <ChevronRightIcon className="w-3 h-3" />
                             </Button>
                           </Link>
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <Activity className="w-3 h-3 text-muted-foreground" />
+                          <ChartBarIcon className="w-3 h-3 text-muted-foreground" />
                           <span className="text-xs text-muted-foreground">
                             {subgoal.activityLinks.length} contributing activities
                           </span>
@@ -337,7 +351,7 @@ export function GlobalOverview() {
                         {subgoal.kpi.type === 'radialGauge' && (
                           <div className="flex justify-center">
                             <RadialGauge 
-                              value={(subgoal.kpi.currentValue / subgoal.kpi.targetValue) * 100} 
+                              value={percentSafe(subgoal.kpi.currentValue, subgoal.kpi.targetValue)} 
                               size={100} 
                               unit={subgoal.kpi.unit} 
                               primaryColor="#3B82F6"
@@ -347,8 +361,8 @@ export function GlobalOverview() {
                         )}
                         {subgoal.kpi.type === 'bulletChart' && (
                           <BulletChart
-                            current={subgoal.kpi.currentValue}
-                            target={subgoal.kpi.targetValue}
+                            current={toNumber(subgoal.kpi.currentValue, 0)}
+                            target={toNumber(subgoal.kpi.targetValue, 0)}
                             title={subgoal.title}
                             unit={subgoal.kpi.unit}
                             height={80}
@@ -357,11 +371,11 @@ export function GlobalOverview() {
                         {subgoal.kpi.type === 'progressBar' && (
                           <div className="w-full">
                             <div className="mb-2 text-sm font-medium">
-                              {subgoal.kpi.currentValue.toLocaleString()} / {subgoal.kpi.targetValue.toLocaleString()} {subgoal.kpi.unit}
+                              {toNumber(subgoal.kpi.currentValue, 0).toLocaleString()} / {toNumber(subgoal.kpi.targetValue, 0).toLocaleString()} {subgoal.kpi.unit}
                             </div>
-                            <Progress value={(subgoal.kpi.currentValue / subgoal.kpi.targetValue) * 100} className="h-2" />
+                            <Progress value={percentSafe(subgoal.kpi.currentValue, subgoal.kpi.targetValue)} className="h-2" />
                             <div className="mt-1 text-xs text-muted-foreground">
-                              {Math.round((subgoal.kpi.currentValue / subgoal.kpi.targetValue) * 100)}% Complete
+                              {Math.round(percentSafe(subgoal.kpi.currentValue, subgoal.kpi.targetValue))}% Complete
                             </div>
                           </div>
                         )}

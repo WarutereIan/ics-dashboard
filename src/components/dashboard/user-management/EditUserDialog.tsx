@@ -21,7 +21,8 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, X, User, Shield, Building, Globe, Key, Settings } from 'lucide-react';
+import { PlusIcon, XMarkIcon, UserIcon, GlobeAltIcon, Cog6ToothIcon, ShieldCheckIcon, BuildingOfficeIcon, KeyIcon } from '@heroicons/react/24/outline';
+
 import { User as UserType, Role, RoleAssignment } from '@/services/userManagementService';
 import { useProjects } from '@/contexts/ProjectsContext';
 
@@ -159,7 +160,7 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+            <UserIcon className="h-5 w-5" />
             Edit User: {user.firstName} {user.lastName}
           </DialogTitle>
           <DialogDescription>
@@ -171,15 +172,15 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="basic" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
+                <Cog6ToothIcon className="h-4 w-4" />
                 Basic Info
               </TabsTrigger>
               <TabsTrigger value="password" className="flex items-center gap-2">
-                <Key className="h-4 w-4" />
+                <KeyIcon className="h-4 w-4" />
                 Password
               </TabsTrigger>
               <TabsTrigger value="roles" className="flex items-center gap-2">
-                <Shield className="h-4 w-4" />
+                <ShieldCheckIcon className="h-4 w-4" />
                 Roles
               </TabsTrigger>
             </TabsList>
@@ -249,8 +250,8 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
                   <CardTitle className="text-lg">Change Password</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
+                  <div className="bg-emerald-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-emerald-800">
                       Leave password fields empty to keep the current password unchanged.
                     </p>
                   </div>
@@ -292,7 +293,7 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
+                      <ShieldCheckIcon className="h-5 w-5" />
                       Role Assignments
                     </CardTitle>
                     <Button
@@ -302,7 +303,7 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
                       onClick={addRoleAssignment}
                       className="flex items-center gap-2"
                     >
-                      <Plus className="h-4 w-4" />
+                      <PlusIcon className="h-4 w-4" />
                       Add Role
                     </Button>
                   </div>
@@ -310,7 +311,7 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
                 <CardContent>
                   {roleAssignments.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <ShieldCheckIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No roles assigned. Click "Add Role" to assign roles to this user.</p>
                     </div>
                   ) : (
@@ -326,9 +327,9 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => removeRoleAssignment(index)}
-                                className="text-red-600 hover:text-red-700"
+                                className="text-emerald-600 hover:text-emerald-700"
                               >
-                                <X className="h-4 w-4" />
+                                <XMarkIcon className="h-4 w-4" />
                               </Button>
                             </div>
 
@@ -365,7 +366,7 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
                               <div className="space-y-4">
                                 <div className="space-y-2">
                                   <Label className="flex items-center gap-2">
-                                    <Building className="h-4 w-4" />
+                                    <BuildingOfficeIcon className="h-4 w-4" />
                                     Project (Optional)
                                   </Label>
                                   <Select
@@ -393,7 +394,7 @@ export function EditUserDialog({ open, onOpenChange, user, onSubmit, roles }: Ed
                                 {assignment.projectId && assignment.country && (
                                   <div className="space-y-2">
                                     <Label className="flex items-center gap-2">
-                                      <Globe className="h-4 w-4" />
+                                      <GlobeAltIcon className="h-4 w-4" />
                                       Country
                                     </Label>
                                     <div className="flex items-center gap-2 p-2 bg-muted rounded-md">

@@ -28,17 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  Shield, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Users, 
-  Search,
-  Filter,
-  Eye,
-  MoreHorizontal
-} from 'lucide-react';
+import { PlusIcon, PencilIcon, TrashIcon, UsersIcon, MagnifyingGlassIcon, FunnelIcon, EyeIcon, ShieldCheckIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -224,7 +215,7 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6" />
+            <ShieldCheckIcon className="h-6 w-6" />
             Roles & Permissions
           </h2>
           <p className="text-muted-foreground">
@@ -238,7 +229,7 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search roles by name or description..."
                 value={searchTerm}
@@ -265,7 +256,7 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+            <UsersIcon className="h-5 w-5" />
             System Roles ({filteredRoles.length})
           </CardTitle>
         </CardHeader>
@@ -305,26 +296,26 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
+                          <EllipsisHorizontalIcon className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleViewRoleDetails(role)}>
-                          <Eye className="h-4 w-4 mr-2" />
+                          <EyeIcon className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
                        {/*  <DropdownMenuItem onClick={() => handleEditRole(role)}>
-                          <Edit className="h-4 w-4 mr-2" />
+                          <PencilIcon className="h-4 w-4 mr-2" />
                           Edit Role
                         </DropdownMenuItem> */}
                         <DropdownMenuSeparator />
                         {/* <DropdownMenuItem 
                           onClick={() => handleDeleteRole(role)}
-                          className="text-red-600"
+                          className="text-emerald-600"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
+                          <TrashIcon className="h-4 w-4 mr-2" />
                           Delete Role
                         </DropdownMenuItem> */}
                       </DropdownMenuContent>
@@ -342,7 +333,7 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
+              <ShieldCheckIcon className="h-5 w-5" />
               Role Details: {selectedRole?.name}
             </DialogTitle>
             <DialogDescription>

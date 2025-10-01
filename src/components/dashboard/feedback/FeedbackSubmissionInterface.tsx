@@ -3,19 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  MessageSquare, 
-  AlertTriangle, 
-  Shield, 
-  Users,
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  FileText,
-  Camera,
-  Send
-} from 'lucide-react';
+import { ChatBubbleLeftRightIcon, ExclamationTriangleIcon, UsersIcon, EnvelopeIcon, MapPinIcon, ClockIcon, DocumentTextIcon, ShieldCheckIcon, PhoneIcon, CameraIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
+
 import { GeneralFeedbackForm } from './forms/GeneralFeedbackForm';
 import { SafetyIncidentForm } from './forms/SafetyIncidentForm';
 import { EmergencyReportForm } from './forms/EmergencyReportForm';
@@ -88,7 +77,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
       id: 'general',
       title: 'General Feedback',
       description: 'Share your thoughts, suggestions, or general observations about the program',
-      icon: MessageSquare,
+      icon: ChatBubbleLeftRightIcon,
       color: 'blue',
       priority: 'LOW',
       estimatedTime: '2-3 minutes',
@@ -98,7 +87,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
       id: 'safety',
       title: 'Safety Incident Report',
       description: 'Report safety concerns, incidents, or hazards in the community',
-      icon: AlertTriangle,
+      icon: ExclamationTriangleIcon,
       color: 'orange',
       priority: 'HIGH',
       estimatedTime: '5-7 minutes',
@@ -108,7 +97,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
       id: 'emergency',
       title: 'Emergency Report',
       description: 'Report emergency situations requiring immediate attention',
-      icon: Phone,
+      icon: PhoneIcon,
       color: 'red',
       priority: 'CRITICAL',
       estimatedTime: '3-5 minutes',
@@ -118,7 +107,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
       id: 'staff',
       title: 'Staff Feedback',
       description: 'Provide feedback about program staff performance or behavior',
-      icon: Users,
+      icon: UsersIcon,
       color: 'purple',
       priority: 'MEDIUM',
       estimatedTime: '4-6 minutes',
@@ -155,31 +144,31 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
     switch (color) {
       case 'blue':
         return {
-          bg: 'bg-blue-50',
+          bg: 'bg-emerald-50',
           border: 'border-blue-200',
-          text: 'text-blue-800',
-          icon: 'text-blue-600'
+          text: 'text-emerald-800',
+          icon: 'text-emerald-600'
         };
       case 'orange':
         return {
-          bg: 'bg-orange-50',
+          bg: 'bg-lime-50',
           border: 'border-orange-200',
           text: 'text-orange-800',
-          icon: 'text-orange-600'
+          icon: 'text-lime-600'
         };
       case 'red':
         return {
-          bg: 'bg-red-50',
+          bg: 'bg-emerald-50',
           border: 'border-red-200',
-          text: 'text-red-800',
-          icon: 'text-red-600'
+          text: 'text-emerald-800',
+          icon: 'text-emerald-600'
         };
       case 'purple':
         return {
-          bg: 'bg-purple-50',
+          bg: 'bg-emerald-50',
           border: 'border-purple-200',
           text: 'text-purple-800',
-          icon: 'text-purple-600'
+          icon: 'text-emerald-600'
         };
       default:
         return {
@@ -196,7 +185,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
       {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center gap-3">
-          <MessageSquare className="w-8 h-8 text-blue-600" />
+          <ChatBubbleLeftRightIcon className="w-8 h-8 text-emerald-600" />
           <h1 className="text-3xl font-bold">Feedback & Reporting</h1>
         </div>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -209,21 +198,21 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="text-center hover:shadow-md transition-shadow">
           <CardContent className="p-6">
-            <Shield className="w-10 h-10 text-green-600 mx-auto mb-3" />
+            <ShieldCheckIcon className="w-10 h-10 text-green-600 mx-auto mb-3" />
             <h3 className="font-semibold text-lg mb-2">Anonymous Reporting</h3>
             <p className="text-gray-600">All feedback can be submitted anonymously</p>
           </CardContent>
         </Card>
         <Card className="text-center hover:shadow-md transition-shadow">
           <CardContent className="p-6">
-            <Clock className="w-10 h-10 text-blue-600 mx-auto mb-3" />
+            <ClockIcon className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
             <h3 className="font-semibold text-lg mb-2">Quick Response</h3>
             <p className="text-gray-600">We respond to all feedback within 24-48 hours</p>
           </CardContent>
         </Card>
         <Card className="text-center hover:shadow-md transition-shadow">
           <CardContent className="p-6">
-            <AlertTriangle className="w-10 h-10 text-red-600 mx-auto mb-3" />
+            <ExclamationTriangleIcon className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
             <h3 className="font-semibold text-lg mb-2">Emergency Support</h3>
             <p className="text-gray-600">Emergency reports receive immediate attention</p>
           </CardContent>
@@ -286,11 +275,11 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
                           </p>
                           <div className="flex items-center gap-4 text-xs text-gray-600">
                             <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
+                              <ClockIcon className="w-3 h-3" />
                               Estimated time: {form.estimatedTime}
                             </div>
                             <div className="flex items-center gap-1">
-                              <Shield className="w-3 h-3" />
+                              <ShieldCheckIcon className="w-3 h-3" />
                               Anonymous submission available
                             </div>
                           </div>
@@ -323,15 +312,15 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
             <div className="space-y-4">
               <h4 className="font-semibold text-lg">Emergency Contacts</h4>
               <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
-                  <Phone className="w-5 h-5 text-red-600" />
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
+                  <PhoneIcon className="w-5 h-5 text-emerald-600" />
                   <div>
                     <p className="font-medium">Emergency Hotline</p>
                     <p className="text-sm text-gray-600">+1 (555) 911-HELP</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                  <Mail className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
+                  <EnvelopeIcon className="w-5 h-5 text-emerald-600" />
                   <div>
                     <p className="font-medium">Emergency Email</p>
                     <p className="text-sm text-gray-600">emergency@ics-program.org</p>
@@ -342,15 +331,15 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
             <div className="space-y-4">
               <h4 className="font-semibold text-lg">General Inquiries</h4>
               <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                  <Mail className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
+                  <EnvelopeIcon className="w-5 h-5 text-emerald-600" />
                   <div>
                     <p className="font-medium">Feedback Email</p>
                     <p className="text-sm text-gray-600">feedback@ics-program.org</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                  <MapPin className="w-5 h-5 text-green-600" />
+                  <MapPinIcon className="w-5 h-5 text-green-600" />
                   <div>
                     <p className="font-medium">Visit Our Office</p>
                     <p className="text-sm text-gray-600">Local community center</p>

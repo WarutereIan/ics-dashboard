@@ -7,26 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Trash2, 
-  Eye, 
-  FileImage, 
-  FileVideo, 
-  FileAudio, 
-  File,
-  Calendar,
-  User,
-  MapPin,
-  Building,
-  FormInput,
-  Hash,
-  BarChart3,
-  Download as DownloadIcon,
-  Upload as UploadIcon
-} from 'lucide-react';
+import { MagnifyingGlassIcon, FunnelIcon, ArrowDownTrayIcon, TrashIcon, EyeIcon, DocumentIcon, CalendarIcon, UserIcon, MapPinIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { FileImage, FileVideo, FileAudio, Building, FormInput, Hash, Download as DownloadIcon, Upload as UploadIcon } from 'lucide-react';
+
 import { 
   StoredMediaFile as MediaStorageFile,
   MediaMetadata
@@ -186,7 +169,7 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
       case 'image': return <FileImage className="w-5 h-5" />;
       case 'video': return <FileVideo className="w-5 h-5" />;
       case 'audio': return <FileAudio className="w-5 h-5" />;
-      default: return <File className="w-5 h-5" />;
+      default: return <DocumentIcon className="w-5 h-5" />;
     }
   };
 
@@ -241,7 +224,7 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
             Export
           </Button>
           <Button onClick={refreshMediaFiles}>
-            <BarChart3 className="w-4 h-4 mr-2" />
+            <ChartBarIcon className="w-4 h-4 mr-2" />
             Refresh
           </Button>
         </div>
@@ -253,7 +236,7 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
-                <File className="w-5 h-5 text-blue-600" />
+                <DocumentIcon className="w-5 h-5 text-emerald-600" />
                 <div>
                   <p className="text-sm text-gray-600">Total Files</p>
                   <p className="text-2xl font-bold">{stats.total}</p>
@@ -275,7 +258,7 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
-                <FileVideo className="w-5 h-5 text-purple-600" />
+                <FileVideo className="w-5 h-5 text-emerald-600" />
                 <div>
                   <p className="text-sm text-gray-600">Videos</p>
                   <p className="text-2xl font-bold">{stats.byType.video}</p>
@@ -286,7 +269,7 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
-                <Hash className="w-5 h-5 text-orange-600" />
+                <Hash className="w-5 h-5 text-lime-600" />
                 <div>
                   <p className="text-sm text-gray-600">Total Size</p>
                   <p className="text-2xl font-bold">{formatFileSize(stats.totalSize)}</p>
@@ -302,7 +285,7 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <MagnifyingGlassIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search files..."
                 value={searchQuery}
@@ -364,7 +347,7 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
       ) : filteredFiles.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center">
-            <File className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <DocumentIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">No media files found</p>
             {searchQuery && <p className="text-sm text-gray-400">Try adjusting your search criteria</p>}
           </CardContent>
@@ -392,21 +375,21 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
                       size="sm"
                       onClick={() => setSelectedFile(file)}
                     >
-                      <Eye className="w-4 h-4" />
+                      <EyeIcon className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDownloadFile(file)}
                     >
-                      <Download className="w-4 h-4" />
+                      <ArrowDownTrayIcon className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDeleteFile(file.id)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <TrashIcon className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -421,11 +404,11 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
                     <span>{file.metadata.countryCode}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <Calendar className="w-3 h-3" />
+                    <CalendarIcon className="w-3 h-3" />
                     <span>{file.metadata.uploadedAt.toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <User className="w-3 h-3" />
+                    <UserIcon className="w-3 h-3" />
                     <span className="truncate">{file.metadata.uploadedBy}</span>
                   </div>
                 </div>
@@ -436,7 +419,7 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
                   </Badge>
                   {file.metadata.location && (
                     <Badge variant="outline" className="text-xs">
-                      <MapPin className="w-3 h-3 mr-1" />
+                      <MapPinIcon className="w-3 h-3 mr-1" />
                       Location
                     </Badge>
                   )}
@@ -538,7 +521,7 @@ export function MediaManagement({ projectId: propProjectId }: MediaManagementPro
                   Close
                 </Button>
                 <Button onClick={() => handleDownloadFile(selectedFile)}>
-                  <Download className="w-4 h-4 mr-2" />
+                  <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
                   Download
                 </Button>
               </div>

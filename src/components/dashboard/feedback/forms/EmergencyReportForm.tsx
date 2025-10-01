@@ -7,19 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Phone, 
-  AlertTriangle, 
-  MapPin, 
-  Clock, 
-  Users, 
-  Camera,
-  Send,
-  User,
-  Mail,
-  Shield,
-  Zap
-} from 'lucide-react';
+import { ExclamationTriangleIcon, MapPinIcon, ClockIcon, UsersIcon, UserIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { Phone, Camera, Send, Shield, Zap } from 'lucide-react';
+
 
 interface EmergencyReportFormProps {
   onSubmit: (data: any) => void;
@@ -197,13 +187,13 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Emergency Alert Banner */}
-      <Card className="border-red-500 bg-red-50">
+      <Card className="border-red-500 bg-emerald-50">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-red-600" />
+            <ExclamationTriangleIcon className="w-6 h-6 text-emerald-600" />
             <div>
-              <h3 className="font-bold text-red-800">EMERGENCY REPORT</h3>
-              <p className="text-sm text-red-700">
+              <h3 className="font-bold text-emerald-800">EMERGENCY REPORT</h3>
+              <p className="text-sm text-emerald-700">
                 This form is for reporting emergency situations requiring immediate attention. 
                 If this is a life-threatening emergency, please call 911 immediately.
               </p>
@@ -216,7 +206,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
+            <UserIcon className="w-5 h-5" />
             Reporter Information
           </CardTitle>
         </CardHeader>
@@ -244,7 +234,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
                   placeholder="Your full name"
                 />
                 {errors.name && (
-                  <p className="text-sm text-red-600">{errors.name}</p>
+                  <p className="text-sm text-emerald-600">{errors.name}</p>
                 )}
               </div>
 
@@ -258,7 +248,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
                   placeholder="+1 (555) 123-4567"
                 />
                 {errors.phone && (
-                  <p className="text-sm text-red-600">{errors.phone}</p>
+                  <p className="text-sm text-emerald-600">{errors.phone}</p>
                 )}
               </div>
 
@@ -300,7 +290,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
+            <ExclamationTriangleIcon className="w-5 h-5" />
             Emergency Details
           </CardTitle>
         </CardHeader>
@@ -324,7 +314,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
                 </SelectContent>
               </Select>
               {errors.emergencyType && (
-                <p className="text-sm text-red-600">{errors.emergencyType}</p>
+                <p className="text-sm text-emerald-600">{errors.emergencyType}</p>
               )}
             </div>
 
@@ -346,7 +336,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
                 </SelectContent>
               </Select>
               {errors.severity && (
-                <p className="text-sm text-red-600">{errors.severity}</p>
+                <p className="text-sm text-emerald-600">{errors.severity}</p>
               )}
             </div>
           </div>
@@ -361,7 +351,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
               placeholder="Brief title describing the emergency"
             />
             {errors.title && (
-              <p className="text-sm text-red-600">{errors.title}</p>
+              <p className="text-sm text-emerald-600">{errors.title}</p>
             )}
           </div>
 
@@ -376,7 +366,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
               placeholder="Please provide a detailed description of the emergency situation, including what is happening, who is affected, and any immediate dangers..."
             />
             {errors.description && (
-              <p className="text-sm text-red-600">{errors.description}</p>
+              <p className="text-sm text-emerald-600">{errors.description}</p>
             )}
           </div>
 
@@ -391,7 +381,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
                 placeholder="General location (e.g., Community Center, School)"
               />
               {errors.location && (
-                <p className="text-sm text-red-600">{errors.location}</p>
+                <p className="text-sm text-emerald-600">{errors.location}</p>
               )}
             </div>
 
@@ -417,7 +407,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
                 className={errors.emergencyDate ? 'border-red-500' : ''}
               />
               {errors.emergencyDate && (
-                <p className="text-sm text-red-600">{errors.emergencyDate}</p>
+                <p className="text-sm text-emerald-600">{errors.emergencyDate}</p>
               )}
             </div>
 
@@ -656,7 +646,7 @@ export function EmergencyReportForm({ onSubmit, isSubmitting }: EmergencyReportF
                 </SelectContent>
               </Select>
               {errors.followUpMethod && (
-                <p className="text-sm text-red-600">{errors.followUpMethod}</p>
+                <p className="text-sm text-emerald-600">{errors.followUpMethod}</p>
               )}
             </div>
           )}

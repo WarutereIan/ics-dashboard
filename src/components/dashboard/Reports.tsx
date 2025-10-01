@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText, Upload, Download, File, Eye, Trash2, Plus, FilePlus, Hash, MapPin, Building, FileText as FileTextIcon, RefreshCw } from 'lucide-react';
+import { DocumentTextIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, DocumentIcon, EyeIcon, TrashIcon, PlusIcon, MapPinIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { DocumentPlusIcon, HashtagIcon, BuildingOfficeIcon, DocumentTextIcon as FileTextIcon } from '@heroicons/react/24/outline';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,13 +96,13 @@ export function Reports() {
   const getFileIcon = (type: string) => {
     switch (type) {
       case 'pdf':
-        return <FileText className="h-4 w-4 text-red-500" />;
+        return <DocumentTextIcon className="h-4 w-4 text-red-500" />;
       case 'excel':
-        return <File className="h-4 w-4 text-green-500" />;
+        return <DocumentIcon className="h-4 w-4 text-green-500" />;
       case 'word':
-        return <FileText className="h-4 w-4 text-blue-500" />;
+        return <DocumentTextIcon className="h-4 w-4 text-blue-500" />;
       default:
-        return <File className="h-4 w-4 text-gray-500" />;
+        return <DocumentIcon className="h-4 w-4 text-gray-500" />;
     }
   };
 
@@ -109,9 +111,9 @@ export function Reports() {
       weekly: 'bg-cyan-100 text-cyan-800',
       bimonthly: 'bg-teal-100 text-teal-800',
       monthly: 'bg-green-100 text-green-800',
-      quarterly: 'bg-blue-100 text-blue-800',
+      quarterly: 'bg-emerald-100 text-emerald-800',
       'bi-annual': 'bg-indigo-100 text-indigo-800',
-      annual: 'bg-purple-100 text-purple-800',
+      annual: 'bg-emerald-100 text-purple-800',
       adhoc: 'bg-gray-100 text-gray-800'
     };
     return variants[category as keyof typeof variants] || variants.adhoc;
@@ -126,10 +128,10 @@ export function Reports() {
       archived: 'bg-gray-100 text-gray-800',
       // Workflow status
       approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
+      rejected: 'bg-emerald-100 text-emerald-800',
       pending: 'bg-yellow-100 text-yellow-800',
-      in_review: 'bg-blue-100 text-blue-800',
-      'in review': 'bg-blue-100 text-blue-800'
+      in_review: 'bg-emerald-100 text-emerald-800',
+      'in review': 'bg-emerald-100 text-emerald-800'
     };
     return variants[key] || variants.draft;
   };
@@ -387,11 +389,11 @@ export function Reports() {
     return (
       <div className="flex flex-wrap gap-1 mt-2">
         <Badge variant="outline" className="text-xs">
-          <MapPin className="w-3 h-3 mr-1" />
+          <MapPinIcon className="w-3 h-3 mr-1" />
           {parsed.country}-{parsed.region}
         </Badge>
         <Badge variant="outline" className="text-xs">
-          <Building className="w-3 h-3 mr-1" />
+          <BuildingOfficeIcon className="w-3 h-3 mr-1" />
           {parsed.project}
         </Badge>
         <Badge variant="outline" className="text-xs">
@@ -422,13 +424,13 @@ export function Reports() {
             disabled={isLoadingFiles}
             className="gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
+            <ArrowPathIcon className={`h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               {/* <Button variant="secondary" className="gap-2">
-                <FilePlus className="h-4 w-4" />
+                <DocumentPlusIcon className="h-4 w-4" />
                 Create from Data
               </Button> */}
             </DialogTrigger>
@@ -508,7 +510,7 @@ export function Reports() {
           <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
-                <Plus className="h-4 w-4" />
+                <PlusIcon className="h-4 w-4" />
                 Upload Report
               </Button>
             </DialogTrigger>
@@ -548,7 +550,7 @@ export function Reports() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <div className="flex items-center gap-2">
-            <Hash className="h-4 w-4" />
+            <HashtagIcon className="h-4 w-4" />
             <span className="text-sm font-medium">Filters:</span>
           </div>
           
@@ -688,11 +690,11 @@ export function Reports() {
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" className="gap-2" onClick={() => handleDownloadFile(report.id, report.name)}>
-                          <Download className="h-4 w-4" />
+                          <ArrowDownTrayIcon className="h-4 w-4" />
                           Download
                         </Button>
                         <Button variant="destructive" size="sm" className="gap-2" onClick={() => handleDeleteFile(report.id, report.name)}>
-                          <Trash2 className="h-4 w-4" />
+                          <TrashIcon className="h-4 w-4" />
                           Delete
                         </Button>
                       </div>
@@ -705,7 +707,7 @@ export function Reports() {
             !isLoadingFiles && (
               <Card className="w-full">
                 <CardContent className="text-center py-8 w-full">
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <DocumentTextIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-foreground mb-2 break-words whitespace-normal">No reports found</h3>
                   <p className="text-muted-foreground break-words whitespace-normal">
                     No reports available for the selected filters. Upload your first report to get started.

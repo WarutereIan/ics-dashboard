@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Save, ArrowLeft, Edit3, Eye } from 'lucide-react';
+import { PlusIcon, TrashIcon, CheckIcon, PencilIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+
 import { organizationalGoals } from '@/lib/organizationalGoals';
 import { strategicPlanApi } from '@/lib/api/strategicPlanApi';
 import { useProjects } from '@/contexts/ProjectsContext';
@@ -449,7 +451,7 @@ export function StrategicPlanEdit() {
             onClick={() => navigate('/dashboard')}
             className="flex items-center space-x-2"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeftIcon className="h-4 w-4" />
             <span>Back to Dashboard</span>
           </Button>
           <div>
@@ -460,7 +462,7 @@ export function StrategicPlanEdit() {
         <div className="flex items-center space-x-2">
           {!isEditing ? (
             <Button onClick={() => setIsEditing(true)} className="flex items-center space-x-2">
-              <Edit3 className="h-4 w-4" />
+              <PencilIcon className="h-4 w-4" />
               <span>Edit Strategic Plan</span>
             </Button>
           ) : (
@@ -469,7 +471,7 @@ export function StrategicPlanEdit() {
                 Cancel
               </Button>
               <Button onClick={handleSave} disabled={isLoading} className="flex items-center space-x-2">
-                <Save className="h-4 w-4" />
+                <CheckIcon className="h-4 w-4" />
                 <span>{isLoading ? 'Saving...' : 'Save Changes'}</span>
               </Button>
             </>
@@ -534,7 +536,7 @@ export function StrategicPlanEdit() {
                     onClick={() => removeGoal(goal.id)}
                     className="flex items-center space-x-2"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <TrashIcon className="h-4 w-4" />
                     <span>Remove Goal</span>
                   </Button>
                 )}
@@ -605,7 +607,7 @@ export function StrategicPlanEdit() {
                       onClick={() => addSubGoal(goal.id)}
                       className="flex items-center space-x-2"
                     >
-                      <Plus className="h-4 w-4" />
+                      <PlusIcon className="h-4 w-4" />
                       <span>Add Subgoal</span>
                     </Button>
                   )}
@@ -625,7 +627,7 @@ export function StrategicPlanEdit() {
                             size="sm"
                             onClick={() => removeSubGoal(goal.id, subGoal.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <TrashIcon className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
@@ -702,7 +704,7 @@ export function StrategicPlanEdit() {
                               onClick={() => addActivityLink(goal.id, subGoal.id)}
                               className="flex items-center space-x-2"
                             >
-                              <Plus className="h-4 w-4" />
+                              <PlusIcon className="h-4 w-4" />
                               <span>Add Activity</span>
                             </Button>
                           )}
@@ -727,7 +729,7 @@ export function StrategicPlanEdit() {
                                     size="sm"
                                     onClick={() => removeActivityLink(goal.id, subGoal.id, activityIndex)}
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <TrashIcon className="h-4 w-4" />
                                   </Button>
                                 )}
                               </div>
@@ -841,7 +843,7 @@ export function StrategicPlanEdit() {
                 onClick={addGoal}
                 className="flex items-center space-x-2"
               >
-                <Plus className="h-5 w-5" />
+                <PlusIcon className="h-5 w-5" />
                 <span>Add Strategic Goal</span>
               </Button>
             </CardContent>

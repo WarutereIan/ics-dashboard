@@ -1,17 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Flag,
-  MessageSquare,
-  User,
-  Calendar,
-  FileText
-} from 'lucide-react';
+import { ClockIcon, CheckCircleIcon, XCircleIcon, ExclamationCircleIcon, FlagIcon, ChatBubbleLeftRightIcon, UserIcon, CalendarIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+
 
 interface StatusEntry {
   id: string;
@@ -104,37 +95,37 @@ export function FeedbackStatusTracker({
   const getStatusInfo = (status: string) => {
     const statusMap = {
       'SUBMITTED': { 
-        icon: MessageSquare, 
+        icon: ChatBubbleLeftRightIcon, 
         color: 'secondary', 
         label: 'Submitted',
         description: 'Feedback received and logged'
       },
       'ACKNOWLEDGED': { 
-        icon: CheckCircle, 
+        icon: CheckCircleIcon, 
         color: 'default', 
         label: 'Acknowledged',
         description: 'Submission acknowledged by team'
       },
       'IN_PROGRESS': { 
-        icon: AlertCircle, 
+        icon: ExclamationCircleIcon, 
         color: 'default', 
         label: 'In Progress',
         description: 'Work is being done to resolve the issue'
       },
       'RESOLVED': { 
-        icon: CheckCircle, 
+        icon: CheckCircleIcon, 
         color: 'default', 
         label: 'Resolved',
         description: 'Issue has been resolved'
       },
       'CLOSED': { 
-        icon: XCircle, 
+        icon: XCircleIcon, 
         color: 'outline', 
         label: 'Closed',
         description: 'Case closed and archived'
       },
       'ESCALATED': { 
-        icon: Flag, 
+        icon: FlagIcon, 
         color: 'destructive', 
         label: 'Escalated',
         description: 'Issue escalated to higher authority'
@@ -179,7 +170,7 @@ export function FeedbackStatusTracker({
               </div>
               {assignedTo && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <User className="w-4 h-4" />
+                  <UserIcon className="w-4 h-4" />
                   {assignedTo}
                 </div>
               )}
@@ -193,7 +184,7 @@ export function FeedbackStatusTracker({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress.percentage}%` }}
                 />
               </div>
@@ -202,12 +193,12 @@ export function FeedbackStatusTracker({
             {/* Timeline */}
             <div className="flex items-center justify-between text-sm text-gray-500">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
+                <CalendarIcon className="w-4 h-4" />
                 <span>Submitted: {new Date(submittedAt).toLocaleDateString()}</span>
               </div>
               {resolvedAt && (
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
+                  <CheckCircleIcon className="w-4 h-4" />
                   <span>Resolved: {new Date(resolvedAt).toLocaleDateString()}</span>
                 </div>
               )}
@@ -232,7 +223,7 @@ export function FeedbackStatusTracker({
                   {/* Timeline line */}
                   <div className="flex flex-col items-center">
                     <div className={`p-2 rounded-full ${
-                      isLast ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                      isLast ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-600'
                     }`}>
                       <statusInfo.icon className="w-4 h-4" />
                     </div>
@@ -276,7 +267,7 @@ export function FeedbackStatusTracker({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <Clock className="w-8 h-8 text-blue-600" />
+              <ClockIcon className="w-8 h-8 text-emerald-600" />
               <div>
                 <p className="text-sm text-gray-600">Time to Acknowledge</p>
                 <p className="text-lg font-semibold">
@@ -290,7 +281,7 @@ export function FeedbackStatusTracker({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-8 h-8 text-orange-600" />
+              <ExclamationCircleIcon className="w-8 h-8 text-lime-600" />
               <div>
                 <p className="text-sm text-gray-600">Time in Progress</p>
                 <p className="text-lg font-semibold">
@@ -304,7 +295,7 @@ export function FeedbackStatusTracker({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircleIcon className="w-8 h-8 text-green-600" />
               <div>
                 <p className="text-sm text-gray-600">Resolution Time</p>
                 <p className="text-lg font-semibold">

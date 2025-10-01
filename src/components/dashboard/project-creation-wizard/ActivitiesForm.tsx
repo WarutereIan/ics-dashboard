@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Plus, Trash2 } from 'lucide-react';
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+
 import { OutcomeFormData, ActivityFormData } from './types';
 
 interface ActivitiesFormProps {
@@ -55,7 +56,7 @@ export function ActivitiesForm({
                 <p className="text-sm text-gray-600">{outcome.description}</p>
               </div>
               <Button onClick={() => onAddActivity(outcome.id)} className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
+                <PlusIcon className="w-4 h-4" />
                 Add Activity
               </Button>
             </div>
@@ -78,9 +79,9 @@ export function ActivitiesForm({
                           variant="outline"
                           size="sm"
                           onClick={() => onRemoveActivity(originalIndex)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-emerald-600 hover:text-emerald-700"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <TrashIcon className="w-3 h-3" />
                         </Button>
                       </div>
 

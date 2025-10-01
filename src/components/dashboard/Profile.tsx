@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Mail, Shield, Calendar, Save } from 'lucide-react';
+import { UserIcon, EnvelopeIcon, CalendarIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { Shield } from 'lucide-react';
+
 import { useNotifications } from '@/contexts/NotificationContext';
 
 export function Profile() {
@@ -92,7 +94,7 @@ export function Profile() {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+              <UserIcon className="h-5 w-5" />
               Profile Overview
             </CardTitle>
           </CardHeader>
@@ -127,7 +129,7 @@ export function Profile() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
                 Member since: {new Date(user.createdAt || Date.now()).toLocaleDateString()}
               </span>
@@ -140,7 +142,7 @@ export function Profile() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
+                <EnvelopeIcon className="h-5 w-5" />
                 Personal Information
               </CardTitle>
               {/* {!isEditing && (
@@ -186,7 +188,7 @@ export function Profile() {
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleSave} size="sm">
-                    <Save className="h-4 w-4 mr-2" />
+                    <CheckIcon className="h-4 w-4 mr-2" />
                     Save Changes
                   </Button>
                   <Button variant="outline" onClick={handleCancel} size="sm">

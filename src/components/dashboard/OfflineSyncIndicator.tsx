@@ -4,16 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Wifi, 
-  WifiOff, 
-  RefreshCw, 
-  AlertCircle, 
-  CheckCircle, 
-  Clock,
-  Trash2,
-  Play
-} from 'lucide-react';
+import { ArrowPathIcon, ExclamationCircleIcon, CheckCircleIcon, ClockIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { WifiIcon, WifiIcon as WifiOffIcon, PlayIcon } from '@heroicons/react/24/outline';
+
 
 export function OfflineSyncIndicator() {
   const {
@@ -38,9 +31,9 @@ export function OfflineSyncIndicator() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center space-x-2 text-sm">
           {isOnline ? (
-            <Wifi className="w-4 h-4 text-green-600" />
+            <WifiIcon className="w-4 h-4 text-emerald-600" />
           ) : (
-            <WifiOff className="w-4 h-4 text-red-600" />
+            <WifiOffIcon className="w-4 h-4 text-emerald-600" />
           )}
           <span>
             {isOnline ? 'Online' : 'Offline'} - Sync Status
@@ -57,14 +50,14 @@ export function OfflineSyncIndicator() {
             
             {syncStatus.pendingItems > 0 && (
               <Badge variant="outline" className="flex items-center space-x-1">
-                <Clock className="w-3 h-3" />
+                <ClockIcon className="w-3 h-3" />
                 <span>{syncStatus.pendingItems} Pending</span>
               </Badge>
             )}
             
             {syncStatus.failedItems > 0 && (
               <Badge variant="destructive" className="flex items-center space-x-1">
-                <AlertCircle className="w-3 h-3" />
+                <ExclamationCircleIcon className="w-3 h-3" />
                 <span>{syncStatus.failedItems} Failed</span>
               </Badge>
             )}
@@ -108,7 +101,7 @@ export function OfflineSyncIndicator() {
                       </Badge>
                     )}
                     {item.retryCount >= item.maxRetries && (
-                      <AlertCircle className="w-3 h-3 text-red-500" />
+                      <ExclamationCircleIcon className="w-3 h-3 text-red-500" />
                     )}
                   </div>
                 </div>
@@ -131,7 +124,7 @@ export function OfflineSyncIndicator() {
               disabled={syncStatus.isSyncing}
               className="flex items-center space-x-1"
             >
-              <Play className="w-3 h-3" />
+              <PlayIcon className="w-3 h-3" />
               <span>Sync Now</span>
             </Button>
           )}
@@ -144,7 +137,7 @@ export function OfflineSyncIndicator() {
               disabled={syncStatus.isSyncing}
               className="flex items-center space-x-1"
             >
-              <RefreshCw className="w-3 h-3" />
+              <ArrowPathIcon className="w-3 h-3" />
               <span>Retry Failed</span>
             </Button>
           )}
@@ -156,7 +149,7 @@ export function OfflineSyncIndicator() {
               onClick={clearOfflineQueue}
               className="flex items-center space-x-1"
             >
-              <Trash2 className="w-3 h-3" />
+              <TrashIcon className="w-3 h-3" />
               <span>Clear Queue</span>
             </Button>
           )}
@@ -166,7 +159,7 @@ export function OfflineSyncIndicator() {
         {!isOnline && (
           <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
             <div className="flex items-center space-x-1">
-              <AlertCircle className="w-3 h-3" />
+              <ExclamationCircleIcon className="w-3 h-3" />
               <span>You're offline. Changes will be synced when you're back online.</span>
             </div>
           </div>

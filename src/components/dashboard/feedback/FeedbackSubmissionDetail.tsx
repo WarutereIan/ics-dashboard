@@ -5,22 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  ArrowLeft,
-  MessageSquare, 
-  AlertTriangle, 
-  Phone,
-  Users,
-  Calendar,
-  User,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  FileText,
-  Eye,
-  Flag
-} from 'lucide-react';
+import { ChatBubbleLeftRightIcon, ExclamationTriangleIcon, UsersIcon, CalendarIcon, UserIcon, ClockIcon, CheckCircleIcon, XCircleIcon, ExclamationCircleIcon, DocumentTextIcon, EyeIcon, FlagIcon, ArrowLeftIcon, PhoneIcon } from '@heroicons/react/24/outline';
+
 import { FeedbackResolutionWorkflow } from './FeedbackResolutionWorkflow';
 import { FeedbackStatusTracker } from './FeedbackStatusTracker';
 import { useFeedback } from '@/contexts/FeedbackContext';
@@ -66,7 +52,7 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
         <div className="text-center">
           <p className="text-gray-600">Submission not found</p>
           <Button variant="outline" onClick={onBack} className="mt-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Back to Submissions
           </Button>
         </div>
@@ -133,38 +119,38 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'SUBMITTED':
-        return <Clock className="w-4 h-4" />;
+        return <ClockIcon className="w-4 h-4" />;
       case 'ACKNOWLEDGED':
-        return <MessageSquare className="w-4 h-4" />;
+        return <ChatBubbleLeftRightIcon className="w-4 h-4" />;
       case 'IN_PROGRESS':
-        return <AlertCircle className="w-4 h-4" />;
+        return <ExclamationCircleIcon className="w-4 h-4" />;
       case 'RESOLVED':
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircleIcon className="w-4 h-4" />;
       case 'CLOSED':
-        return <XCircle className="w-4 h-4" />;
+        return <XCircleIcon className="w-4 h-4" />;
       case 'ESCALATED':
-        return <Flag className="w-4 h-4" />;
+        return <FlagIcon className="w-4 h-4" />;
       default:
-        return <Clock className="w-4 h-4" />;
+        return <ClockIcon className="w-4 h-4" />;
     }
   };
 
   const getActionIcon = (status: string) => {
     switch (status) {
       case 'SUBMITTED':
-        return <MessageSquare className="w-4 h-4" />;
+        return <ChatBubbleLeftRightIcon className="w-4 h-4" />;
       case 'ACKNOWLEDGED':
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircleIcon className="w-4 h-4" />;
       case 'IN_PROGRESS':
-        return <AlertCircle className="w-4 h-4" />;
+        return <ExclamationCircleIcon className="w-4 h-4" />;
       case 'RESOLVED':
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircleIcon className="w-4 h-4" />;
       case 'CLOSED':
-        return <XCircle className="w-4 h-4" />;
+        return <XCircleIcon className="w-4 h-4" />;
       case 'ESCALATED':
-        return <Flag className="w-4 h-4" />;
+        return <FlagIcon className="w-4 h-4" />;
       default:
-        return <Clock className="w-4 h-4" />;
+        return <ClockIcon className="w-4 h-4" />;
     }
   };
 
@@ -181,7 +167,7 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Back to Submissions
           </Button>
           <div>
@@ -205,17 +191,17 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-gray-500" />
+                <UserIcon className="w-4 h-4 text-gray-500" />
                 <span className="text-sm">Assigned to: <strong>{displayData.assignedTo}</strong></span>
               </div>
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-500" />
+                <CalendarIcon className="w-4 h-4 text-gray-500" />
                 <span className="text-sm">Submitted: {new Date(displayData.submittedAt).toLocaleDateString()}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm">
-                <Flag className="w-4 h-4 mr-2" />
+                <FlagIcon className="w-4 h-4 mr-2" />
                 Escalate
               </Button>
             </div>
@@ -292,14 +278,14 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
                   {displayData.attachments.map((file, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded">
                       <div className="flex items-center gap-3">
-                        <FileText className="w-4 h-4 text-gray-500" />
+                        <DocumentTextIcon className="w-4 h-4 text-gray-500" />
                         <div>
                           <p className="text-sm font-medium">{file.filename}</p>
                           <p className="text-xs text-gray-500">{file.size}</p>
                         </div>
                       </div>
                       <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
+                        <EyeIcon className="w-4 h-4" />
                       </Button>
                     </div>
                   ))}
@@ -358,7 +344,7 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
             {(displayData.internalNotes || []).map((note) => (
               <div key={note.id} className="flex items-start gap-3 p-3 border rounded-lg">
                 <div className="p-2 bg-gray-100 rounded-full">
-                  <MessageSquare className="w-4 h-4" />
+                  <ChatBubbleLeftRightIcon className="w-4 h-4" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">

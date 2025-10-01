@@ -55,8 +55,8 @@ export function SingleChoiceQuestionRenderer({
            selectedOption.hasConditionalQuestions && 
            selectedOption.conditionalQuestions && 
            selectedOption.conditionalQuestions.length > 0 && (
-            <div className="mt-3 p-4 border-l-4 border-l-blue-500 bg-blue-50 rounded-r-lg">
-              <div className="text-sm font-medium text-blue-700 mb-3">
+            <div className="mt-3 p-4 border-l-4 border-l-blue-500 bg-emerald-50 rounded-r-lg">
+              <div className="text-sm font-medium text-emerald-700 mb-3">
                 Additional questions for "{selectedOption.label}":
               </div>
               <div className="space-y-4">
@@ -94,7 +94,7 @@ export function SingleChoiceQuestionRenderer({
                   checked={value === option.value.toString()}
                   onChange={(e) => onChange?.(e.target.value)}
                   disabled={isPreviewMode}
-                  className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="w-4 h-4 border-gray-300 text-emerald-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 />
                 <Label 
                   htmlFor={`${question.id}-${option.id}`}
@@ -108,7 +108,7 @@ export function SingleChoiceQuestionRenderer({
               {option.hasConditionalQuestions && 
                option.conditionalQuestions && 
                value === option.value.toString() && (
-                <div className="ml-6 mt-3 p-4 border-l-4 border-l-blue-500 bg-blue-50 rounded-r-lg">
+                <div className="ml-6 mt-3 p-4 border-l-4 border-l-blue-500 bg-emerald-50 rounded-r-lg">
                   <div className="space-y-4">
                     {option.conditionalQuestions.map((conditionalQuestion) => (
                       <QuestionRenderer

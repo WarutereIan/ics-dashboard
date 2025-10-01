@@ -4,18 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  CheckCircle, 
-  Clock, 
-  AlertCircle,
-  Save,
-  Send,
-  Eye,
-  EyeOff,
-  Plus
-} from 'lucide-react';
+import { CheckCircleIcon, ClockIcon, ExclamationCircleIcon, CheckIcon, EyeIcon, EyeSlashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { HiArrowLeft, HiArrowRight } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
+
 import { Form } from '@/components/dashboard/form-creation-wizard/types';
 import { QuestionRenderer } from '@/components/dashboard/form-preview/QuestionRenderer';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -271,8 +263,8 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600">
-              <AlertCircle className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-emerald-600">
+              <ExclamationCircleIcon className="w-5 h-5" />
               Form Not Available
             </CardTitle>
           </CardHeader>
@@ -291,7 +283,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                 onClick={() => navigate('/')}
                 className="w-full"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeftIcon className="w-4 h-4 mr-2" />
                 Go Back
               </Button>
             </div>
@@ -311,7 +303,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4">
-              <CheckCircle className="w-16 h-16 text-green-600" />
+              <CheckCircleIcon className="w-16 h-16 text-green-600" />
             </div>
             <CardTitle className="text-green-600">Form Submitted Successfully!</CardTitle>
           </CardHeader>
@@ -334,7 +326,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                 }}
                 className="w-full"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <PlusIcon className="w-4 h-4 mr-2" />
                 Submit Another Response
               </Button>
               <Button 
@@ -342,7 +334,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                 onClick={() => navigate('/')}
                 className="w-full"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeftIcon className="w-4 h-4 mr-2" />
                 Return Home
               </Button>
             </div>
@@ -378,7 +370,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                   size="sm"
                   onClick={() => setShowProgress(!showProgress)}
                 >
-                  {showProgress ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showProgress ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                 </Button>
               )}
             </div>
@@ -414,7 +406,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                   key={question.id}
                   fallback={
                     <Alert variant="destructive" className="my-4">
-                      <AlertCircle className="h-4 w-4" />
+                      <ExclamationCircleIcon className="h-4 w-4" />
                       <AlertDescription>
                         Error loading question: {question.title}. Please refresh the page or contact support.
                       </AlertDescription>
@@ -444,7 +436,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                 variant="outline" 
                 onClick={handlePrevSection}
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeftIcon className="w-4 h-4 mr-2" />
                 Previous
               </Button>
             )}
@@ -453,7 +445,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
               variant="outline" 
               onClick={saveDraft}
             >
-              <Save className="w-4 h-4 mr-2" />
+              <CheckIcon className="w-4 h-4 mr-2" />
               Save Draft
             </Button>
           </div>
@@ -465,7 +457,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                 disabled={!validateCurrentSection()}
               >
                 Next
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <ArrowRightIcon className="w-4 h-4 ml-2" />
               </Button>
             ) : (
               <Button 
@@ -479,7 +471,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4 mr-2" />
+                    <PaperAirplaneIcon className="w-4 h-4 mr-2" />
                     Submit Form
                   </>
                 )}
@@ -492,11 +484,11 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
         <div className="mt-6 text-center text-sm text-gray-500">
           <div className="flex items-center justify-center gap-4">
             <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
+              <ClockIcon className="w-4 h-4" />
               <span>Auto-save enabled</span>
             </div>
             <div className="flex items-center gap-1">
-              <CheckCircle className="w-4 h-4" />
+              <CheckCircleIcon className="w-4 h-4" />
               <span>{Object.keys(responses).length} questions answered</span>
             </div>
           </div>

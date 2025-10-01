@@ -3,7 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from 'lucide-react';
+import { CalendarIcon } from '@heroicons/react/24/outline';
+
 import { BaseQuestionEditor } from './BaseQuestionEditor';
 import { DateQuestion, ActivityKPIMapping, FormQuestion } from '../types';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -141,14 +142,14 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                  className="px-3 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-blue-200"
                   onClick={() => onUpdate({ defaultValue: new Date() } as Partial<FormQuestion>)}
                 >
                   Today
                 </button>
                 <button
                   type="button"
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                  className="px-3 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-blue-200"
                   onClick={() => {
                     const tomorrow = new Date();
                     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -159,7 +160,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
                 </button>
                 <button
                   type="button"
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                  className="px-3 py-1 text-xs bg-emerald-100 text-emerald-700 rounded hover:bg-blue-200"
                   onClick={() => {
                     const nextWeek = new Date();
                     nextWeek.setDate(nextWeek.getDate() + 7);
@@ -182,7 +183,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
 
         {/* Preview */}
         <div className="p-4 border rounded-lg bg-white">
-          <Label className="text-sm font-medium mb-2 block text-blue-600">Preview</Label>
+          <Label className="text-sm font-medium mb-2 block text-emerald-600">Preview</Label>
           <div className="space-y-2">
             <Label className="font-medium">
               {question.title || 'Question Title'}
@@ -239,7 +240,7 @@ export function DateQuestionEditor(props: DateQuestionEditorProps) {
         )}
 
         {/* Data Information */}
-      {/*   <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+      {/*   <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
           <div>
             <p className="text-sm font-medium">Database Storage</p>
             <p className="text-xs text-gray-600">

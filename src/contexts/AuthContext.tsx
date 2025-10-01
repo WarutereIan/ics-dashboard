@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User } from '@/types/dashboard';
-import { authAPI } from '@/lib/api/auth';
+import { supabase } from '@/lib/supabaseClient';
 
 interface AuthContextType {
   user: User | null;
@@ -51,38 +51,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuth();
   }, []);
 
-  // Listen for unauthorized events from API client
+  // Listen for unauthorized events from legacy API client (no-op now)
   useEffect(() => {
     const handleUnauthorized = () => {
-      console.log('AuthContext - unauthorized event received');
-      // When user is unauthorized (e.g., token expired), preserve current URL for redirect
       clearAuthData();
-      
-      // Optional: Call logout endpoint to invalidate token on server
-      if (tokenRef.current) {
-        authAPI.logout(tokenRef.current).catch(console.error);
-      }
-      
-      // Preserve current URL for redirect after login
       if (typeof window !== 'undefined') {
         const currentUrl = window.location.pathname + window.location.search;
-        if (currentUrl !== '/login') {
-          console.log('AuthContext - redirecting to login with next:', currentUrl);
-          window.location.href = `/login?next=${encodeURIComponent(currentUrl)}`;
-        } else {
-          console.log('AuthContext - redirecting to login without next');
-          window.location.href = '/login';
-        }
+        window.location.href = currentUrl !== '/login' ? `/login?next=${encodeURIComponent(currentUrl)}` : '/login';
       }
     };
-
-    console.log('AuthContext - setting up unauthorized event listener');
     window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => {
-      console.log('AuthContext - cleaning up unauthorized event listener');
-      window.removeEventListener('auth:unauthorized', handleUnauthorized);
-    };
-  }, []); // Remove token dependency to prevent re-renders
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
 
   // Auto-refresh token before expiry
   useEffect(() => {
@@ -108,137 +88,157 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token]);
 
   const initializeAuth = async () => {
-    console.log('AuthContext - initializeAuth called');
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    console.log('AuthContext - storedToken found:', !!storedToken);
-    
-    if (storedToken) {
-      try {
-        console.log('AuthContext - verifying token with backend');
-        // Verify token with backend and get user profile
-        const userProfile = await authAPI.getProfile(storedToken);
-        console.log('AuthContext - token verified, setting user and token');
-        setUser(userProfile);
-        setToken(storedToken);
-      } catch (error) {
-        console.error('AuthContext - Token verification failed:', error);
+    console.log('AuthContext - initializeAuth with Supabase');
+    try {
+      const { data } = await supabase.auth.getSession();
+      const session = data.session || null;
+      const accessToken = session?.access_token || null;
+      if (accessToken) {
+        // Persist token for compatibility with existing code paths
+        localStorage.setItem(TOKEN_KEY, accessToken);
+        setToken(accessToken);
+
+        const authUser = session!.user;
+        // Map to legacy User shape and stamp global-admin
+        const mappedUser: User = {
+          id: authUser.id,
+          email: authUser.email || '',
+          firstName: authUser.user_metadata?.firstName || 'Admin',
+          lastName: authUser.user_metadata?.lastName || 'User',
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          roles: [
+            {
+              id: 'global-admin',
+              roleName: 'global-admin',
+              level: 100,
+              isActive: true,
+            },
+          ],
+          projectAccess: [],
+          permissions: ['*'],
+        } as User;
+        setUser(mappedUser);
+      } else {
         clearAuthData();
       }
-    }
-    
-    console.log('AuthContext - setting loading to false');
-    setIsLoading(false);
-  };
-
-  const login = async (email: string, password: string): Promise<LoginResult> => {
-    setIsLoading(true);
-    
-    try {
-      const response = await authAPI.login(email, password);
-      
-      if (response.success && response.data) {
-        const { access_token, refresh_token } = response.data;
-        
-        // Store tokens
-        localStorage.setItem(TOKEN_KEY, access_token);
-        localStorage.setItem(REFRESH_TOKEN_KEY, refresh_token);
-        
-        setToken(access_token);
-        // Immediately fetch full profile (includes roles + permissions) so UI reflects access
-        const profile = await authAPI.getProfile(access_token);
-        setUser(profile);
-        
-        return { success: true, user: profile };
-      } else {
-        return { success: false, error: response.error };
-      }
-    } catch (error: any) {
-      console.error('Login failed:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.message || 'Login failed. Please try again.' 
-      };
+    } catch (e) {
+      console.error('AuthContext - Supabase getSession failed:', e);
+      clearAuthData();
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = (preserveCurrentUrl = false) => {
-    clearAuthData();
-    
-    // Optional: Call logout endpoint to invalidate token on server
-    if (token) {
-      authAPI.logout(token).catch(console.error);
-    }
-    
-    // If we want to preserve the current URL for redirect after login
-    if (preserveCurrentUrl && typeof window !== 'undefined') {
-      const currentUrl = window.location.pathname + window.location.search;
-      if (currentUrl !== '/login') {
-        window.location.href = `/login?next=${encodeURIComponent(currentUrl)}`;
-        return;
+  const login = async (email: string, password: string): Promise<LoginResult> => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        return { success: false, error: error.message };
       }
+      const session = data.session;
+      const accessToken = session?.access_token || null;
+      if (!session || !accessToken) {
+        return { success: false, error: 'No session returned' };
+      }
+      localStorage.setItem(TOKEN_KEY, accessToken);
+      setToken(accessToken);
+
+      const authUser = session.user;
+      const mappedUser: User = {
+        id: authUser.id,
+        email: authUser.email || '',
+        firstName: authUser.user_metadata?.firstName || 'Admin',
+        lastName: authUser.user_metadata?.lastName || 'User',
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        roles: [
+          {
+            id: 'global-admin',
+            roleName: 'global-admin',
+            level: 100,
+            isActive: true,
+          },
+        ],
+        projectAccess: [],
+        permissions: ['*'],
+      } as User;
+      setUser(mappedUser);
+      return { success: true, user: mappedUser };
+    } catch (err: any) {
+      console.error('Supabase login failed:', err);
+      return { success: false, error: err?.message || 'Login failed. Please try again.' };
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Default behavior: redirect to login without next parameter
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login';
+  };
+
+  const logout = async (preserveCurrentUrl = false) => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error('Supabase signOut failed:', e);
+    } finally {
+      clearAuthData();
+      if (preserveCurrentUrl && typeof window !== 'undefined') {
+        const currentUrl = window.location.pathname + window.location.search;
+        if (currentUrl !== '/login') {
+          window.location.href = `/login?next=${encodeURIComponent(currentUrl)}`;
+          return;
+        }
+      }
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
   };
 
   const refreshToken = async (): Promise<boolean> => {
-    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    
-    if (!storedRefreshToken) {
-      logout();
-      return false;
-    }
-    
+    // Supabase JS refreshes tokens automatically; just re-read session
     try {
-      const response = await authAPI.refreshToken(storedRefreshToken);
-      
-      if (response.success && response.data) {
-        const { access_token, refresh_token } = response.data;
-        
-        localStorage.setItem(TOKEN_KEY, access_token);
-        localStorage.setItem(REFRESH_TOKEN_KEY, refresh_token);
-        
-        setToken(access_token);
-        
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data.session?.access_token || null;
+      if (accessToken) {
+        localStorage.setItem(TOKEN_KEY, accessToken);
+        setToken(accessToken);
         return true;
-      } else {
-        logout();
-        return false;
       }
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-      logout();
+      await logout();
+      return false;
+    } catch (e) {
+      console.error('Supabase refresh check failed:', e);
+      await logout();
       return false;
     }
   };
 
   const updateProfile = async (updates: Partial<User>): Promise<User> => {
-    if (!token) {
-      throw new Error('No authentication token available');
+    if (!user) {
+      throw new Error('No authenticated user');
     }
-    
     try {
-      const updatedUser = await authAPI.updateProfile(updates, token);
-      setUser(updatedUser);
-      return updatedUser;
+      const metadata: Record<string, any> = {};
+      if (updates.firstName !== undefined) metadata.firstName = updates.firstName;
+      if (updates.lastName !== undefined) metadata.lastName = updates.lastName;
+      if (Object.keys(metadata).length > 0) {
+        await supabase.auth.updateUser({ data: metadata });
+      }
+      const merged: User = { ...user, ...updates, updatedAt: new Date().toISOString() } as User;
+      setUser(merged);
+      return merged;
     } catch (error) {
       console.error('Profile update failed:', error);
       throw error;
     }
   };
 
-  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
-    if (!token) {
-      throw new Error('No authentication token available');
-    }
-    
+  const changePassword = async (_currentPassword: string, newPassword: string): Promise<void> => {
     try {
-      await authAPI.changePassword(currentPassword, newPassword, token);
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
     } catch (error) {
       console.error('Password change failed:', error);
       throw error;

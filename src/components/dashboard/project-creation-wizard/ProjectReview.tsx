@@ -107,7 +107,7 @@ export function ProjectReview({
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">{outcomes.length}</p>
+              <p className="text-2xl font-bold text-emerald-600">{outcomes.length}</p>
               <p className="text-sm text-gray-600">Outcomes</p>
             </div>
           </CardContent>
@@ -123,7 +123,7 @@ export function ProjectReview({
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-2xl font-bold text-purple-600">{kpis.length}</p>
+              <p className="text-2xl font-bold text-emerald-600">{kpis.length}</p>
               <p className="text-sm text-gray-600">KPIs</p>
             </div>
           </CardContent>

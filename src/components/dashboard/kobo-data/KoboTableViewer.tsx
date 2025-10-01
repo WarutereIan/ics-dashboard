@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronLeft, ChevronRight, Search, Download, RefreshCw } from 'lucide-react';
+import { ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+
 import { useNotification } from '@/hooks/useNotification';
 import { KoboDataService, KoboTableData } from '@/services/koboDataService';
 
@@ -71,7 +72,7 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+        <ArrowPathIcon className="h-6 w-6 animate-spin mr-2" />
         <span>Loading data...</span>
       </div>
     );
@@ -100,7 +101,7 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
           </Badge>
         </div>
         <Button variant="outline" size="sm" onClick={loadData}>
-          <RefreshCw className="h-4 w-4 mr-2" />
+          <ArrowPathIcon className="h-4 w-4 mr-2" />
           Refresh
         </Button>
       </div>
@@ -108,7 +109,7 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
       {/* Search */}
       <div className="flex items-center space-x-2">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search data..."
             value={searchTerm}
@@ -171,7 +172,7 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
               onClick={() => handlePageChange(page - 1)}
               disabled={page === 1}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeftIcon className="h-4 w-4" />
               Previous
             </Button>
             <span className="text-sm">
@@ -184,7 +185,7 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
               disabled={page === data.pagination.totalPages}
             >
               Next
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRightIcon className="h-4 w-4" />
             </Button>
           </div>
         </div>

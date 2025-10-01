@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, DollarSign, Target, AlertTriangle, FileText, MapPin, Edit } from 'lucide-react';
+import { CalendarIcon, CurrencyDollarIcon, FlagIcon, ExclamationTriangleIcon, DocumentTextIcon, MapPinIcon, PencilIcon } from '@heroicons/react/24/outline';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -72,9 +73,9 @@ export function ProjectOverview() {
       case 'AT_RISK':
         return 'bg-yellow-100 text-yellow-800';
       case 'BEHIND':
-        return 'bg-red-100 text-red-800';
+        return 'bg-emerald-100 text-emerald-800';
       case 'COMPLETED':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-emerald-100 text-emerald-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -95,7 +96,7 @@ export function ProjectOverview() {
           onClick={() => navigate(`/dashboard/projects/${projectId}/kpi`)}
           className="flex items-center gap-2"
         >
-          <Target className="h-4 w-4" />
+          <FlagIcon className="h-4 w-4" />
           KPI Analytics
         </Button>
         <Button
@@ -104,7 +105,7 @@ export function ProjectOverview() {
           onClick={() => navigate(`/dashboard/projects/${projectId}/forms`)}
           className="flex items-center gap-2"
         >
-          <FileText className="h-4 w-4" />
+          <DocumentTextIcon className="h-4 w-4" />
           Forms
         </Button>
         <Button
@@ -113,7 +114,7 @@ export function ProjectOverview() {
           onClick={() => navigate(`/dashboard/projects/${projectId}/financial`)}
           className="flex items-center gap-2"
         >
-          <DollarSign className="h-4 w-4" />
+          <CurrencyDollarIcon className="h-4 w-4" />
           Financial
         </Button>
         <Button
@@ -122,7 +123,7 @@ export function ProjectOverview() {
           onClick={() => navigate(`/dashboard/projects/${projectId}/media`)}
           className="flex items-center gap-2"
         >
-          <MapPin className="h-4 w-4" />
+          <MapPinIcon className="h-4 w-4" />
           Media
         </Button>
       </div>
@@ -144,7 +145,7 @@ export function ProjectOverview() {
               onClick={() => navigate(`/dashboard/projects/${projectId}/edit`)}
               className="flex items-center gap-2"
             >
-              <Edit className="h-4 w-4" />
+              <PencilIcon className="h-4 w-4" />
               Edit Overview
             </Button>
           </div>
@@ -154,7 +155,7 @@ export function ProjectOverview() {
             <Card className="transition-all duration-200 hover:shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-blue-600" />
+                  <DocumentTextIcon className="h-5 w-5 text-emerald-600" />
                   Background Information
                 </CardTitle>
                 <CardDescription>
@@ -182,7 +183,7 @@ export function ProjectOverview() {
             <Card className="transition-all duration-200 hover:shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-purple-600" />
+                  <FlagIcon className="h-5 w-5 text-emerald-600" />
                   Theory of Change
                   {currentProject.theoryOfChange.lastUpdated && (
                     <Badge variant="outline" className="ml-2 text-xs">
@@ -221,25 +222,25 @@ export function ProjectOverview() {
           {/* Project Quick Stats */}
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardHeader>
-              <CardTitle className="text-lg text-blue-900">Project Quick Stats</CardTitle>
+              <CardTitle className="text-lg text-emerald-900">Project Quick Stats</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{outcomes.length}</div>
-                  <div className="text-sm text-blue-700">Outcomes</div>
+                  <div className="text-2xl font-bold text-emerald-600">{outcomes.length}</div>
+                  <div className="text-sm text-emerald-700">Outcomes</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">{activities.length}</div>
                   <div className="text-sm text-green-700">Activities</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{subactivities.length}</div>
-                  <div className="text-sm text-purple-700">Sub-activities</div>
+                  <div className="text-2xl font-bold text-emerald-600">{subactivities.length}</div>
+                  <div className="text-sm text-emerald-700">Sub-activities</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">{currentProject.progress}%</div>
-                  <div className="text-sm text-orange-700">Progress</div>
+                  <div className="text-2xl font-bold text-lime-600">{currentProject.progress}%</div>
+                  <div className="text-sm text-lime-700">Progress</div>
                 </div>
               </div>
             </CardContent>
@@ -249,7 +250,7 @@ export function ProjectOverview() {
           {!currentProject.backgroundInformation && !currentProject.mapData && !currentProject.theoryOfChange && (
             <Card className="border-dashed">
               <CardContent className="p-8 text-center">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Overview Information</h3>
                 <p className="text-sm text-gray-600 mb-4">
                   This project doesn't have background information, map visualization, or theory of change configured yet.

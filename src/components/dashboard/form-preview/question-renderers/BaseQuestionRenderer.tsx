@@ -36,12 +36,12 @@ export function BaseQuestionRenderer({
 
       {/* Error Message */}
       {error && (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-emerald-600">{error}</p>
       )}
 
       {/* Preview Mode Indicator */}
       {isPreviewMode && (
-        <p className="text-xs text-blue-600 italic">
+        <p className="text-xs text-emerald-600 italic">
           Preview mode - responses will not be saved
         </p>
       )}

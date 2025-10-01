@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, ArrowRight, Save, Eye, X, Download, Share2, Loader2, CheckCircle } from 'lucide-react';
+import { CheckIcon, EyeIcon, XMarkIcon, ArrowDownTrayIcon, CheckCircleIcon, ArrowLeftIcon, ArrowRightIcon, ShareIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+
 import { useFormWizard } from './hooks/useFormWizard';
 import { ActivityKPIMapping } from './types';
 import { BasicInfoStep } from './BasicInfoStep';
@@ -155,7 +156,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
               onClick={() => goToStep(index)}
               className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
                 index <= currentStep 
-                  ? 'bg-blue-600 text-white' 
+                  ? 'bg-emerald-600 text-white' 
                   : 'bg-gray-300 text-gray-600 hover:bg-gray-400'
               } ${index < currentStep ? 'cursor-pointer' : ''}`}
               disabled={index > currentStep}
@@ -164,7 +165,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
             </button>
             <div className="ml-3">
               <p className={`text-sm font-medium ${
-                index <= currentStep ? 'text-blue-600' : 'text-gray-500'
+                index <= currentStep ? 'text-emerald-600' : 'text-gray-500'
               }`}>
                 {step.title}
               </p>
@@ -172,7 +173,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
             </div>
             {index < steps.length - 1 && (
               <div className={`mx-4 h-0.5 w-16 ${
-                index < currentStep ? 'bg-blue-600' : 'bg-gray-300'
+                index < currentStep ? 'bg-emerald-600' : 'bg-gray-300'
               }`} />
             )}
           </div>
@@ -228,7 +229,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
             
             <div className="flex items-center gap-4">
               {hasUnsavedChanges && (
-                <Badge variant="outline" className="text-orange-600 border-orange-600">
+                <Badge variant="outline" className="text-lime-600 border-orange-600">
                   Unsaved Changes
                 </Badge>
               )}
@@ -244,7 +245,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                 onClick={saveDraft}
                 className="flex items-center gap-2"
               >
-                <Save className="w-4 h-4" />
+                <CheckIcon className="w-4 h-4" />
                 Save Edits
               </Button>
 
@@ -254,7 +255,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                   onClick={handleShareForm}
                   className="flex items-center gap-2"
                 >
-                  <Share2 className="w-4 h-4" />
+                  <ShareIcon className="w-4 h-4" />
                   Share Form
                 </Button>
               )}
@@ -264,9 +265,9 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
 
         {/* Draft Alert */}
         {showDraftAlert && !wizardState.isEditing && (
-          <Alert className="mb-6 border-blue-200 bg-blue-50">
-            <Download className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
+          <Alert className="mb-6 border-blue-200 bg-emerald-50">
+            <ArrowDownTrayIcon className="h-4 w-4 text-emerald-600" />
+            <AlertDescription className="text-emerald-800">
               <div className="flex items-center justify-between">
                 <div>
                   <span>A draft of your form is available{draftAgeText && ` (saved ${draftAgeText})`}. You can restore it to continue where you left off.</span>
@@ -279,7 +280,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                       // The draft is already loaded by the hook, just hide the alert
                       setShowDraftAlert(false);
                     }}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                    className="text-emerald-600 border-blue-300 hover:bg-emerald-100"
                   >
                     Restore Draft
                   </Button>
@@ -290,7 +291,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                       clearDraft();
                       setShowDraftAlert(false);
                     }}
-                    className="text-red-600 border-red-300 hover:bg-red-100"
+                    className="text-emerald-600 border-red-300 hover:bg-emerald-100"
                   >
                     Clear Draft
                   </Button>
@@ -298,9 +299,9 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                     size="sm"
                     variant="outline"
                     onClick={() => setShowDraftAlert(false)}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                    className="text-emerald-600 border-blue-300 hover:bg-emerald-100"
                   >
-                    <X className="h-3 w-3" />
+                    <XMarkIcon className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
@@ -337,7 +338,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
             disabled={currentStep === 0}
             className="flex items-center gap-2"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeftIcon className="w-4 h-4" />
             Previous
           </Button>
 
@@ -359,7 +360,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                 className="flex items-center gap-2"
                 disabled={!form.id || !form.projectId || !form.sections?.some(s => s.questions.length > 0)}
               >
-                <Eye className="w-4 h-4" />
+                <EyeIcon className="w-4 h-4" />
                 Preview
               </Button>
             )}
@@ -372,17 +373,17 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
               >
                 {isPublishing ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
                     Publishing...
                   </>
                 ) : wizardState.form.status === 'PUBLISHED' ? (
                   <>
-                    <CheckCircle className="w-4 h-4" />
+                    <CheckCircleIcon className="w-4 h-4" />
                     {wizardState.isEditing ? 'Update Form' : 'Published'}
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4" />
+                    <CheckIcon className="w-4 h-4" />
                     {wizardState.isEditing ? 'Update Form' : 'Publish Form'}
                   </>
                 )}
@@ -394,7 +395,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                 className="flex items-center gap-2"
               >
                 Next
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRightIcon className="w-4 h-4" />
               </Button>
             )}
           </div>
@@ -431,7 +432,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
                 size="sm"
                 onClick={() => setShowPreview(false)}
               >
-                <X className="w-4 h-4" />
+                <XMarkIcon className="w-4 h-4" />
               </Button>
             </DialogTitle>
           </DialogHeader>
@@ -449,7 +450,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
       {showCopyPopup && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300">
           <div className="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
-            <CheckCircle className="w-5 h-5" />
+            <CheckCircleIcon className="w-5 h-5" />
             <span className="font-medium">Link copied to clipboard!</span>
           </div>
         </div>

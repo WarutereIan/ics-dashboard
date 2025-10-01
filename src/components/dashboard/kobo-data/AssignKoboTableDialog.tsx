@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Database, Loader2 } from 'lucide-react';
+import { CircleStackIcon } from '@heroicons/react/24/outline';
+import { Loader2 } from 'lucide-react';
+
 import { KoboDataService, AvailableKoboTable } from '@/services/koboDataService';
 import { useNotification } from '@/hooks/useNotification';
 
@@ -95,7 +97,7 @@ export function AssignKoboTableDialog({ open, onOpenChange, onAssign, projectId 
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <Database className="h-5 w-5 mr-2" />
+            <CircleStackIcon className="h-5 w-5 mr-2" />
             Assign Kobo Table
           </DialogTitle>
           <DialogDescription>

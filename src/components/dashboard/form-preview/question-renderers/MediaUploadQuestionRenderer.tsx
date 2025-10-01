@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload, X, File, Image, Video, Music, Camera, Mic } from 'lucide-react';
+import { ArrowUpTrayIcon, XMarkIcon, DocumentIcon, PhotoIcon, VideoCameraIcon, SpeakerWaveIcon, CameraIcon, MicrophoneIcon } from '@heroicons/react/24/outline';
+
 import { FormQuestion } from '../../form-creation-wizard/types';
 import { BaseQuestionRenderer } from './BaseQuestionRenderer';
 import { useForm } from '@/contexts/FormContext';
@@ -108,7 +109,7 @@ export function MediaUploadQuestionRenderer({
     switch (question.type) {
       case 'IMAGE_UPLOAD':
         return {
-          icon: Image,
+          icon: PhotoIcon,
           title: 'Image Upload',
           acceptedTypes: 'image/*',
           maxFiles: question.maxFiles || 10,
@@ -117,7 +118,7 @@ export function MediaUploadQuestionRenderer({
         };
       case 'VIDEO_UPLOAD':
         return {
-          icon: Video,
+          icon: VideoCameraIcon,
           title: 'Video Upload',
           acceptedTypes: 'video/*',
           maxFiles: question.maxFiles || 4,
@@ -126,7 +127,7 @@ export function MediaUploadQuestionRenderer({
         };
       case 'AUDIO_UPLOAD':
         return {
-          icon: Music,
+          icon: SpeakerWaveIcon,
           title: 'Audio Upload',
           acceptedTypes: 'audio/*',
           maxFiles: question.maxFiles || 3,
@@ -135,7 +136,7 @@ export function MediaUploadQuestionRenderer({
         };
       case 'FILE_UPLOAD':
         return {
-          icon: File,
+          icon: DocumentIcon,
           title: 'File Upload',
           acceptedTypes: '*/*',
           maxFiles: question.maxFiles || 5,
@@ -144,7 +145,7 @@ export function MediaUploadQuestionRenderer({
         };
       default:
         return {
-          icon: File,
+          icon: DocumentIcon,
           title: 'File Upload',
           acceptedTypes: '*/*',
           maxFiles: 1,
@@ -648,7 +649,7 @@ export function MediaUploadQuestionRenderer({
                       onClick={startImageCapture}
                       disabled={disabled || isCapturing}
                     >
-                      <Camera className="w-4 h-4 mr-2" />
+                      <CameraIcon className="w-4 h-4 mr-2" />
                       Capture Photo
                     </Button>
                   )}
@@ -661,7 +662,7 @@ export function MediaUploadQuestionRenderer({
                       onClick={startVideoCapture}
                       disabled={disabled || isCapturing}
                     >
-                      <Video className="w-4 h-4 mr-2" />
+                      <VideoCameraIcon className="w-4 h-4 mr-2" />
                       Record Video
                     </Button>
                   )}
@@ -674,7 +675,7 @@ export function MediaUploadQuestionRenderer({
                       onClick={startAudioCapture}
                       disabled={disabled || isCapturing}
                     >
-                      <Mic className="w-4 h-4 mr-2" />
+                      <MicrophoneIcon className="w-4 h-4 mr-2" />
                       Record Audio
                     </Button>
                   )}
@@ -732,7 +733,7 @@ export function MediaUploadQuestionRenderer({
                     disabled={disabled}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    <Camera className="w-4 h-4 mr-2" />
+                    <CameraIcon className="w-4 h-4 mr-2" />
                     Capture Photo
                   </Button>
                 )}
@@ -744,7 +745,7 @@ export function MediaUploadQuestionRenderer({
                     disabled={disabled}
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    <Video className="w-4 h-4 mr-2" />
+                    <VideoCameraIcon className="w-4 h-4 mr-2" />
                     Start Recording
                   </Button>
                 )}
@@ -756,7 +757,7 @@ export function MediaUploadQuestionRenderer({
                     disabled={disabled}
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    <Video className="w-4 h-4 mr-2" />
+                    <VideoCameraIcon className="w-4 h-4 mr-2" />
                     Stop Recording
                   </Button>
                 )}
@@ -768,7 +769,7 @@ export function MediaUploadQuestionRenderer({
                     disabled={disabled}
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    <Mic className="w-4 h-4 mr-2" />
+                    <MicrophoneIcon className="w-4 h-4 mr-2" />
                     Start Recording
                   </Button>
                 )}
@@ -780,7 +781,7 @@ export function MediaUploadQuestionRenderer({
                     disabled={disabled}
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    <Mic className="w-4 h-4 mr-2" />
+                    <MicrophoneIcon className="w-4 h-4 mr-2" />
                     Stop Recording
                   </Button>
                 )}
@@ -802,7 +803,7 @@ export function MediaUploadQuestionRenderer({
         <Card 
           className={`border-2 border-dashed transition-colors ${
             dragActive 
-              ? 'border-blue-500 bg-blue-50' 
+              ? 'border-blue-500 bg-emerald-50' 
               : 'border-gray-300 hover:border-gray-400'
           }`}
           onDragEnter={handleDrag}
@@ -831,7 +832,7 @@ export function MediaUploadQuestionRenderer({
                     📝 Public form: Files will be stored temporarily for submission
                   </p>
                 ) : (
-                  <p className="text-blue-600 font-medium">
+                  <p className="text-emerald-600 font-medium">
                     📝 Files will be automatically renamed with project and form prefixes
                   </p>
                 )}
@@ -851,7 +852,7 @@ export function MediaUploadQuestionRenderer({
                 }}
                 disabled={disabled}
               >
-                <Upload className="w-4 h-4 mr-2" />
+                <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
                 Choose Files
               </Button>
             </div>
@@ -886,7 +887,7 @@ export function MediaUploadQuestionRenderer({
                               href={fileUrl} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline truncate max-w-[200px]"
+                              className="text-emerald-600 hover:text-emerald-800 underline truncate max-w-[200px]"
                               title={fileUrl}
                             >
                               View File
@@ -909,7 +910,7 @@ export function MediaUploadQuestionRenderer({
                     onClick={() => removeFile(index)}
                     disabled={disabled}
                   >
-                    <X className="w-4 h-4" />
+                    <XMarkIcon className="w-4 h-4" />
                   </Button>
                 </div>
               );

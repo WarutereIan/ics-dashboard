@@ -143,9 +143,9 @@ export function QuestionRenderer({
 
     default:
       return (
-        <div className="p-4 border rounded-lg bg-red-50">
-          <p className="text-red-800 font-medium">Unsupported Question Type</p>
-          <p className="text-red-600 text-sm">
+        <div className="p-4 border rounded-lg bg-emerald-50">
+          <p className="text-emerald-800 font-medium">Unsupported Question Type</p>
+          <p className="text-emerald-600 text-sm">
             Question type "{(question as any).type}" is not supported in the preview.
           </p>
         </div>

@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Users, BarChart3, MessageSquare, Clock } from 'lucide-react';
+import { UsersIcon, ChartBarIcon, ChatBubbleLeftRightIcon, ClockIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+
 import { useFeedback } from '@/contexts/FeedbackContext';
 import { FeedbackForm, FeedbackSubmission } from '@/types/feedback';
 
@@ -80,7 +81,7 @@ const FeedbackFormDetails: React.FC = () => {
             onClick={() => navigate('/dashboard/feedback/forms')}
             className="mt-4"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Back to Forms
           </Button>
         </div>
@@ -140,7 +141,7 @@ const FeedbackFormDetails: React.FC = () => {
             size="sm"
             onClick={() => navigate('/dashboard/feedback/forms')}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Back
           </Button>
           <div>
@@ -167,7 +168,7 @@ const FeedbackFormDetails: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">Total Submissions</p>
                 <p className="text-2xl font-bold text-gray-900">{totalSubmissions}</p>
               </div>
-              <Users className="w-8 h-8 text-blue-600" />
+              <UsersIcon className="w-8 h-8 text-emerald-600" />
             </div>
           </CardContent>
         </Card>
@@ -179,7 +180,7 @@ const FeedbackFormDetails: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">Resolved</p>
                 <p className="text-2xl font-bold text-green-600">{resolvedSubmissions}</p>
               </div>
-              <BarChart3 className="w-8 h-8 text-green-600" />
+              <ChartBarIcon className="w-8 h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -191,7 +192,7 @@ const FeedbackFormDetails: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">In Progress</p>
                 <p className="text-2xl font-bold text-yellow-600">{inProgressSubmissions}</p>
               </div>
-              <Clock className="w-8 h-8 text-yellow-600" />
+              <ClockIcon className="w-8 h-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
@@ -201,9 +202,9 @@ const FeedbackFormDetails: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-red-600">{pendingSubmissions}</p>
+                <p className="text-2xl font-bold text-emerald-600">{pendingSubmissions}</p>
               </div>
-              <MessageSquare className="w-8 h-8 text-red-600" />
+              <ChatBubbleLeftRightIcon className="w-8 h-8 text-emerald-600" />
             </div>
           </CardContent>
         </Card>
@@ -308,7 +309,7 @@ const FeedbackFormDetails: React.FC = () => {
                           </p>
                         )}
                         {submission.assignedTo && (
-                          <p className="text-xs text-blue-600">
+                          <p className="text-xs text-emerald-600">
                             Assigned to: {submission.assignedTo}
                           </p>
                         )}
@@ -423,7 +424,7 @@ const FeedbackFormDetails: React.FC = () => {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Pending</span>
-                      <span className="font-medium text-red-600">{pendingSubmissions}</span>
+                      <span className="font-medium text-emerald-600">{pendingSubmissions}</span>
                     </div>
                   </div>
                 </div>

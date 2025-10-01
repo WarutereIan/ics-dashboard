@@ -16,14 +16,14 @@ export function PublicLanding() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <div className="mx-auto mb-6">
-            <Globe className="w-20 h-20 text-blue-600 mx-auto" />
+            <Globe className="w-20 h-20 text-emerald-600 mx-auto" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            ICS Data Collection Platform
+            Data and Information Monitoring & Evaluation System (DIMES)
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Access and fill out data collection forms for various development projects.
@@ -33,7 +33,7 @@ export function PublicLanding() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <Card className="text-center">
             <CardHeader>
-              <FileText className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <FileText className="w-12 h-12 text-emerald-600 mx-auto mb-4" />
               <CardTitle>Data Collection</CardTitle>
             </CardHeader>
             <CardContent>
@@ -57,7 +57,7 @@ export function PublicLanding() {
 
           <Card className="text-center">
             <CardHeader>
-              <BarChart3 className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+              <BarChart3 className="w-12 h-12 text-emerald-700 mx-auto mb-4" />
               <CardTitle>Real-time Analytics</CardTitle>
             </CardHeader>
             <CardContent>

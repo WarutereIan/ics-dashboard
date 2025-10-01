@@ -122,24 +122,24 @@ class UserManagementService {
     return response.data;
   }
 
-  async getUserById(userId: string): Promise<User> {
-    const response = await apiClient.get<User>(`${this.baseUrl}/${userId}`);
+  async getUserById(userId: string): Promise<UserIcon> {
+    const response = await apiClient.get<UserIcon>(`${this.baseUrl}/${userId}`);
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to fetch user');
     }
     return response.data;
   }
 
-  async createUser(userData: CreateUserRequest): Promise<User> {
-    const response = await apiClient.post<User>(this.baseUrl, userData);
+  async createUser(userData: CreateUserRequest): Promise<UserIcon> {
+    const response = await apiClient.post<UserIcon>(this.baseUrl, userData);
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to create user');
     }
     return response.data;
   }
 
-  async updateUser(userId: string, userData: UpdateUserRequest): Promise<User> {
-    const response = await apiClient.put<User>(`${this.baseUrl}/${userId}`, userData);
+  async updateUser(userId: string, userData: UpdateUserRequest): Promise<UserIcon> {
+    const response = await apiClient.put<UserIcon>(`${this.baseUrl}/${userId}`, userData);
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to update user');
     }
@@ -212,16 +212,16 @@ class UserManagementService {
     return response.data;
   }
 
-  async createProjectUser(projectId: string, userData: CreateUserRequest): Promise<User> {
-    const response = await apiClient.post<User>(`${this.baseUrl}/projects/${projectId}`, userData);
+  async createProjectUser(projectId: string, userData: CreateUserRequest): Promise<UserIcon> {
+    const response = await apiClient.post<UserIcon>(`${this.baseUrl}/projects/${projectId}`, userData);
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to create project user');
     }
     return response.data;
   }
 
-  async updateProjectUser(projectId: string, userId: string, userData: UpdateUserRequest): Promise<User> {
-    const response = await apiClient.put<User>(`${this.baseUrl}/projects/${projectId}/${userId}`, userData);
+  async updateProjectUser(projectId: string, userId: string, userData: UpdateUserRequest): Promise<UserIcon> {
+    const response = await apiClient.put<UserIcon>(`${this.baseUrl}/projects/${projectId}/${userId}`, userData);
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to update project user');
     }

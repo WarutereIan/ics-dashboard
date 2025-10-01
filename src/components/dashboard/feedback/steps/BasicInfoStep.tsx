@@ -76,7 +76,7 @@ export function BasicInfoStep({ form, onUpdate, validationErrors }: BasicInfoSte
               key={category.id}
               className={`cursor-pointer transition-all ${
                 form.category?.id === category.id 
-                  ? 'ring-2 ring-blue-500 bg-blue-50' 
+                  ? 'ring-2 ring-blue-500 bg-emerald-50' 
                   : 'hover:bg-gray-50'
               }`}
               onClick={() => handleCategorySelect(category)}
@@ -114,7 +114,7 @@ export function BasicInfoStep({ form, onUpdate, validationErrors }: BasicInfoSte
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Immediate Notification:</span>
-                    <span className={category.requiresImmediateNotification ? 'text-red-600 font-medium' : 'text-gray-600'}>
+                    <span className={category.requiresImmediateNotification ? 'text-emerald-600 font-medium' : 'text-gray-600'}>
                       {category.requiresImmediateNotification ? 'Yes' : 'No'}
                     </span>
                   </div>
@@ -166,27 +166,27 @@ export function BasicInfoStep({ form, onUpdate, validationErrors }: BasicInfoSte
 
       {/* Selected Category Summary */}
       {form.category && (
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-emerald-50 border-blue-200">
           <CardHeader>
-            <CardTitle className="text-blue-800">Selected Category: {form.category.name}</CardTitle>
+            <CardTitle className="text-emerald-800">Selected Category: {form.category.name}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
-                <span className="text-blue-600 font-medium">Default Priority:</span>
-                <p className="text-blue-800">{form.category.defaultPriority}</p>
+                <span className="text-emerald-600 font-medium">Default Priority:</span>
+                <p className="text-emerald-800">{form.category.defaultPriority}</p>
               </div>
               <div>
-                <span className="text-blue-600 font-medium">Sensitivity Level:</span>
-                <p className="text-blue-800">{form.category.defaultSensitivity}</p>
+                <span className="text-emerald-600 font-medium">Sensitivity Level:</span>
+                <p className="text-emerald-800">{form.category.defaultSensitivity}</p>
               </div>
               <div>
-                <span className="text-blue-600 font-medium">Escalation Level:</span>
-                <p className="text-blue-800">{form.category.escalationLevel}</p>
+                <span className="text-emerald-600 font-medium">Escalation Level:</span>
+                <p className="text-emerald-800">{form.category.escalationLevel}</p>
               </div>
               <div>
-                <span className="text-blue-600 font-medium">Immediate Alert:</span>
-                <p className="text-blue-800">{form.category.requiresImmediateNotification ? 'Yes' : 'No'}</p>
+                <span className="text-emerald-600 font-medium">Immediate Alert:</span>
+                <p className="text-emerald-800">{form.category.requiresImmediateNotification ? 'Yes' : 'No'}</p>
               </div>
             </div>
           </CardContent>
@@ -195,9 +195,9 @@ export function BasicInfoStep({ form, onUpdate, validationErrors }: BasicInfoSte
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-emerald-50">
           <CardContent className="pt-6">
-            <div className="text-red-800">
+            <div className="text-emerald-800">
               <p className="font-medium mb-2">Please fix the following issues:</p>
               <ul className="list-disc list-inside space-y-1">
                 {validationErrors.map((error, index) => (

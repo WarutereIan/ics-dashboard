@@ -1,5 +1,7 @@
 import React from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { CheckIcon } from '@heroicons/react/24/outline';
+import { ChevronUpDownIcon } from '@heroicons/react/24/outline';
+
 import { Button } from '@/components/ui/button';
 import {
   Command,
@@ -43,7 +45,7 @@ export function ProjectSwitcher() {
           className="w-[200px] justify-between"
         >
           {currentProject?.name || "Select project..."}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
@@ -63,7 +65,7 @@ export function ProjectSwitcher() {
                     setOpen(false);
                   }}
                 >
-                  <Check
+                  <CheckIcon
                     className={cn(
                       "mr-2 h-4 w-4",
                       currentProject?.id === project.id ? "opacity-100" : "opacity-0"

@@ -1,16 +1,7 @@
 import React from 'react';
-import { 
-  Clock, 
-  AlertTriangle, 
-  FileText, 
-  Eye, 
-  CheckCircle, 
-  XCircle,
-  MessageCircle,
-  Calendar,
-  User,
-  Badge
-} from 'lucide-react';
+import { ClockIcon, ExclamationTriangleIcon, DocumentTextIcon, EyeIcon, CheckCircleIcon, XCircleIcon, ChatBubbleLeftIcon, CalendarIcon, UserIcon } from '@heroicons/react/24/outline';
+import { Badge } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge as BadgeComponent } from '@/components/ui/badge';
@@ -76,17 +67,17 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      'in-progress': 'bg-blue-100 text-blue-800',
+      'in-progress': 'bg-emerald-100 text-emerald-800',
       'pending': 'bg-yellow-100 text-yellow-800',
       'approved': 'bg-green-100 text-green-800',
-      'rejected': 'bg-red-100 text-red-800'
+      'rejected': 'bg-emerald-100 text-emerald-800'
     };
     return variants[status as keyof typeof variants] || variants.pending;
   };
 
   const getCategoryBadge = (category: string) => {
     const variants = {
-      'quarterly': 'bg-purple-100 text-purple-800',
+      'quarterly': 'bg-emerald-100 text-purple-800',
       'annual': 'bg-indigo-100 text-indigo-800',
       'monthly': 'bg-green-100 text-green-800',
       'adhoc': 'bg-gray-100 text-gray-800'
@@ -127,7 +118,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
     return (
       <Card>
         <CardContent className="text-center py-8">
-          <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <ClockIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium text-foreground mb-2">No Pending Reviews</h3>
           <p className="text-muted-foreground">
             You have no reports pending your review or approval.
@@ -171,7 +162,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <ExclamationTriangleIcon className="h-5 w-5 text-orange-500" />
               Pending Your Review ({pendingReviews.length})
             </CardTitle>
           </CardHeader>
@@ -188,7 +179,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                 <div key={report.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start gap-3">
-                      <FileText className="h-5 w-5 text-blue-500 mt-1" />
+                      <DocumentTextIcon className="h-5 w-5 text-blue-500 mt-1" />
                       <div>
                         <h4 className="font-medium text-foreground">{report.name || 'Report'}</h4>
                         <p className="text-sm text-muted-foreground">{report.description || ''}</p>
@@ -199,7 +190,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                           <BadgeComponent className={getStatusBadge(status)}>
                             {status || 'pending'}
                           </BadgeComponent>
-                          <BadgeComponent className="bg-blue-100 text-blue-800">
+                          <BadgeComponent className="bg-emerald-100 text-emerald-800">
                             Pending Step {currentStep}
                           </BadgeComponent>
                         </div>
@@ -212,7 +203,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                         size="sm"
                         className="gap-2"
                       >
-                        <Eye className="h-4 w-4" />
+                        <EyeIcon className="h-4 w-4" />
                         View
                       </Button>
                       <Button 
@@ -220,7 +211,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                         size="sm"
                         className="gap-2"
                       >
-                        <CheckCircle className="h-4 w-4" />
+                        <CheckCircleIcon className="h-4 w-4" />
                         Review
                       </Button>
                     </div>
@@ -228,11 +219,11 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
+                      <CalendarIcon className="h-3 w-3" />
                       <span>Submitted: {report.submittedAt ? new Date(report.submittedAt).toLocaleDateString() : '-'}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <ClockIcon className="h-3 w-3" />
                       <span>Step {currentStep} of {totalSteps}</span>
                     </div>
                   </div>
@@ -248,7 +239,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-500" />
+              <ClockIcon className="h-5 w-5 text-blue-500" />
               Your Submitted Reports Pending Review ({submittedPendingReview.length})
             </CardTitle>
           </CardHeader>
@@ -265,7 +256,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                 <div key={report.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start gap-3">
-                      <FileText className="h-5 w-5 text-green-500 mt-1" />
+                      <DocumentTextIcon className="h-5 w-5 text-green-500 mt-1" />
                       <div>
                         <h4 className="font-medium text-foreground">{report.name || 'Report'}</h4>
                         <p className="text-sm text-muted-foreground">{report.description || ''}</p>
@@ -276,7 +267,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                           <BadgeComponent className={getStatusBadge(status)}>
                             {status || 'pending'}
                           </BadgeComponent>
-                          <BadgeComponent className="bg-orange-100 text-orange-800">
+                          <BadgeComponent className="bg-lime-100 text-orange-800">
                             Pending Step {currentStep}
                           </BadgeComponent>
                         </div>
@@ -289,7 +280,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                         size="sm"
                         className="gap-2"
                       >
-                        <Eye className="h-4 w-4" />
+                        <EyeIcon className="h-4 w-4" />
                         View
                       </Button>
                       <Button 
@@ -297,7 +288,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                         size="sm"
                         className="gap-2"
                       >
-                        <CheckCircle className="h-4 w-4" />
+                        <CheckCircleIcon className="h-4 w-4" />
                         Review
                       </Button>
                     </div>
@@ -305,11 +296,11 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
+                      <CalendarIcon className="h-3 w-3" />
                       <span>Submitted: {report.submittedAt ? new Date(report.submittedAt).toLocaleDateString() : '-'}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
+                      <ClockIcon className="h-3 w-3" />
                       <span>Step {currentStep} of {totalSteps}</span>
                     </div>
                   </div>
@@ -325,7 +316,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <ExclamationTriangleIcon className="h-5 w-5 text-orange-500" />
               <div>
                 <p className="text-sm text-muted-foreground">Pending Your Review</p>
                 <p className="text-2xl font-bold">{pendingReviews.length}</p>
@@ -337,7 +328,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-500" />
+              <ClockIcon className="h-5 w-5 text-blue-500" />
               <div>
                 <p className="text-sm text-muted-foreground">Your Reports Pending</p>
                 <p className="text-2xl font-bold">{submittedPendingReview.length}</p>
@@ -349,7 +340,7 @@ export function PendingReviews({ projectId }: PendingReviewsProps) {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
+              <CheckCircleIcon className="h-5 w-5 text-green-500" />
               <div>
                 <p className="text-sm text-muted-foreground">Total Reviews</p>
                 <p className="text-2xl font-bold">{pendingReviews.length + submittedPendingReview.length}</p>

@@ -6,7 +6,9 @@ import { Badge } from '@/components/ui/badge';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
+import { PlusIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { GripVertical } from 'lucide-react';
+
 import { BaseQuestionEditor } from './BaseQuestionEditor';
 import { ConditionalQuestionsEditor } from './ConditionalQuestionsEditor';
 import { SingleChoiceQuestion, ActivityKPIMapping, ChoiceOption, FormQuestion, QuestionType } from '../types';
@@ -265,9 +267,9 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                   variant="outline"
                   size="sm"
                   onClick={addOption}
-                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                  className="text-emerald-600 border-blue-200 hover:bg-emerald-50"
                 >
-                  <Plus className="w-4 h-4 mr-1" />
+                  <PlusIcon className="w-4 h-4 mr-1" />
                   Add Option
                 </Button>
               </div>
@@ -316,9 +318,9 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                         size="sm"
                         onClick={() => removeOption(option.id)}
                         disabled={safeOptions.length <= 2}
-                        className="text-red-600"
+                        className="text-emerald-600"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <TrashIcon className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -420,7 +422,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
 
         {/* Preview */}
         <div className="p-4 border rounded-lg bg-white">
-          <Label className="text-sm font-medium mb-2 block text-blue-600">Preview</Label>
+          <Label className="text-sm font-medium mb-2 block text-emerald-600">Preview</Label>
           <div className="space-y-2">
             <Label className="font-medium">
               {question.title || 'Question Title'}
@@ -439,7 +441,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                        id={`preview-${option.id}`}
                        name={`preview-${question.id}`}
                        value={String(option.value)}
-                       className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                       className="w-4 h-4 border-gray-300 text-emerald-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                      />
                      <Label htmlFor={`preview-${option.id}`}>{option.label}</Label>
                    </div>
@@ -451,7 +453,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
                        id="preview-other"
                        name={`preview-${question.id}`}
                        value="other"
-                       className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                       className="w-4 h-4 border-gray-300 text-emerald-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                      />
                      <Label htmlFor="preview-other">Other:</Label>
                      <Input placeholder="Please specify..." className="flex-1" />
@@ -479,7 +481,7 @@ export function SingleChoiceQuestionEditor(props: SingleChoiceQuestionEditorProp
         </div>
 
         {/* Data Information */}
-       {/*  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+       {/*  <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
           <div>
             <p className="text-sm font-medium">Database Storage</p>
             <p className="text-xs text-gray-600">

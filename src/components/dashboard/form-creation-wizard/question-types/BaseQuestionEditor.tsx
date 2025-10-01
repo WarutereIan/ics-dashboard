@@ -9,7 +9,8 @@ import { MultiSelect, MultiSelectOption } from '@/components/ui/multi-select';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Copy, Settings, Link, ChevronDown, ChevronRight, X } from 'lucide-react';
+import { TrashIcon, Cog6ToothIcon, ChevronDownIcon, ChevronRightIcon, XMarkIcon, ClipboardDocumentIcon, LinkIcon } from '@heroicons/react/24/outline';
+
 import { FormQuestion, ActivityKPIMapping, QuestionType } from '../types';
 import { AddNextQuestionModal } from '../AddNextQuestionModal';
 
@@ -67,9 +68,9 @@ export function BaseQuestionEditor({
                     className="p-1 h-auto hover:bg-gray-100"
                   >
                     {isOpen ? (
-                      <ChevronDown className="w-4 h-4" />
+                      <ChevronDownIcon className="w-4 h-4" />
                     ) : (
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRightIcon className="w-4 h-4" />
                     )}
                   </Button>
                 </CollapsibleTrigger>
@@ -79,7 +80,7 @@ export function BaseQuestionEditor({
                 )}
                 {linkedActivityMappings.length > 0 && (
                   <Badge variant="secondary" className="text-xs">
-                    <Link className="w-3 h-3 mr-1" />
+                    <LinkIcon className="w-3 h-3 mr-1" />
                     {linkedActivityMappings.length === 1 ? 'Linked to Activity' : `Linked to ${linkedActivityMappings.length} Activities`}
                   </Badge>
                 )}
@@ -119,16 +120,16 @@ export function BaseQuestionEditor({
                 onClick={onDuplicate}
                 title="Duplicate question"
               >
-                <Copy className="w-4 h-4" />
+                <ClipboardDocumentIcon className="w-4 h-4" />
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onDelete}
                 title="Delete question"
-                className="text-red-600 hover:text-red-700"
+                className="text-emerald-600 hover:text-emerald-700"
               >
-                <Trash2 className="w-4 h-4" />
+                <TrashIcon className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -158,12 +159,12 @@ export function BaseQuestionEditor({
                 {linkedActivityMappings.length > 0 && (
                   <div className="space-y-2">
                     {linkedActivityMappings.map((activity) => (
-                      <div key={activity.activityId} className="p-3 bg-blue-50 rounded-lg border">
+                      <div key={activity.activityId} className="p-3 bg-emerald-50 rounded-lg border">
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-medium text-sm">{activity.projectName}</p>
                             <p className="text-sm text-gray-600">{activity.outcomeName}</p>
-                            <p className="text-sm text-blue-600">{activity.activityName}</p>
+                            <p className="text-sm text-emerald-600">{activity.activityName}</p>
                           </div>
                           <Button
                             variant="outline"
@@ -174,7 +175,7 @@ export function BaseQuestionEditor({
                               onLinkToActivities(updatedActivities);
                             }}
                           >
-                            <X className="w-4 h-4" />
+                            <XMarkIcon className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>

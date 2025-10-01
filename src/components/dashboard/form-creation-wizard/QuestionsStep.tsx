@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Plus, HelpCircle, Layers } from 'lucide-react';
+import { ExclamationCircleIcon, PlusIcon, QuestionMarkCircleIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
+
 import { FormSection, FormQuestion, QuestionType, ActivityKPIMapping } from './types';
 import {
   QUESTION_TYPE_LABELS,
@@ -93,12 +94,12 @@ export function QuestionsStep({
   };
 
   const QuestionTypeSelector = ({ sectionId }: { sectionId: string }) => (
-    <Card className="mb-6 border-dashed border-2 border-blue-300 bg-blue-50">
+    <Card className="mb-6 border-dashed border-2 border-blue-300 bg-emerald-50">
       <CardContent className="pt-6">
         <div className="space-y-4">
           <div className="text-center">
-            <Plus className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-            <h4 className="font-medium text-blue-900">Add a Question to This Section</h4>
+            <PlusIcon className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+            <h4 className="font-medium text-emerald-900">Add a Question to This Section</h4>
           
           </div>
 
@@ -131,7 +132,7 @@ export function QuestionsStep({
                 onClick={() => onAddQuestion(sectionId, selectedQuestionType)}
                 className="w-full"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <PlusIcon className="w-4 h-4 mr-2" />
                 Add Question
               </Button>
             </div>
@@ -154,13 +155,13 @@ export function QuestionsStep({
 
   if (sections.length === 0) {
     return (
-      <Card className="border-orange-200 bg-orange-50">
+      <Card className="border-orange-200 bg-lime-50">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+            <ExclamationCircleIcon className="w-5 h-5 text-lime-600 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-orange-900">No Sections Available</p>
-              <p className="text-sm text-orange-700">
+              <p className="text-sm text-lime-700">
                 Please go back to the previous step and create at least one section before adding questions.
               </p>
             </div>
@@ -177,7 +178,7 @@ export function QuestionsStep({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <HelpCircle className="w-5 h-5" />
+              <QuestionMarkCircleIcon className="w-5 h-5" />
               Form Questions
             </div>
             <Badge variant="outline">
@@ -214,7 +215,7 @@ export function QuestionsStep({
             <Card className="bg-gray-50">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Layers className="w-5 h-5 text-gray-600" />
+                  <Squares2X2Icon className="w-5 h-5 text-gray-600" />
                   <h3 className="font-semibold text-gray-900">{section.title}</h3>
                 </div>
                 {section.description && (
@@ -231,7 +232,7 @@ export function QuestionsStep({
               <Card className="border-dashed border-2 border-gray-300">
                 <CardContent className="pt-6">
                   <div className="text-center py-8">
-                    <HelpCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <QuestionMarkCircleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 mb-2">No questions in this section yet</p>
                     <p className="text-sm text-gray-500">
                       Use the question selector above to add your first question.
@@ -269,13 +270,13 @@ export function QuestionsStep({
 
       {/* Validation Notice */}
       {totalQuestions === 0 && (
-        <Card className="border-orange-200 bg-orange-50">
+        <Card className="border-orange-200 bg-lime-50">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+              <ExclamationCircleIcon className="w-5 h-5 text-lime-600 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-orange-900">Questions Required</p>
-                <p className="text-sm text-orange-700">
+                <p className="text-sm text-lime-700">
                   Please add at least one question to your form before proceeding.
                 </p>
               </div>

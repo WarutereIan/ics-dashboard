@@ -5,15 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Flag,
-  MessageSquare,
-  User
-} from 'lucide-react';
+import { ClockIcon, CheckCircleIcon, XCircleIcon, ExclamationCircleIcon, FlagIcon, ChatBubbleLeftRightIcon, UserIcon } from '@heroicons/react/24/outline';
+
 
 interface FeedbackResolutionWorkflowProps {
   submissionId: string;
@@ -35,12 +28,12 @@ export function FeedbackResolutionWorkflow({
   const { updateSubmissionStatus, addNote } = useFeedback();
 
   const statusOptions = [
-    { value: 'SUBMITTED', label: 'Submitted', icon: Clock, color: 'secondary' },
-    { value: 'ACKNOWLEDGED', label: 'Acknowledged', icon: MessageSquare, color: 'default' },
-    { value: 'IN_PROGRESS', label: 'In Progress', icon: AlertCircle, color: 'default' },
-    { value: 'RESOLVED', label: 'Resolved', icon: CheckCircle, color: 'default' },
-    { value: 'CLOSED', label: 'Closed', icon: XCircle, color: 'outline' },
-    { value: 'ESCALATED', label: 'Escalated', icon: Flag, color: 'destructive' }
+    { value: 'SUBMITTED', label: 'Submitted', icon: ClockIcon, color: 'secondary' },
+    { value: 'ACKNOWLEDGED', label: 'Acknowledged', icon: ChatBubbleLeftRightIcon, color: 'default' },
+    { value: 'IN_PROGRESS', label: 'In Progress', icon: ExclamationCircleIcon, color: 'default' },
+    { value: 'RESOLVED', label: 'Resolved', icon: CheckCircleIcon, color: 'default' },
+    { value: 'CLOSED', label: 'Closed', icon: XCircleIcon, color: 'outline' },
+    { value: 'ESCALATED', label: 'Escalated', icon: FlagIcon, color: 'destructive' }
   ];
 
   const assigneeOptions = [
@@ -109,7 +102,7 @@ export function FeedbackResolutionWorkflow({
               </Badge>
               {assignedTo && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <User className="w-4 h-4" />
+                  <UserIcon className="w-4 h-4" />
                   Assigned to: {assignedTo}
                 </div>
               )}
@@ -193,7 +186,7 @@ export function FeedbackResolutionWorkflow({
                 setResolutionNotes('Submission acknowledged and under review.');
               }}
             >
-              <MessageSquare className="w-4 h-4 mr-2" />
+              <ChatBubbleLeftRightIcon className="w-4 h-4 mr-2" />
               Acknowledge
             </Button>
             <Button 
@@ -203,7 +196,7 @@ export function FeedbackResolutionWorkflow({
                 setResolutionNotes('Work has begun on resolving this issue.');
               }}
             >
-              <AlertCircle className="w-4 h-4 mr-2" />
+              <ExclamationCircleIcon className="w-4 h-4 mr-2" />
               Start Work
             </Button>
             <Button 
@@ -213,7 +206,7 @@ export function FeedbackResolutionWorkflow({
                 setResolutionNotes('Issue has been resolved successfully.');
               }}
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
+              <CheckCircleIcon className="w-4 h-4 mr-2" />
               Mark Resolved
             </Button>
           </div>

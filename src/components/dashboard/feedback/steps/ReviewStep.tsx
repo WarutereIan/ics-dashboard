@@ -7,15 +7,9 @@ import {
   FeedbackSensitivity, 
   EscalationLevel 
 } from '@/types/feedback';
-import { 
-  Eye, 
-  CheckCircle, 
-  AlertTriangle, 
-  Bell, 
-  Shield, 
-  Users,
-  HelpCircle 
-} from 'lucide-react';
+import { EyeIcon, CheckCircleIcon, ExclamationTriangleIcon, BellIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { Shield, HelpCircle } from 'lucide-react';
+
 
 interface ReviewStepProps {
   form: FeedbackForm;
@@ -84,29 +78,29 @@ export function ReviewStep({ form, onUpdate, validationErrors }: ReviewStepProps
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Eye className="w-5 h-5" />
+            <EyeIcon className="w-5 h-5" />
             Feedback Form Summary
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-600">{totalSections}</p>
-              <p className="text-xs text-blue-700">Sections</p>
+            <div className="text-center p-3 bg-emerald-50 rounded-lg">
+              <p className="text-2xl font-bold text-emerald-600">{totalSections}</p>
+              <p className="text-xs text-emerald-700">Sections</p>
             </div>
             <div className="text-center p-3 bg-green-50 rounded-lg">
               <p className="text-2xl font-bold text-green-600">{totalQuestions}</p>
               <p className="text-xs text-green-700">Questions</p>
             </div>
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <p className="text-2xl font-bold text-purple-600">{requiredQuestions}</p>
-              <p className="text-xs text-purple-700">Required</p>
+            <div className="text-center p-3 bg-emerald-50 rounded-lg">
+              <p className="text-2xl font-bold text-emerald-600">{requiredQuestions}</p>
+              <p className="text-xs text-emerald-700">Required</p>
             </div>
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <p className="text-2xl font-bold text-orange-600">
+            <div className="text-center p-3 bg-lime-50 rounded-lg">
+              <p className="text-2xl font-bold text-lime-600">
                 {form.category?.allowedStakeholders.length || 0}
               </p>
-              <p className="text-xs text-orange-700">Stakeholder Types</p>
+              <p className="text-xs text-lime-700">Stakeholder Types</p>
             </div>
           </div>
 
@@ -119,7 +113,7 @@ export function ReviewStep({ form, onUpdate, validationErrors }: ReviewStepProps
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-gray-500" />
+                  <UsersIcon className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-medium">Category:</span>
                   <Badge variant="outline">{form.category?.name}</Badge>
                 </div>
@@ -131,7 +125,7 @@ export function ReviewStep({ form, onUpdate, validationErrors }: ReviewStepProps
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-gray-500" />
+                  <ExclamationTriangleIcon className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-medium">Escalation:</span>
                   <Badge variant={getEscalationColor(form.category?.escalationLevel || 'NONE')}>
                     {form.category?.escalationLevel || 'NONE'}
@@ -141,14 +135,14 @@ export function ReviewStep({ form, onUpdate, validationErrors }: ReviewStepProps
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-gray-500" />
+                  <BellIcon className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-medium">Notifications:</span>
                   <span className="text-sm text-gray-600">
                     {form.settings.notificationEmails.length} email{form.settings.notificationEmails.length !== 1 ? 's' : ''}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-gray-500" />
+                  <CheckCircleIcon className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-medium">Anonymous:</span>
                   <Badge variant={form.allowAnonymous ? 'default' : 'secondary'}>
                     {form.allowAnonymous ? 'Allowed' : 'Not Allowed'}
@@ -223,9 +217,9 @@ export function ReviewStep({ form, onUpdate, validationErrors }: ReviewStepProps
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-emerald-50">
           <CardContent className="pt-6">
-            <div className="text-red-800">
+            <div className="text-emerald-800">
               <p className="font-medium mb-2">Please fix the following issues before publishing:</p>
               <ul className="list-disc list-inside space-y-1">
                 {validationErrors.map((error, index) => (
@@ -242,7 +236,7 @@ export function ReviewStep({ form, onUpdate, validationErrors }: ReviewStepProps
         <Card className="border-green-200 bg-green-50">
           <CardContent className="pt-6">
             <div className="text-green-800 text-center">
-              <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-600" />
+              <CheckCircleIcon className="w-12 h-12 mx-auto mb-4 text-green-600" />
               <h3 className="text-lg font-medium mb-2">Ready to Publish!</h3>
               <p className="text-sm">
                 Your feedback form is complete and ready to be published. 

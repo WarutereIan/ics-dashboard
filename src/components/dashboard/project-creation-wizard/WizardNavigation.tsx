@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Save, Loader2 } from 'lucide-react';
+import { CheckIcon, ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { Loader2 } from 'lucide-react';
+
 import { WizardStep, ProjectFormData, OutcomeFormData } from './types';
 
 interface WizardNavigationProps {
@@ -75,7 +77,7 @@ export function WizardNavigation({
             disabled={currentStep === 0}
             className="flex-1 flex items-center justify-center gap-2"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeftIcon className="w-4 h-4" />
             Previous
           </Button>
           
@@ -86,7 +88,7 @@ export function WizardNavigation({
               className="flex-1 flex items-center justify-center gap-2"
             >
               Next
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRightIcon className="w-4 h-4" />
             </Button>
           )}
         </div>
@@ -127,7 +129,7 @@ export function WizardNavigation({
               {isSaving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Save className="w-4 h-4" />
+                <CheckIcon className="w-4 h-4" />
               )}
               <span className="whitespace-nowrap">
                 {isSaving ? 'Saving...' : (isEditMode ? 'Update Project' : 'Create Project')}
@@ -145,7 +147,7 @@ export function WizardNavigation({
           disabled={currentStep === 0}
           className="flex items-center gap-2"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeftIcon className="w-4 h-4" />
           Previous
         </Button>
 
@@ -178,7 +180,7 @@ export function WizardNavigation({
             <Button 
               variant="outline" 
               onClick={onClearDraft}
-              className="text-red-600 border-red-300 hover:bg-red-50"
+              className="text-emerald-600 border-red-300 hover:bg-emerald-50"
             >
               Clear Draft
             </Button>
@@ -193,7 +195,7 @@ export function WizardNavigation({
               {isSaving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Save className="w-4 h-4" />
+                <CheckIcon className="w-4 h-4" />
               )}
               {isSaving ? 'Saving...' : (isEditMode ? 'Update Project' : 'Create Project')}
             </Button>
@@ -204,7 +206,7 @@ export function WizardNavigation({
               className="flex items-center gap-2"
             >
               Next
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRightIcon className="w-4 h-4" />
             </Button>
           )}
         </div>

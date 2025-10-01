@@ -83,8 +83,8 @@ class AuthAPI {
     });
   }
 
-  async getProfile(token: string): Promise<User> {
-    const response = await this.request<User>('/auth/me', {
+  async getProfile(token: string): Promise<UserIcon> {
+    const response = await this.request<UserIcon>('/auth/me', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -98,8 +98,8 @@ class AuthAPI {
     }
   }
 
-  async updateProfile(updates: Partial<User>, token: string): Promise<User> {
-    const response = await this.request<User>('/auth/profile', {
+  async updateProfile(updates: Partial<UserIcon>, token: string): Promise<UserIcon> {
+    const response = await this.request<UserIcon>('/auth/profile', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -157,7 +157,7 @@ class AuthAPI {
   }
 
   // Utility method to get user info from token
-  getUserFromToken(token: string): Partial<User> | null {
+  getUserFromToken(token: string): Partial<UserIcon> | null {
     try {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');

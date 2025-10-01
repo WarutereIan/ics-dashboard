@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Image, Video, Upload, Download, Eye, Trash2, Plus, Play, FileImage, Search, Filter, Calendar, User, File, FileVideo, FileAudio } from 'lucide-react';
+import { ArrowUpTrayIcon, ArrowDownTrayIcon, EyeIcon, TrashIcon, PlusIcon, MagnifyingGlassIcon, FunnelIcon, CalendarIcon, UserIcon, PhotoIcon, VideoCameraIcon, PlayIcon, DocumentIcon, SpeakerWaveIcon } from '@heroicons/react/24/outline';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -255,15 +256,15 @@ export function Media() {
   const getMediaIcon = (type: string) => {
     switch (type) {
       case 'image':
-        return <FileImage className="h-4 w-4 text-blue-500" />;
+        return <PhotoIcon className="h-4 w-4 text-emerald-500" />;
       case 'video':
-        return <FileVideo className="h-4 w-4 text-red-500" />;
+        return <VideoCameraIcon className="h-4 w-4 text-emerald-500" />;
       case 'audio':
-        return <FileAudio className="h-4 w-4 text-purple-500" />;
+        return <SpeakerWaveIcon className="h-4 w-4 text-emerald-500" />;
       case 'file':
-        return <File className="h-4 w-4 text-green-500" />;
+        return <DocumentIcon className="h-4 w-4 text-green-500" />;
       default:
-        return <File className="h-4 w-4 text-gray-500" />;
+        return <DocumentIcon className="h-4 w-4 text-gray-500" />;
     }
   };
 
@@ -285,7 +286,7 @@ export function Media() {
         <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
-              <Plus className="h-4 w-4" />
+              <PlusIcon className="h-4 w-4" />
               Upload Media
             </Button>
           </DialogTrigger>
@@ -380,7 +381,7 @@ export function Media() {
       {/* Filters */}
       <div className="flex flex-wrap gap-4 items-center">
         <div className="flex items-center gap-2">
-          <Search className="h-4 w-4" />
+          <MagnifyingGlassIcon className="h-4 w-4" />
           <Input
             placeholder="Search media files..."
             value={searchQuery}
@@ -444,7 +445,7 @@ export function Media() {
             </div>
           ) : filteredMedia.length === 0 ? (
             <div className="text-center py-8">
-              <FileImage className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <PhotoIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No Media Files</h3>
               <p className="text-sm text-muted-foreground">
                 No media files found for this project. Upload files through form responses to see them here.
@@ -564,7 +565,7 @@ export function Media() {
                             onClick={() => handleView(item)}
                             title="View"
                           >
-                            <Eye className="h-4 w-4" />
+                            <EyeIcon className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
@@ -572,16 +573,16 @@ export function Media() {
                             onClick={() => handleDownload(item)}
                             title="Download"
                           >
-                            <Download className="h-4 w-4" />
+                            <ArrowDownTrayIcon className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="sm" 
                             onClick={() => handleDelete(item)}
                             title="Delete"
-                            className="text-red-600 hover:text-red-700"
+                            className="text-emerald-600 hover:text-emerald-700"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <TrashIcon className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -616,9 +617,9 @@ export function Media() {
               )}
               {(selectedMedia.metadata.mediaType === 'file') && (
                 <div className="text-center py-8">
-                  <File className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <DocumentIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">Preview not available for this file type</p>
-                  <a href={selectedMedia.url} download={selectedMedia.originalName} className="text-blue-600 underline">
+                  <a href={selectedMedia.url} download={selectedMedia.originalName} className="text-emerald-600 underline">
                     Download {selectedMedia.originalName}
                   </a>
                 </div>
@@ -656,10 +657,10 @@ export function Media() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => handleDownload(selectedMedia)}>
-                  <Download className="h-4 w-4" /> Download
+                  <ArrowDownTrayIcon className="h-4 w-4" /> Download
                 </Button>
-                <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={() => handleDelete(selectedMedia)}>
-                  <Trash2 className="h-4 w-4" /> Delete
+                <Button variant="outline" className="text-emerald-600 hover:text-emerald-700" onClick={() => handleDelete(selectedMedia)}>
+                  <TrashIcon className="h-4 w-4" /> Delete
                 </Button>
               </div>
             </div>

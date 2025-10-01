@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Settings, Globe, Target, Clock } from 'lucide-react';
+import { MapPinIcon, Cog6ToothIcon, GlobeAltIcon, FlagIcon, ClockIcon } from '@heroicons/react/24/outline';
+
 import { LocationQuestion } from '../types';
 import { BaseQuestionEditor } from './BaseQuestionEditor';
 import { FormQuestion, ActivityKPIMapping } from '../types';
@@ -34,7 +35,7 @@ export function LocationQuestionEditor(props: LocationQuestionEditorProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
+              <MapPinIcon className="w-5 h-5" />
               Location Capture Settings
             </CardTitle>
           </CardHeader>
@@ -146,13 +147,13 @@ export function LocationQuestionEditor(props: LocationQuestionEditorProps) {
       
 
         {/* Feature Information */}
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-blue-200 bg-emerald-50">
           <CardContent className="p-4">
             <div className="flex items-start space-x-3">
-              <Globe className="w-5 h-5 text-blue-600 mt-0.5" />
+              <GlobeAltIcon className="w-5 h-5 text-emerald-600 mt-0.5" />
               <div className="space-y-2">
-                <h4 className="font-medium text-blue-900">Location Capture Features</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
+                <h4 className="font-medium text-emerald-900">Location Capture Features</h4>
+                <ul className="text-sm text-emerald-800 space-y-1">
                   <li>• 📍 GPS location capture with accuracy reporting</li>
                   <li>• 🎯 Manual coordinate entry as fallback</li>
                   <li>• 🏠 Automatic address lookup from coordinates</li>

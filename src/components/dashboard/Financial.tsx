@@ -9,20 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  DollarSign, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  TrendingUp, 
-  TrendingDown, 
-  Minus,
-  Calendar,
-  Activity as ActivityIcon,
-  Calculator,
-  AlertCircle,
-  Loader2
-} from 'lucide-react';
+import { CurrencyDollarIcon, PlusIcon, PencilIcon, TrashIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, CalendarIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { MinusIcon, ChartBarIcon, CalculatorIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+
 import { useDashboard } from '@/contexts/DashboardContext';
 import { useProjects } from '@/contexts/ProjectsContext';
 import { 
@@ -310,14 +299,14 @@ export default function Financial() {
 
   const getVarianceColor = (variance: number) => {
     if (variance > 0) return 'text-green-600 bg-green-100';
-    if (variance < 0) return 'text-red-600 bg-red-100';
+    if (variance < 0) return 'text-emerald-600 bg-emerald-100';
     return 'text-gray-600 bg-gray-100';
   };
 
   const getVarianceIcon = (variance: number) => {
-    if (variance > 0) return <TrendingUp className="w-4 h-4" />;
-    if (variance < 0) return <TrendingDown className="w-4 h-4" />;
-    return <Minus className="w-4 h-4" />;
+    if (variance > 0) return <ArrowTrendingUpIcon className="w-4 h-4" />;
+    if (variance < 0) return <ArrowTrendingDownIcon className="w-4 h-4" />;
+    return <MinusIcon className="w-4 h-4" />;
   };
 
   if (isLoading) {
@@ -357,9 +346,9 @@ export default function Financial() {
     <div className="p-6 space-y-6">
       {/* Error Alert */}
       {error && (
-        <Alert className="border-red-200 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
+        <Alert className="border-red-200 bg-emerald-50">
+          <ExclamationCircleIcon className="h-4 w-4 text-emerald-600" />
+          <AlertDescription className="text-emerald-800">
             {error}
             <Button 
               variant="outline" 
@@ -384,7 +373,7 @@ export default function Financial() {
             Track costs, budgets, and variances for {currentProject?.name}
           </p>
           {selectedCurrency !== 'USD' && (
-            <p className="text-sm text-blue-600 mt-1">
+            <p className="text-sm text-emerald-600 mt-1">
               💱 Displaying amounts in {selectedCurrency}. All data is stored in USD and converted for display.
             </p>
           )}
@@ -423,12 +412,12 @@ export default function Financial() {
           >
             {isEditing ? (
               <>
-                <Calculator className="w-4 h-4" />
+                <CalculatorIcon className="w-4 h-4" />
                 Save Changes
               </>
             ) : (
               <>
-                <Edit className="w-4 h-4" />
+                <PencilIcon className="w-4 h-4" />
                 Edit Financial Data
               </>
             )}
@@ -451,7 +440,7 @@ export default function Financial() {
             {!summary && activitiesFinancialData.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center">
-                  <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <CurrencyDollarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Financial Data Available</h3>
                   <p className="text-sm text-gray-600">
                     No financial data has been recorded for {selectedYear}. Use the Data Entry tab to start adding financial information.
@@ -466,7 +455,7 @@ export default function Financial() {
                   <CardTitle className="text-sm font-medium text-gray-600">Total Budget</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-2xl font-bold text-emerald-600">
                     {formatCurrency(summary?.totalBudget || 0)}
                   </div>
                 </CardContent>
@@ -477,7 +466,7 @@ export default function Financial() {
                   <CardTitle className="text-sm font-medium text-gray-600">Total Spent</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-2xl font-bold text-lime-600">
                     {formatCurrency(summary?.totalSpent || 0)}
                   </div>
                 </CardContent>
@@ -509,7 +498,7 @@ export default function Financial() {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
                       style={{ 
                         width: `${summary?.totalBudget ? (summary.totalSpent / summary.totalBudget) * 100 : 0}%` 
                       }}
@@ -527,7 +516,7 @@ export default function Financial() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
+                    <CurrencyDollarIcon className="w-5 h-5" />
                     Activity Financial Overview
                   </CardTitle>
                 </CardHeader>
@@ -538,7 +527,7 @@ export default function Financial() {
                         <CardTitle className="text-sm font-medium text-gray-600">Total Budget</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">
+                        <div className="text-2xl font-bold text-emerald-600">
                           {formatCurrency(activitiesFinancialData.reduce((sum, activity) => sum + (activity.totalAnnualBudget || 0), 0))}
                         </div>
                       </CardContent>
@@ -549,7 +538,7 @@ export default function Financial() {
                         <CardTitle className="text-sm font-medium text-gray-600">Total Spent</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold text-orange-600">
+                        <div className="text-2xl font-bold text-lime-600">
                           {formatCurrency(activitiesFinancialData.reduce((sum, activity) => sum + (activity.totalAnnualCost || 0), 0))}
                         </div>
                       </CardContent>
@@ -583,15 +572,15 @@ export default function Financial() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calculator className="w-5 h-5" />
+                  <CalculatorIcon className="w-5 h-5" />
                   Financial Data Entry Form
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-medium text-blue-900 mb-2">How to Enter Financial Data</h4>
-                    <ul className="text-sm text-blue-800 space-y-1">
+                  <div className="bg-emerald-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-emerald-900 mb-2">How to Enter Financial Data</h4>
+                    <ul className="text-sm text-emerald-800 space-y-1">
                       <li>• <strong>Total Annual Budget:</strong> Enter the budget allocated for each activity</li>
                       <li>• <strong>Cost per Quarter:</strong> Enter actual costs incurred in each quarter (Q1, Q2, Q3, Q4)</li>
                       <li>• <strong>Total Annual Cost:</strong> Automatically calculated from quarterly costs</li>
@@ -633,13 +622,13 @@ export default function Financial() {
                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                                     <div>
                                       <Label className="text-sm text-gray-600">Annual Budget</Label>
-                                      <div className="text-lg font-semibold text-blue-600">
+                                      <div className="text-lg font-semibold text-emerald-600">
                                         {formatCurrency(existingData.totalAnnualBudget)}
                                       </div>
                                     </div>
                                     <div>
                                       <Label className="text-sm text-gray-600">Annual Cost</Label>
-                                      <div className="text-lg font-semibold text-orange-600">
+                                      <div className="text-lg font-semibold text-lime-600">
                                         {formatCurrency(existingData.totalAnnualCost)}
                                       </div>
                                     </div>
@@ -672,7 +661,7 @@ export default function Financial() {
                                     onClick={() => addActivityFinancialData(activity)}
                                     className="w-full"
                                   >
-                                    <Plus className="w-4 h-4 mr-2" />
+                                    <PlusIcon className="w-4 h-4 mr-2" />
                                     Add Financial Data
                                   </Button>
                                 </div>
@@ -694,7 +683,7 @@ export default function Financial() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <ActivityIcon className="w-5 h-5" />
+                  <ChartBarIcon className="w-5 h-5" />
                   Activity Financial Data
                 </CardTitle>
               </CardHeader>
@@ -710,7 +699,7 @@ export default function Financial() {
                           onClick={() => addActivityFinancialData(activity)}
                           className="w-full justify-start"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
+                          <PlusIcon className="w-4 h-4 mr-2" />
                           Add financial data for: {activity.title}
                         </Button>
                       ))}
@@ -744,7 +733,7 @@ export default function Financial() {
                               onClick={() => addActivityFinancialData(activity)}
                               className="w-full justify-start"
                             >
-                              <Plus className="w-4 h-4 mr-2" />
+                              <PlusIcon className="w-4 h-4 mr-2" />
                               Add financial data for: {activity.title}
                             </Button>
                           ))}
@@ -761,7 +750,7 @@ export default function Financial() {
              {!summary && activitiesFinancialData.length === 0 ? (
                <Card>
                  <CardContent className="p-8 text-center">
-                   <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                   <ArrowTrendingUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Chart Data Available</h3>
                    <p className="text-sm text-gray-600">
                      Financial charts will be displayed once data is available for {selectedYear}.
@@ -773,12 +762,12 @@ export default function Financial() {
              ) : (
                <Card>
                  <CardContent className="p-8 text-center">
-                   <TrendingUp className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+                   <ArrowTrendingUpIcon className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
                    <h3 className="text-lg font-medium text-gray-900 mb-2">Charts Coming Soon</h3>
                    <p className="text-sm text-gray-600">
                      Activity-level financial data has been detected. Charts will be enhanced to display this data in a future update.
                    </p>
-                   <div className="mt-4 text-sm text-blue-600">
+                   <div className="mt-4 text-sm text-emerald-600">
                      Activities with data: {activitiesFinancialData.length}
                    </div>
                  </CardContent>
@@ -791,7 +780,7 @@ export default function Financial() {
              {!summary && activitiesFinancialData.length === 0 ? (
                <Card>
                  <CardContent className="p-8 text-center">
-                   <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                   <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Quarterly Data Available</h3>
                    <p className="text-sm text-gray-600">
                      Quarterly financial breakdown will be available once data is recorded for {selectedYear}.
@@ -802,7 +791,7 @@ export default function Financial() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
+                  <CalendarIcon className="w-5 h-5" />
                   Quarterly Breakdown
                 </CardTitle>
               </CardHeader>
@@ -821,10 +810,10 @@ export default function Financial() {
                       {['q1', 'q2', 'q3', 'q4'].map((quarter) => (
                         <tr key={quarter} className="border-b">
                           <td className="p-2 font-medium">{quarter.toUpperCase()}</td>
-                          <td className="p-2 text-right text-blue-600">
+                          <td className="p-2 text-right text-emerald-600">
                             {formatCurrency(summary?.byQuarter[quarter as keyof typeof summary.byQuarter].budget || 0)}
                           </td>
-                          <td className="p-2 text-right text-orange-600">
+                          <td className="p-2 text-right text-lime-600">
                             {formatCurrency(summary?.byQuarter[quarter as keyof typeof summary.byQuarter].spent || 0)}
                           </td>
                           <td className="p-2 text-right">
@@ -845,7 +834,7 @@ export default function Financial() {
                <Card>
                  <CardHeader>
                    <CardTitle className="flex items-center gap-2">
-                     <Calendar className="w-5 h-5" />
+                     <CalendarIcon className="w-5 h-5" />
                      Quarterly Breakdown (Activity-based)
                    </CardTitle>
                  </CardHeader>
@@ -874,10 +863,10 @@ export default function Financial() {
                            return (
                              <tr key={quarter} className="border-b">
                                <td className="p-2 font-medium">{quarter.toUpperCase()}</td>
-                               <td className="p-2 text-right text-blue-600">
+                               <td className="p-2 text-right text-emerald-600">
                                  {formatCurrency(quarterBudget)}
                                </td>
-                               <td className="p-2 text-right text-orange-600">
+                               <td className="p-2 text-right text-lime-600">
                                  {formatCurrency(quarterSpent)}
                                </td>
                                <td className="p-2 text-right">
@@ -947,14 +936,14 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove, fo
 
   const getVarianceColor = (variance: number) => {
     if (variance > 0) return 'text-green-600 bg-green-100';
-    if (variance < 0) return 'text-red-600 bg-red-100';
+    if (variance < 0) return 'text-emerald-600 bg-emerald-100';
     return 'text-gray-600 bg-gray-100';
   };
 
   const getVarianceIcon = (variance: number) => {
-    if (variance > 0) return <TrendingUp className="w-4 h-4" />;
-    if (variance < 0) return <TrendingDown className="w-4 h-4" />;
-    return <Minus className="w-4 h-4" />;
+    if (variance > 0) return <ArrowTrendingUpIcon className="w-4 h-4" />;
+    if (variance < 0) return <ArrowTrendingDownIcon className="w-4 h-4" />;
+    return <MinusIcon className="w-4 h-4" />;
   };
 
   return (
@@ -981,9 +970,9 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove, fo
                 variant="ghost"
                 size="sm"
                 onClick={() => onRemove(activityData.activityId)}
-                className="text-red-600 hover:text-red-700"
+                className="text-emerald-600 hover:text-emerald-700"
               >
-                <Trash2 className="w-4 h-4" />
+                <TrashIcon className="w-4 h-4" />
               </Button>
             )}
           </div>
@@ -996,13 +985,13 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove, fo
           <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
             <div>
               <Label className="text-sm text-gray-600">Annual Budget</Label>
-              <div className="text-lg font-semibold text-blue-600">
+              <div className="text-lg font-semibold text-emerald-600">
                 {formatCurrency(activityData.totalAnnualBudget)}
               </div>
             </div>
             <div>
               <Label className="text-sm text-gray-600">Annual Cost</Label>
-              <div className="text-lg font-semibold text-orange-600">
+              <div className="text-lg font-semibold text-lime-600">
                 {formatCurrency(activityData.totalAnnualCost)}
               </div>
             </div>
@@ -1017,12 +1006,12 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove, fo
 
           {/* Financial Data Entry Form */}
           <div className="space-y-4">
-            <div className="border rounded-lg p-4 bg-blue-50">
-              <h4 className="font-medium text-blue-900 mb-3">Financial Data Entry</h4>
+            <div className="border rounded-lg p-4 bg-emerald-50">
+              <h4 className="font-medium text-emerald-900 mb-3">Financial Data Entry</h4>
               
               {/* Annual Budget Input */}
               <div className="mb-4">
-                <Label className="text-sm font-medium text-blue-800">Total Annual Budget *</Label>
+                <Label className="text-sm font-medium text-emerald-800">Total Annual Budget *</Label>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-gray-500">{getCurrencySymbol(selectedCurrency)}</span>
                   <Input
@@ -1041,7 +1030,7 @@ function ActivityFinancialCard({ activityData, isEditing, onUpdate, onRemove, fo
 
               {/* Quarterly Costs */}
               <div>
-                <Label className="text-sm font-medium text-blue-800">Cost per Quarter *</Label>
+                <Label className="text-sm font-medium text-emerald-800">Cost per Quarter *</Label>
                 <p className="text-xs text-gray-600 mb-2">Enter the actual costs incurred in each quarter</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {(['q1', 'q2', 'q3', 'q4'] as const).map((quarter) => (

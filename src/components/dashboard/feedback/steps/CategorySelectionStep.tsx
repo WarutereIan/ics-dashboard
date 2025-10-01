@@ -8,7 +8,9 @@ import {
   StakeholderType, 
   DEFAULT_STAKEHOLDER_TYPES 
 } from '@/types/feedback';
-import { Users, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
+import { UsersIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { Shield } from 'lucide-react';
+
 
 interface CategorySelectionStepProps {
   form: FeedbackForm;
@@ -38,17 +40,17 @@ export function CategorySelectionStep({ form, onUpdate, validationErrors }: Cate
   const getStakeholderIcon = (stakeholder: StakeholderType) => {
     switch (stakeholder.id) {
       case 'community_member':
-        return <Users className="w-5 h-5 text-green-600" />;
+        return <UsersIcon className="w-5 h-5 text-green-600" />;
       case 'program_beneficiary':
-        return <CheckCircle className="w-5 h-5 text-blue-600" />;
+        return <CheckCircleIcon className="w-5 h-5 text-emerald-600" />;
       case 'observer':
-        return <Shield className="w-5 h-5 text-purple-600" />;
+        return <Shield className="w-5 h-5 text-emerald-600" />;
       case 'partner_organization':
-        return <Users className="w-5 h-5 text-orange-600" />;
+        return <UsersIcon className="w-5 h-5 text-lime-600" />;
       case 'government_official':
-        return <Shield className="w-5 h-5 text-red-600" />;
+        return <Shield className="w-5 h-5 text-emerald-600" />;
       default:
-        return <Users className="w-5 h-5 text-gray-600" />;
+        return <UsersIcon className="w-5 h-5 text-gray-600" />;
     }
   };
 
@@ -69,33 +71,33 @@ export function CategorySelectionStep({ form, onUpdate, validationErrors }: Cate
     <div className="space-y-6">
       {/* Category Summary */}
       {form.category && (
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="bg-emerald-50 border-blue-200">
           <CardHeader>
-            <CardTitle className="text-blue-800 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
+            <CardTitle className="text-emerald-800 flex items-center gap-2">
+              <ExclamationTriangleIcon className="w-5 h-5" />
               Selected Category: {form.category.name}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
-                <span className="text-blue-600 font-medium">Type:</span>
-                <p className="text-blue-800">{form.category.type}</p>
+                <span className="text-emerald-600 font-medium">Type:</span>
+                <p className="text-emerald-800">{form.category.type}</p>
               </div>
               <div>
-                <span className="text-blue-600 font-medium">Default Priority:</span>
-                <p className="text-blue-800">{form.category.defaultPriority}</p>
+                <span className="text-emerald-600 font-medium">Default Priority:</span>
+                <p className="text-emerald-800">{form.category.defaultPriority}</p>
               </div>
               <div>
-                <span className="text-blue-600 font-medium">Sensitivity:</span>
-                <p className="text-blue-800">{form.category.defaultSensitivity}</p>
+                <span className="text-emerald-600 font-medium">Sensitivity:</span>
+                <p className="text-emerald-800">{form.category.defaultSensitivity}</p>
               </div>
               <div>
-                <span className="text-blue-600 font-medium">Escalation:</span>
-                <p className="text-blue-800">{form.category.escalationLevel}</p>
+                <span className="text-emerald-600 font-medium">Escalation:</span>
+                <p className="text-emerald-800">{form.category.escalationLevel}</p>
               </div>
             </div>
-            <p className="text-blue-700 mt-3 text-sm">{form.category.description}</p>
+            <p className="text-emerald-700 mt-3 text-sm">{form.category.description}</p>
           </CardContent>
         </Card>
       )}
@@ -220,9 +222,9 @@ export function CategorySelectionStep({ form, onUpdate, validationErrors }: Cate
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-emerald-50">
           <CardContent className="pt-6">
-            <div className="text-red-800">
+            <div className="text-emerald-800">
               <p className="font-medium mb-2">Please fix the following issues:</p>
               <ul className="list-disc list-inside space-y-1">
                 {validationErrors.map((error, index) => (

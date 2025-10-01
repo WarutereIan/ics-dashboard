@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Bell, Shield, AlertTriangle } from 'lucide-react';
+import { PlusIcon, TrashIcon, BellIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { Shield } from 'lucide-react';
+
 import { 
   FeedbackForm, 
   FeedbackSensitivity, 
@@ -119,7 +121,7 @@ export function SettingsStep({ form, onUpdate, validationErrors }: SettingsStepP
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5" />
+            <BellIcon className="w-5 h-5" />
             Notification Settings
           </CardTitle>
         </CardHeader>
@@ -139,7 +141,7 @@ export function SettingsStep({ form, onUpdate, validationErrors }: SettingsStepP
                 onKeyPress={(e) => e.key === 'Enter' && addNotificationEmail()}
               />
               <Button onClick={addNotificationEmail} disabled={!newEmail.trim()}>
-                <Plus className="w-4 h-4" />
+                <PlusIcon className="w-4 h-4" />
               </Button>
             </div>
 
@@ -150,9 +152,9 @@ export function SettingsStep({ form, onUpdate, validationErrors }: SettingsStepP
                     {email}
                     <button
                       onClick={() => removeNotificationEmail(email)}
-                      className="ml-1 hover:text-red-600"
+                      className="ml-1 hover:text-emerald-600"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <TrashIcon className="w-3 h-3" />
                     </button>
                   </Badge>
                 ))}
@@ -275,7 +277,7 @@ export function SettingsStep({ form, onUpdate, validationErrors }: SettingsStepP
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
+            <ExclamationTriangleIcon className="w-5 h-5" />
             Escalation Rules
           </CardTitle>
         </CardHeader>
@@ -301,7 +303,7 @@ export function SettingsStep({ form, onUpdate, validationErrors }: SettingsStepP
                       size="sm"
                       onClick={() => removeEscalationRule(rule.id)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <TrashIcon className="w-4 h-4" />
                     </Button>
                   </div>
                   <div className="text-xs text-gray-600">
@@ -370,7 +372,7 @@ export function SettingsStep({ form, onUpdate, validationErrors }: SettingsStepP
                 disabled={!newEscalationRule.condition || !newEscalationRule.escalationLevel}
                 className="w-full"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <PlusIcon className="w-4 h-4 mr-2" />
                 Add Escalation Rule
               </Button>
             </div>
@@ -380,9 +382,9 @@ export function SettingsStep({ form, onUpdate, validationErrors }: SettingsStepP
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-emerald-50">
           <CardContent className="pt-6">
-            <div className="text-red-800">
+            <div className="text-emerald-800">
               <p className="font-medium mb-2">Please fix the following issues:</p>
               <ul className="list-disc list-inside space-y-1">
                 {validationErrors.map((error, index) => (

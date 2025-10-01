@@ -77,7 +77,7 @@ export function Activities() {
       case 'COMPLETED':
         return 'bg-green-100 text-green-800';
       case 'IN_PROGRESS':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-emerald-100 text-emerald-800';
       case 'NOT_STARTED':
         return 'bg-gray-100 text-gray-800';
       case 'ON_HOLD':

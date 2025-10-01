@@ -7,17 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  MessageSquare, 
-  Star,
-  Send,
-  Eye,
-  EyeOff
-} from 'lucide-react';
+import { UserIcon, EnvelopeIcon, MapPinIcon, ChatBubbleLeftRightIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { Phone, Star, Send } from 'lucide-react';
+
 
 interface GeneralFeedbackFormProps {
   onSubmit: (data: any) => void;
@@ -167,7 +159,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
+            <UserIcon className="w-5 h-5" />
             Your Information
           </CardTitle>
         </CardHeader>
@@ -202,7 +194,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
                 </SelectContent>
               </Select>
               {errors.stakeholderType && (
-                <p className="text-sm text-red-600">{errors.stakeholderType}</p>
+                <p className="text-sm text-emerald-600">{errors.stakeholderType}</p>
               )}
             </div>
 
@@ -238,7 +230,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
                   placeholder="Your full name"
                 />
                 {errors.name && (
-                  <p className="text-sm text-red-600">{errors.name}</p>
+                  <p className="text-sm text-emerald-600">{errors.name}</p>
                 )}
               </div>
 
@@ -253,7 +245,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
                   placeholder="your.email@example.com"
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email}</p>
+                  <p className="text-sm text-emerald-600">{errors.email}</p>
                 )}
               </div>
 
@@ -285,7 +277,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
+            <ChatBubbleLeftRightIcon className="w-5 h-5" />
             Your Feedback
           </CardTitle>
         </CardHeader>
@@ -309,7 +301,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
                 </SelectContent>
               </Select>
               {errors.feedbackType && (
-                <p className="text-sm text-red-600">{errors.feedbackType}</p>
+                <p className="text-sm text-emerald-600">{errors.feedbackType}</p>
               )}
             </div>
 
@@ -343,7 +335,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
               placeholder="Brief title for your feedback"
             />
             {errors.title && (
-              <p className="text-sm text-red-600">{errors.title}</p>
+              <p className="text-sm text-emerald-600">{errors.title}</p>
             )}
           </div>
 
@@ -358,7 +350,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
               placeholder="Please provide detailed feedback about your experience..."
             />
             {errors.description && (
-              <p className="text-sm text-red-600">{errors.description}</p>
+              <p className="text-sm text-emerald-600">{errors.description}</p>
             )}
           </div>
 
@@ -451,7 +443,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
                   </SelectContent>
                 </Select>
                 {errors.followUpMethod && (
-                  <p className="text-sm text-red-600">{errors.followUpMethod}</p>
+                  <p className="text-sm text-emerald-600">{errors.followUpMethod}</p>
                 )}
               </div>
             )}

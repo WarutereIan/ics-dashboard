@@ -38,7 +38,7 @@ export function ShortTextQuestionEditor(props: ShortTextQuestionEditorProps) {
 
         {/* Preview */}
         <div className="p-4 border rounded-lg bg-white">
-          <Label className="text-sm font-medium mb-2 block text-blue-600">Preview</Label>
+          <Label className="text-sm font-medium mb-2 block text-emerald-600">Preview</Label>
           <div className="space-y-2">
             <Label className="font-medium">
               {question.title || 'Question Title'}
@@ -57,7 +57,7 @@ export function ShortTextQuestionEditor(props: ShortTextQuestionEditorProps) {
         </div>
 
         {/* Data Information */}
-      {/*   <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+      {/*   <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
           <div>
             <p className="text-sm font-medium">Database Storage</p>
             <p className="text-xs text-gray-600">

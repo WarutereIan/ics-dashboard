@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Users, Calendar, Filter } from 'lucide-react';
+import { MapPinIcon, UsersIcon, CalendarIcon, FunnelIcon } from '@heroicons/react/24/outline';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -284,7 +285,7 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
       {/* Map Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
+          <FunnelIcon className="h-4 w-4" />
           <span className="text-sm font-medium">Filters:</span>
         </div>
         
@@ -381,7 +382,7 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
+            <MapPinIcon className="h-5 w-5" />
             {mapData.title || 'Project Data Map'}
           </CardTitle>
           <CardDescription>
@@ -462,7 +463,7 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
       {filteredData.length === 0 && (
         <Card>
           <CardContent className="p-6 text-center">
-            <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <MapPinIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No Location Data Available</h3>
             <p className="text-sm text-muted-foreground mb-4">
               No form responses with location data found for the selected filters.

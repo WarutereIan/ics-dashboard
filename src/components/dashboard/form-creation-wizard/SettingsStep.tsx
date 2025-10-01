@@ -11,17 +11,17 @@ import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Settings, 
-  Lock, 
-  Users, 
-  Bell, 
-  Palette, 
-  Calendar,
-  Shield,
-  Mail,
-  Plus,
-  X
-} from 'lucide-react';
+  Cog6ToothIcon, 
+  LockClosedIcon, 
+  UsersIcon, 
+  BellIcon, 
+  SwatchIcon, 
+  CalendarIcon,
+  ShieldCheckIcon,
+  EnvelopeIcon,
+  PlusIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
 import { FormSettings } from './types';
 
 interface SettingsStepProps {
@@ -51,7 +51,7 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
+            <Cog6ToothIcon className="w-5 h-5" />
             Form Settings & Configuration
           </CardTitle>
         </CardHeader>
@@ -95,10 +95,10 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
 
                 {/* Role-based Access Control - Only shown when authentication is required */}
                 {settings.requireAuthentication && (
-                  <div className="border rounded-lg p-4 bg-blue-50 space-y-4">
+                  <div className="border rounded-lg p-4 bg-emerald-50 space-y-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <Users className="w-4 h-4 text-blue-600" />
-                      <Label className="text-base font-medium text-blue-900">User Role Access Control</Label>
+                      <Users className="w-4 h-4 text-emerald-600" />
+                      <Label className="text-base font-medium text-emerald-900">User Role Access Control</Label>
                     </div>
 
                     {/* User Roles Selection */}
@@ -168,16 +168,16 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h5 className="font-medium text-blue-900 mb-2">Default Behavior Features</h5>
-                <div className="text-sm text-blue-800 space-y-1">
+              <div className="p-4 bg-emerald-50 rounded-lg">
+                <h5 className="font-medium text-emerald-900 mb-2">Default Behavior Features</h5>
+                <div className="text-sm text-emerald-800 space-y-1">
                   <p>✓ Progress bar is always shown</p>
                   <p>✓ Multiple responses are always allowed</p>
                   <p>✓ Save as draft is always enabled</p>
                   <p>✓ Response editing is always allowed</p>
                   <p>✓ Auto-save is always active</p>
                 </div>
-                <p className="text-xs text-blue-700 mt-2 italic">
+                <p className="text-xs text-emerald-700 mt-2 italic">
                   These features are enabled by default to provide the best user experience.
                 </p>
               </div>
@@ -245,7 +245,7 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
                           variant="ghost"
                           size="sm"
                           onClick={() => removeNotificationEmail(email)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-emerald-600 hover:text-emerald-700"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -254,9 +254,9 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
                   </div>
                 )}
 
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm font-medium text-blue-900">Notification Triggers</p>
-                  <ul className="text-sm text-blue-700 mt-1 space-y-1">
+                <div className="p-3 bg-emerald-50 rounded-lg border border-blue-200">
+                  <p className="text-sm font-medium text-emerald-900">Notification Triggers</p>
+                  <ul className="text-sm text-emerald-700 mt-1 space-y-1">
                     <li>• New form submission</li>
                     <li>• Draft saved (if enabled)</li>
                     <li>• Response edited (if enabled)</li>
@@ -331,12 +331,12 @@ export function SettingsStep({ settings, onUpdateSettings }: SettingsStepProps) 
                     </p>
                   </div>
                   
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="p-3 bg-emerald-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="secondary" className="text-xs">Available</Badge>
-                      <p className="text-sm font-medium text-blue-900">Real-time Analytics</p>
+                      <p className="text-sm font-medium text-emerald-900">Real-time Analytics</p>
                     </div>
-                    <p className="text-xs text-blue-600">
+                    <p className="text-xs text-emerald-600">
                       Response data is immediately available in project dashboards and reports
                     </p>
                   </div>

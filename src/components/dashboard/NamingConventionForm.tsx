@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, FileText, MapPin, Building, Clock, Hash } from 'lucide-react';
+import { CalendarIcon, DocumentTextIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { Building, Hash } from 'lucide-react';
+
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import {
   COUNTRIES,
@@ -136,7 +138,7 @@ export function NamingConventionForm({
         {/* Country Selection */}
         <div className="space-y-2">
           <Label htmlFor="country" className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
+            <MapPinIcon className="w-4 h-4" />
             Country *
           </Label>
           <Select
@@ -165,7 +167,7 @@ export function NamingConventionForm({
         {/* Region Selection */}
         <div className="space-y-2">
           <Label htmlFor="region" className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
+            <MapPinIcon className="w-4 h-4" />
             Administrative Region *
           </Label>
           <Select
@@ -224,7 +226,7 @@ export function NamingConventionForm({
         {/* Report Type Selection */}
         <div className="space-y-2">
           <Label htmlFor="reportType" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
+            <DocumentTextIcon className="w-4 h-4" />
             Report Type *
           </Label>
           <Select
@@ -253,7 +255,7 @@ export function NamingConventionForm({
         {/* Date Selection */}
         <div className="space-y-2">
           <Label htmlFor="date" className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
+            <CalendarIcon className="w-4 h-4" />
             Report Date *
           </Label>
           <DateTimePicker
@@ -267,7 +269,7 @@ export function NamingConventionForm({
         {/* Version Control */}
         <div className="space-y-2">
           <Label htmlFor="versionControl" className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
+            <ClockIcon className="w-4 h-4" />
             Version Control (Optional)
           </Label>
           <Select
@@ -313,7 +315,7 @@ export function NamingConventionForm({
             <Separator />
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
+                <DocumentTextIcon className="w-4 h-4" />
                 Generated File Name
               </Label>
               <div className="p-3 bg-gray-50 rounded-md border">

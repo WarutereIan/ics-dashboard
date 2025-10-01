@@ -2,20 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  MessageSquare,
-  AlertTriangle,
-  Phone,
-  Users,
-  BarChart3,
-  Calendar,
-  User,
-  Eye,
-  Clock,
-  FileText,
-  ClipboardList,
-  TrendingUp
-} from 'lucide-react';
+import { ChatBubbleLeftRightIcon, ExclamationTriangleIcon, UsersIcon, ChartBarIcon, CalendarIcon, UserIcon, EyeIcon, ClockIcon, DocumentTextIcon, ClipboardDocumentListIcon, ArrowTrendingUpIcon, PhoneIcon } from '@heroicons/react/24/outline';
+
 import FeedbackFormDetails  from './FeedbackFormDetails';
 import { useNavigate } from 'react-router-dom';
 import { useFeedback } from '@/contexts/FeedbackContext';
@@ -43,7 +31,7 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
       category: 'General',
       priority: 'LOW',
       status: 'active',
-      icon: MessageSquare,
+      icon: ChatBubbleLeftRightIcon,
       color: 'blue',
       estimatedTime: '2-3 minutes',
       component: GeneralFeedbackForm,
@@ -57,7 +45,7 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
       category: 'Safety',
       priority: 'HIGH',
       status: 'active',
-      icon: AlertTriangle,
+      icon: ExclamationTriangleIcon,
       color: 'orange',
       estimatedTime: '5-7 minutes',
       component: SafetyIncidentForm,
@@ -71,7 +59,7 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
       category: 'Emergency',
       priority: 'CRITICAL',
       status: 'active',
-      icon: Phone,
+      icon: PhoneIcon,
       color: 'red',
       estimatedTime: '3-5 minutes',
       component: EmergencyReportForm,
@@ -85,7 +73,7 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
       category: 'Staff',
       priority: 'MEDIUM',
       status: 'active',
-      icon: Users,
+      icon: UsersIcon,
       color: 'purple',
       estimatedTime: '4-6 minutes',
       component: StaffFeedbackForm,
@@ -174,11 +162,11 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate('/dashboard/feedback/submissions')}>
-            <ClipboardList className="w-4 h-4 mr-2" />
+            <ClipboardDocumentListIcon className="w-4 h-4 mr-2" />
             View Submissions
           </Button>
           <Button variant="outline" onClick={() => navigate('/dashboard/feedback/analytics')}>
-            <TrendingUp className="w-4 h-4 mr-2" />
+            <ArrowTrendingUpIcon className="w-4 h-4 mr-2" />
             Analytics
           </Button>
         </div>
@@ -189,8 +177,8 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <MessageSquare className="w-5 h-5 text-blue-600" />
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <ChatBubbleLeftRightIcon className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Forms</p>
@@ -203,7 +191,7 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
-                <BarChart3 className="w-5 h-5 text-green-600" />
+                <ChartBarIcon className="w-5 h-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Active Forms</p>
@@ -215,8 +203,8 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-orange-600" />
+              <div className="p-2 bg-lime-100 rounded-lg">
+                <ExclamationTriangleIcon className="w-5 h-5 text-lime-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Submissions</p>
@@ -228,8 +216,8 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Calendar className="w-5 h-5 text-purple-600" />
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <CalendarIcon className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">This Month</p>
@@ -276,30 +264,30 @@ export function FeedbackFormManagement({ projectId, projectName = "ICS Organizat
                         <p className="text-gray-600 mb-3">{form.description}</p>
                         <div className="flex items-center gap-6 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
-                            <BarChart3 className="w-4 h-4" />
+                            <ChartBarIcon className="w-4 h-4" />
                             {submissionCount} submissions
                           </div>
                           <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
+                            <CalendarIcon className="w-4 h-4" />
                             Last activity: {lastModified}
                           </div>
                           <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
+                            <ClockIcon className="w-4 h-4" />
                             {form.estimatedTime}
                           </div>
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleViewForm(form.id)}>
-                          <Eye className="w-4 h-4 mr-1" />
+                          <EyeIcon className="w-4 h-4 mr-1" />
                           Preview
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => handleViewFormDetails(form.id)}>
-                          <FileText className="w-4 h-4 mr-1" />
+                          <DocumentTextIcon className="w-4 h-4 mr-1" />
                           Details
                         </Button>
                         <Button size="sm" onClick={() => handleFormClick(form.id)}>
-                          <MessageSquare className="w-4 h-4 mr-1" />
+                          <ChatBubbleLeftRightIcon className="w-4 h-4 mr-1" />
                           Submit
                         </Button>
                       </div>

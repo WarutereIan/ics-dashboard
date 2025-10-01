@@ -1,16 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  SkipForward, 
-  MessageCircle, 
-  User,
-  AlertTriangle,
-  FileText,
-  Calendar,
-  BadgeCheck
-} from 'lucide-react';
+import { CheckCircleIcon, XCircleIcon, ClockIcon, ChatBubbleLeftIcon, UserIcon, ExclamationTriangleIcon, DocumentTextIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { SkipForward, BadgeCheck } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -64,25 +55,25 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
   const getStepStatusIcon = (step: ReportApprovalStep) => {
     switch (step.status) {
       case 'approved':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
       case 'rejected':
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <XCircleIcon className="h-5 w-5 text-red-500" />;
       case 'skipped':
         return <SkipForward className="h-5 w-5 text-orange-500" />;
       case 'in-review':
-        return <Clock className="h-5 w-5 text-blue-500" />;
+        return <ClockIcon className="h-5 w-5 text-blue-500" />;
       default:
-        return <Clock className="h-5 w-5 text-gray-400" />;
+        return <ClockIcon className="h-5 w-5 text-gray-400" />;
     }
   };
 
   const getStepStatusBadge = (step: ReportApprovalStep) => {
     const variants: Record<string, string> = {
       'pending': 'bg-gray-100 text-gray-800',
-      'in-review': 'bg-blue-100 text-blue-800',
+      'in-review': 'bg-emerald-100 text-emerald-800',
       'approved': 'bg-green-100 text-green-800',
-      'rejected': 'bg-red-100 text-red-800',
-      'skipped': 'bg-orange-100 text-orange-800'
+      'rejected': 'bg-emerald-100 text-emerald-800',
+      'skipped': 'bg-lime-100 text-orange-800'
     };
     return variants[step.status] || variants.pending;
   };
@@ -126,7 +117,7 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+            <DocumentTextIcon className="h-5 w-5" />
             Approval Workflow
           </CardTitle>
         </CardHeader>
@@ -150,12 +141,12 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
 
           {/* Current Step Actions */}
           {canUserReview && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="bg-emerald-50 border border-blue-200 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="h-4 w-4 text-blue-600" />
-                <h4 className="font-medium text-blue-900">Action Required</h4>
+                <ExclamationTriangleIcon className="h-4 w-4 text-emerald-600" />
+                <h4 className="font-medium text-emerald-900">Action Required</h4>
               </div>
-              <p className="text-sm text-blue-800 mb-3">
+              <p className="text-sm text-emerald-800 mb-3">
                 This report requires your review and approval as {getAuthLevelDisplayName(currentStep.requiredRole)}.
               </p>
               <div className="flex flex-wrap gap-2">
@@ -163,13 +154,13 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
                   onClick={handleApprove}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                  <CheckCircleIcon className="h-4 w-4 mr-2" />
                   Approve
                 </Button>
                 <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
                   <DialogTrigger asChild>
                     <Button variant="destructive">
-                      <XCircle className="h-4 w-4 mr-2" />
+                      <XCircleIcon className="h-4 w-4 mr-2" />
                       Reject
                     </Button>
                   </DialogTrigger>
@@ -235,7 +226,7 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
                 <Dialog open={showCommentDialog} onOpenChange={setShowCommentDialog}>
                   <DialogTrigger asChild>
                     <Button variant="outline">
-                      <MessageCircle className="h-4 w-4 mr-2" />
+                      <ChatBubbleLeftIcon className="h-4 w-4 mr-2" />
                       Add Comment
                     </Button>
                   </DialogTrigger>
@@ -317,7 +308,7 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
                 {step.comments.length > 0 && (
                   <div className="mt-4">
                     <h5 className="font-medium mb-2 flex items-center gap-2">
-                      <MessageCircle className="h-4 w-4" />
+                      <ChatBubbleLeftIcon className="h-4 w-4" />
                       Comments ({step.comments.length})
                     </h5>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -325,7 +316,7 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
                         <div key={comment.id} className="bg-gray-50 rounded p-3">
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
-                              <User className="h-3 w-3 text-muted-foreground" />
+                              <UserIcon className="h-3 w-3 text-muted-foreground" />
                               <span className="font-medium text-sm">{comment.userName}</span>
                               <Badge variant="outline" className="text-xs">
                                 {getAuthLevelDisplayName(comment.userRole)}
@@ -360,7 +351,7 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
                       setShowCommentDialog(true);
                     }}
                   >
-                    <MessageCircle className="h-4 w-4 mr-2" />
+                    <ChatBubbleLeftIcon className="h-4 w-4 mr-2" />
                     Add Comment
                   </Button>
                 </div>
@@ -388,12 +379,12 @@ export function ReportApprovalWorkflowComponent({ report }: ReportApprovalWorkfl
           )}
 
           {report.approvalWorkflow.status === 'rejected' && (
-            <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="mt-6 bg-emerald-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-600" />
+                <XCircleIcon className="h-5 w-5 text-emerald-600" />
                 <h4 className="font-medium text-red-900">Workflow Rejected</h4>
               </div>
-              <p className="text-sm text-red-800 mt-1">
+              <p className="text-sm text-emerald-800 mt-1">
                 This report has been rejected and requires resubmission.
               </p>
             </div>

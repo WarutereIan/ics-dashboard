@@ -3,16 +3,9 @@ import { useForm } from '@/contexts/FormContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Wifi, 
-  WifiOff, 
-  Plus, 
-  Trash2, 
-  RefreshCw,
-  FileText,
-  Image,
-  User
-} from 'lucide-react';
+import { PlusIcon, TrashIcon, ArrowPathIcon, DocumentTextIcon, UserIcon } from '@heroicons/react/24/outline';
+import { Wifi, WifiOff, Image } from 'lucide-react';
+
 
 export function OfflineDemo() {
   const {
@@ -102,11 +95,11 @@ export function OfflineDemo() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{syncStatus.pendingItems}</div>
+              <div className="text-2xl font-bold text-emerald-600">{syncStatus.pendingItems}</div>
               <div className="text-sm text-gray-600">Pending Items</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{syncStatus.failedItems}</div>
+              <div className="text-2xl font-bold text-emerald-600">{syncStatus.failedItems}</div>
               <div className="text-sm text-gray-600">Failed Items</div>
             </div>
             <div className="text-center">
@@ -128,7 +121,7 @@ export function OfflineDemo() {
               onClick={addTestFormResponse}
               className="flex items-center space-x-2"
             >
-              <FileText className="w-4 h-4" />
+              <DocumentTextIcon className="w-4 h-4" />
               <span>Add Form Response</span>
             </Button>
             
@@ -137,7 +130,7 @@ export function OfflineDemo() {
               onClick={addTestFormCreate}
               className="flex items-center space-x-2"
             >
-              <Plus className="w-4 h-4" />
+              <PlusIcon className="w-4 h-4" />
               <span>Add Form Create</span>
             </Button>
             
@@ -164,7 +157,7 @@ export function OfflineDemo() {
               disabled={syncStatus.isSyncing || !isOnline}
               className="flex items-center space-x-2"
             >
-              <RefreshCw className="w-4 h-4" />
+              <ArrowPathIcon className="w-4 h-4" />
               <span>Process Queue</span>
             </Button>
             
@@ -174,7 +167,7 @@ export function OfflineDemo() {
               disabled={failedItems.length === 0}
               className="flex items-center space-x-2"
             >
-              <RefreshCw className="w-4 h-4" />
+              <ArrowPathIcon className="w-4 h-4" />
               <span>Retry Failed</span>
             </Button>
             
@@ -184,7 +177,7 @@ export function OfflineDemo() {
               disabled={queue.length === 0}
               className="flex items-center space-x-2"
             >
-              <Trash2 className="w-4 h-4" />
+              <TrashIcon className="w-4 h-4" />
               <span>Clear Queue</span>
             </Button>
           </div>

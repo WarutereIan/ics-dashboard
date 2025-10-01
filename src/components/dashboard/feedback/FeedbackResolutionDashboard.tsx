@@ -2,18 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Users,
-  MessageSquare,
-  BarChart3,
-  Calendar,
-  Target
-} from 'lucide-react';
+import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, UsersIcon, ChatBubbleLeftRightIcon, ChartBarIcon, CalendarIcon, FlagIcon } from '@heroicons/react/24/outline';
+
 import { useFeedback } from '@/contexts/FeedbackContext';
 import { FeedbackSubmission } from '@/types/feedback';
 
@@ -164,14 +154,14 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
   };
 
   const getTrendIcon = (trend: string) => {
-    return trend === 'up' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />;
+    return trend === 'up' ? <ArrowTrendingUpIcon className="w-4 h-4" /> : <ArrowTrendingDownIcon className="w-4 h-4" />;
   };
 
   const getTrendColor = (trend: string, change: number) => {
     if (trend === 'up') {
-      return change > 0 ? 'text-green-600' : 'text-red-600';
+      return change > 0 ? 'text-green-600' : 'text-emerald-600';
     } else {
-      return change < 0 ? 'text-green-600' : 'text-red-600';
+      return change < 0 ? 'text-green-600' : 'text-emerald-600';
     }
   };
 
@@ -199,11 +189,11 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline">
-            <Calendar className="w-4 h-4 mr-2" />
+            <CalendarIcon className="w-4 h-4 mr-2" />
             Last 30 Days
           </Button>
           <Button>
-            <BarChart3 className="w-4 h-4 mr-2" />
+            <ChartBarIcon className="w-4 h-4 mr-2" />
             Export Report
           </Button>
         </div>
@@ -224,7 +214,7 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
                   </span>
                 </div>
               </div>
-              <MessageSquare className="w-8 h-8 text-blue-600" />
+              <ChatBubbleLeftRightIcon className="w-8 h-8 text-emerald-600" />
             </div>
           </CardContent>
         </Card>
@@ -236,13 +226,13 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
                 <p className="text-sm font-medium text-gray-600">Resolved This Month</p>
                 <p className="text-2xl font-bold">{metrics.resolvedThisMonth}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <CheckCircleIcon className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-600">
                     {metrics.totalSubmissions > 0 ? Math.round((metrics.resolvedThisMonth / metrics.totalSubmissions) * 100) : 0}% resolution rate
                   </span>
                 </div>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <CheckCircleIcon className="w-8 h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -260,7 +250,7 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
                   </span>
                 </div>
               </div>
-              <Clock className="w-8 h-8 text-orange-600" />
+              <ClockIcon className="w-8 h-8 text-lime-600" />
             </div>
           </CardContent>
         </Card>
@@ -278,7 +268,7 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
                   </span>
                 </div>
               </div>
-              <Target className="w-8 h-8 text-purple-600" />
+              <FlagIcon className="w-8 h-8 text-emerald-600" />
             </div>
           </CardContent>
         </Card>
@@ -293,23 +283,23 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <MessageSquare className="w-5 h-5 text-blue-600" />
+                  <ChatBubbleLeftRightIcon className="w-5 h-5 text-emerald-600" />
                   <span className="font-medium">Active Cases</span>
                 </div>
                 <Badge variant="default">{metrics.activeCases}</Badge>
               </div>
-              <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-lime-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                  <ExclamationTriangleIcon className="w-5 h-5 text-lime-600" />
                   <span className="font-medium">Overdue Cases</span>
                 </div>
                 <Badge variant="destructive">{metrics.overdueCases}</Badge>
               </div>
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+              <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <TrendingUp className="w-5 h-5 text-red-600" />
+                  <ArrowTrendingUpIcon className="w-5 h-5 text-emerald-600" />
                   <span className="font-medium">Escalation Rate</span>
                 </div>
                 <Badge variant="destructive">{metrics.escalationRate}</Badge>
@@ -328,15 +318,15 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
               {Object.entries(metrics.teamWorkload).map(([member, workload]) => (
                 <div key={member} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Users className="w-4 h-4 text-gray-500" />
+                    <UsersIcon className="w-4 h-4 text-gray-500" />
                     <span className="font-medium">{member}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-20 bg-gray-200 rounded-full h-2">
                       <div 
                         className={`h-2 rounded-full ${
-                          workload > 6 ? 'bg-red-500' : 
-                          workload > 4 ? 'bg-orange-500' : 'bg-green-500'
+                          workload > 6 ? 'bg-emerald-500' : 
+                          workload > 4 ? 'bg-lime-500' : 'bg-green-500'
                         }`}
                         style={{ width: `${(workload / 10) * 100}%` }}
                       />
@@ -367,10 +357,10 @@ export function FeedbackResolutionDashboard({ projectId }: FeedbackResolutionDas
                   <div key={submission.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gray-100 rounded-full">
-                        {submission.status === 'RESOLVED' ? <CheckCircle className="w-4 h-4 text-green-600" /> :
-                         submission.status === 'ESCALATED' ? <AlertTriangle className="w-4 h-4 text-red-600" /> :
-                         submission.status === 'ACKNOWLEDGED' ? <MessageSquare className="w-4 h-4 text-blue-600" /> :
-                     <Clock className="w-4 h-4 text-orange-600" />}
+                        {submission.status === 'RESOLVED' ? <CheckCircleIcon className="w-4 h-4 text-green-600" /> :
+                         submission.status === 'ESCALATED' ? <ExclamationTriangleIcon className="w-4 h-4 text-emerald-600" /> :
+                         submission.status === 'ACKNOWLEDGED' ? <ChatBubbleLeftRightIcon className="w-4 h-4 text-emerald-600" /> :
+                     <ClockIcon className="w-4 h-4 text-lime-600" />}
                   </div>
                   <div>
                         <p className="font-medium">{title}</p>

@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Database, Plus, Settings, Eye, BarChart3, Calendar, Filter } from 'lucide-react';
+import { CircleStackIcon, PlusIcon, Cog6ToothIcon, EyeIcon, ChartBarIcon, CalendarIcon, FunnelIcon } from '@heroicons/react/24/outline';
+
 import { useNotification } from '@/hooks/useNotification';
 import { KoboDataService, TableStats } from '@/services/koboDataService';
 import { KoboTableViewer } from './kobo-data/KoboTableViewer';
@@ -121,7 +122,7 @@ export function KoboData() {
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <CircleStackIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">Loading Kobo data...</p>
           </div>
         </div>
@@ -139,7 +140,7 @@ export function KoboData() {
           </p>
         </div>
         <Button onClick={() => setShowAssignDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+          <PlusIcon className="h-4 w-4 mr-2" />
           Assign Table
         </Button>
       </div>
@@ -147,13 +148,13 @@ export function KoboData() {
       {koboTables.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Database className="h-12 w-12 text-gray-400 mb-4" />
+            <CircleStackIcon className="h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Kobo Tables Assigned</h3>
             <p className="text-gray-500 text-center mb-4">
               No Kobo form tables have been assigned to this project yet.
             </p>
             <Button onClick={() => setShowAssignDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+              <PlusIcon className="h-4 w-4 mr-2" />
               Assign Your First Table
             </Button>
           </CardContent>
@@ -214,7 +215,7 @@ export function KoboData() {
                             setSelectedTable(table);
                           }}
                         >
-                          <Eye className="h-4 w-4" />
+                          <EyeIcon className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
@@ -237,7 +238,7 @@ export function KoboData() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Database className="h-5 w-5 mr-2" />
+                    <CircleStackIcon className="h-5 w-5 mr-2" />
                     {selectedTable.displayName}
                   </CardTitle>
                   <CardDescription>

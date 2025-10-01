@@ -2,7 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, HelpCircle, GripVertical, Trash2, Copy } from 'lucide-react';
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { HiClipboard } from '@heroicons/react/24/outline';
+import { HelpCircle, GripVertical } from 'lucide-react';
+
 import { FeedbackForm, FeedbackFormSection, FeedbackQuestion, FeedbackQuestionType } from '@/types/feedback';
 
 interface QuestionsStepProps {
@@ -77,7 +80,7 @@ export function QuestionsStep({
               Start by adding a section to organize your feedback form questions
             </p>
             <Button onClick={onAddSection}>
-              <Plus className="w-4 h-4 mr-2" />
+              <PlusIcon className="w-4 h-4 mr-2" />
               Add First Section
             </Button>
           </CardContent>
@@ -99,7 +102,7 @@ export function QuestionsStep({
                       onClick={() => onRemoveSection(section.id)}
                       disabled={form.sections.length === 1}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <TrashIcon className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -185,14 +188,14 @@ export function QuestionsStep({
                                 size="sm"
                                 onClick={() => onDuplicateQuestion(question.id)}
                               >
-                                <Copy className="w-4 h-4" />
+                                <ClipboardIcon className="w-4 h-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => onRemoveQuestion(question.id)}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <TrashIcon className="w-4 h-4" />
                               </Button>
                             </div>
                           </div>
@@ -207,7 +210,7 @@ export function QuestionsStep({
 
           {/* Add Section Button */}
           <Button variant="outline" onClick={onAddSection} className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
+            <PlusIcon className="w-4 h-4 mr-2" />
             Add Another Section
           </Button>
         </div>
@@ -215,9 +218,9 @@ export function QuestionsStep({
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-emerald-50">
           <CardContent className="pt-6">
-            <div className="text-red-800">
+            <div className="text-emerald-800">
               <p className="font-medium mb-2">Please fix the following issues:</p>
               <ul className="list-disc list-inside space-y-1">
                 {validationErrors.map((error, index) => (

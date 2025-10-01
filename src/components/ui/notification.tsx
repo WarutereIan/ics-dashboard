@@ -1,5 +1,6 @@
 import React from 'react';
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+
 import { Notification } from '@/types/notification';
 import { Button } from './button';
 
@@ -11,15 +12,15 @@ interface NotificationItemProps {
 const getNotificationIcon = (type: Notification['type']) => {
   switch (type) {
     case 'success':
-      return <CheckCircle className="h-5 w-5 text-green-500" />;
+      return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
     case 'error':
-      return <AlertCircle className="h-5 w-5 text-red-500" />;
+      return <ExclamationCircleIcon className="h-5 w-5 text-red-500" />;
     case 'warning':
-      return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      return <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500" />;
     case 'info':
-      return <Info className="h-5 w-5 text-blue-500" />;
+      return <InformationCircleIcon className="h-5 w-5 text-blue-500" />;
     default:
-      return <Info className="h-5 w-5 text-blue-500" />;
+      return <InformationCircleIcon className="h-5 w-5 text-blue-500" />;
   }
 };
 
@@ -28,13 +29,13 @@ const getNotificationStyles = (type: Notification['type']) => {
     case 'success':
       return 'bg-green-50 border-green-200 text-green-800';
     case 'error':
-      return 'bg-red-50 border-red-200 text-red-800';
+      return 'bg-emerald-50 border-red-200 text-emerald-800';
     case 'warning':
       return 'bg-yellow-50 border-yellow-200 text-yellow-800';
     case 'info':
-      return 'bg-blue-50 border-blue-200 text-blue-800';
+      return 'bg-emerald-50 border-blue-200 text-emerald-800';
     default:
-      return 'bg-blue-50 border-blue-200 text-blue-800';
+      return 'bg-emerald-50 border-blue-200 text-emerald-800';
   }
 };
 
@@ -74,7 +75,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({ notification
         className="flex-shrink-0 h-6 w-6 p-0 hover:bg-black/10"
         onClick={() => onRemove(notification.id)}
       >
-        <X className="h-4 w-4" />
+        <XMarkIcon className="h-4 w-4" />
       </Button>
     </div>
   );

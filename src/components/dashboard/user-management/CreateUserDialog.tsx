@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, User, Shield, Building, Globe, Eye, EyeOff, Check } from 'lucide-react';
+import { PlusIcon, XMarkIcon, UserIcon, GlobeAltIcon, EyeIcon, EyeSlashIcon, CheckIcon, ShieldCheckIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
+
 import { Role, RoleAssignment } from '@/services/userManagementService';
 import { useProjects } from '@/contexts/ProjectsContext';
 import { useNotification } from '@/hooks/useNotification';
@@ -168,7 +169,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+            <UserIcon className="h-5 w-5" />
             Create New User
           </DialogTitle>
           <DialogDescription>
@@ -242,9 +243,9 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeSlashIcon className="h-4 w-4" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <EyeIcon className="h-4 w-4" />
                       )}
                     </button>
                   </div>
@@ -275,9 +276,9 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                       className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                     >
                       {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeSlashIcon className="h-4 w-4" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <EyeIcon className="h-4 w-4" />
                       )}
                     </button>
                   </div>
@@ -289,7 +290,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                     if (validation.showSuccess) {
                       return (
                         <p className="text-sm text-green-500 flex items-center gap-1">
-                          <Check className="h-3 w-3" />
+                          <CheckIcon className="h-3 w-3" />
                           {validation.message}
                         </p>
                       );
@@ -309,7 +310,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
+                  <ShieldCheckIcon className="h-5 w-5" />
                   Role Assignments
                 </CardTitle>
                 <Button
@@ -319,7 +320,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                   onClick={addRoleAssignment}
                   className="flex items-center gap-2"
                 >
-                  <Plus className="h-4 w-4" />
+                  <PlusIcon className="h-4 w-4" />
                   Add Role
                 </Button>
               </div>
@@ -327,7 +328,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
             <CardContent>
               {roleAssignments.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <ShieldCheckIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No roles assigned. Click "Add Role" to assign roles to this user.</p>
                 </div>
               ) : (
@@ -343,9 +344,9 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                             variant="ghost"
                             size="sm"
                             onClick={() => removeRoleAssignment(index)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-emerald-600 hover:text-emerald-700"
                           >
-                            <X className="h-4 w-4" />
+                            <XMarkIcon className="h-4 w-4" />
                           </Button>
                         </div>
 
@@ -382,7 +383,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                           <div className="space-y-4">
                             <div className="space-y-2">
                               <Label className="flex items-center gap-2">
-                                <Building className="h-4 w-4" />
+                                <BuildingOfficeIcon className="h-4 w-4" />
                                 Project (Optional)
                               </Label>
                               <Select
@@ -410,7 +411,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit, roles }: Create
                             {assignment.projectId && assignment.country && (
                               <div className="space-y-2">
                                 <Label className="flex items-center gap-2">
-                                  <Globe className="h-4 w-4" />
+                                  <GlobeAltIcon className="h-4 w-4" />
                                   Country
                                 </Label>
                                 <div className="flex items-center gap-2 p-2 bg-muted rounded-md">

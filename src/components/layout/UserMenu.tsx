@@ -1,5 +1,6 @@
 import React from 'react';
-import { LogOut, Settings, User } from 'lucide-react';
+import { ArrowRightOnRectangleIcon, Cog6ToothIcon, UserIcon } from '@heroicons/react/24/outline';
+
 import { UserRole } from '@/types/dashboard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -76,16 +77,16 @@ export function UserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate('/dashboard/profile')}>
-          <User className="mr-2 h-4 w-4" />
+          <UserIcon className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>
-          <Settings className="mr-2 h-4 w-4" />
+          <Cog6ToothIcon className="mr-2 h-4 w-4" />
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" /> Logout
+          <ArrowRightOnRectangleIcon className="mr-2 h-4 w-4" /> Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

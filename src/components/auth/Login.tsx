@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
+import { EyeIcon, EyeSlashIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
+import { LockClosedIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+
 
 interface LoginProps {}
 
@@ -85,7 +87,7 @@ export const Login: React.FC<LoginProps> = () => {
 
   // Demo credentials for testing
   const demoCredentials = [
-    { email: 'admin@icsafrica.org', password: 'admin123', role: 'Global Administrator' },
+    { email: 'admin@demo.org', password: 'admin123', role: 'Global Administrator' },
   ];
 
   return (
@@ -94,8 +96,8 @@ export const Login: React.FC<LoginProps> = () => {
         {/* Main Login Form */}
         <Card className="shadow-lg">
           <CardHeader className="space-y-2 text-center">
-            <img src="/logo.png" alt="ICS Logo" className="h-12 w-auto mx-auto mb-4" />
-            <CardTitle className="text-2xl font-bold text-gray-900">IDMS Dashboard</CardTitle>
+          {/*   <img src="/logo.png" alt="ICS Logo" className="h-12 w-auto mx-auto mb-4" /> */}
+            <CardTitle className="text-2xl font-bold text-gray-900">Data and Information M&E System</CardTitle>
             <p className="text-sm text-gray-600">Sign in to your account</p>
            
           </CardHeader>
@@ -104,7 +106,7 @@ export const Login: React.FC<LoginProps> = () => {
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <EnvelopeIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
@@ -120,7 +122,7 @@ export const Login: React.FC<LoginProps> = () => {
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <LockClosedIcon className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -138,9 +140,9 @@ export const Login: React.FC<LoginProps> = () => {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeSlashIcon className="h-4 w-4 text-gray-400" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <EyeIcon className="h-4 w-4 text-gray-400" />
                     )}
                   </Button>
                 </div>
@@ -159,7 +161,7 @@ export const Login: React.FC<LoginProps> = () => {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <ArrowPathIcon className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...
                   </>
                 ) : (

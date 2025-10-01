@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { DollarSign, Calculator, AlertCircle, Loader2 } from 'lucide-react';
+import { CurrencyDollarIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { Calculator, Loader2 } from 'lucide-react';
+
 import { Activity } from '@/types/dashboard';
 import { CreateActivityFinancialDataDto } from '@/lib/api/financialApi';
 
@@ -148,22 +150,22 @@ export function AddFinancialDataModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-green-600" />
+            <CurrencyDollarIcon className="w-5 h-5 text-green-600" />
             Add Financial Data for {activity?.title}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Activity Info */}
-          <div className="bg-blue-50 rounded-lg p-4">
+          <div className="bg-emerald-50 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Calculator className="w-4 h-4 text-blue-600" />
-              <h3 className="font-medium text-blue-900">Activity Information</h3>
+              <Calculator className="w-4 h-4 text-emerald-600" />
+              <h3 className="font-medium text-emerald-900">Activity Information</h3>
             </div>
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-emerald-700">
               <strong>Activity:</strong> {activity?.title}
             </p>
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-emerald-700">
               <strong>Year:</strong> {year}
             </p>
           </div>
@@ -180,7 +182,7 @@ export function AddFinancialDataModal({
               className={errors.activityTitle ? 'border-red-500' : ''}
             />
             {errors.activityTitle && (
-              <p className="text-sm text-red-600">{errors.activityTitle}</p>
+              <p className="text-sm text-emerald-600">{errors.activityTitle}</p>
             )}
           </div>
 
@@ -188,7 +190,7 @@ export function AddFinancialDataModal({
           <div className="space-y-2">
             <Label htmlFor="totalBudget">Total Annual Budget * (USD)</Label>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <CurrencyDollarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
               <Input
                 id="totalBudget"
                 type="number"
@@ -202,7 +204,7 @@ export function AddFinancialDataModal({
               />
             </div>
             {errors.totalAnnualBudget && (
-              <p className="text-sm text-red-600">{errors.totalAnnualBudget}</p>
+              <p className="text-sm text-emerald-600">{errors.totalAnnualBudget}</p>
             )}
           </div>
 
@@ -218,7 +220,7 @@ export function AddFinancialDataModal({
               <div className="space-y-2">
                 <Label htmlFor="q1Cost">Q1 Cost</Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <CurrencyDollarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <Input
                     id="q1Cost"
                     type="number"
@@ -237,7 +239,7 @@ export function AddFinancialDataModal({
               <div className="space-y-2">
                 <Label htmlFor="q2Cost">Q2 Cost</Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <CurrencyDollarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <Input
                     id="q2Cost"
                     type="number"
@@ -256,7 +258,7 @@ export function AddFinancialDataModal({
               <div className="space-y-2">
                 <Label htmlFor="q3Cost">Q3 Cost</Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <CurrencyDollarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <Input
                     id="q3Cost"
                     type="number"
@@ -275,7 +277,7 @@ export function AddFinancialDataModal({
               <div className="space-y-2">
                 <Label htmlFor="q4Cost">Q4 Cost</Label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <CurrencyDollarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <Input
                     id="q4Cost"
                     type="number"
@@ -299,12 +301,12 @@ export function AddFinancialDataModal({
               </div>
               <div className="flex justify-between text-sm">
                 <span>Remaining Budget:</span>
-                <span className={`font-medium ${remainingBudget < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                <span className={`font-medium ${remainingBudget < 0 ? 'text-emerald-600' : 'text-green-600'}`}>
                   ${remainingBudget.toFixed(2)}
                 </span>
               </div>
               {remainingBudget < 0 && (
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-emerald-600">
                   ⚠️ Quarterly allocation exceeds total budget
                 </p>
               )}
@@ -312,7 +314,7 @@ export function AddFinancialDataModal({
 
             {errors.quarterly && (
               <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
+                <ExclamationCircleIcon className="h-4 w-4" />
                 <AlertDescription>{errors.quarterly}</AlertDescription>
               </Alert>
             )}
@@ -334,7 +336,7 @@ export function AddFinancialDataModal({
           {/* Submit Error */}
           {errors.submit && (
             <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
+              <ExclamationCircleIcon className="h-4 w-4" />
               <AlertDescription>{errors.submit}</AlertDescription>
             </Alert>
           )}

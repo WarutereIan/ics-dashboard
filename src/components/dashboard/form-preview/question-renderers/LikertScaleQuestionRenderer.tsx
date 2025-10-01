@@ -83,7 +83,7 @@ export function LikertScaleQuestionRenderer({
               
                                 {/* Scale Type Badge */}
                   <div className="flex justify-center">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                       {(statement.scaleType || '5_POINT').replace('_', '-')} Scale
                     </span>
                   </div>
@@ -101,7 +101,7 @@ export function LikertScaleQuestionRenderer({
                         checked={value[statement.id] === option.value}
                         onChange={(e) => handleStatementChange(statement.id, e.target.value)}
                         disabled={isPreviewMode}
-                        className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        className="w-4 h-4 border-gray-300 text-emerald-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       />
                       <Label 
                         htmlFor={`${question.id}-${index}-${option.value}`}

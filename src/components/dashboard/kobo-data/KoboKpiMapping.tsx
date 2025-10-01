@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Settings, Trash2, BarChart3, Calendar, Filter } from 'lucide-react';
+import { PlusIcon, Cog6ToothIcon, TrashIcon, ChartBarIcon, CalendarIcon, FunnelIcon } from '@heroicons/react/24/outline';
+
 import { useNotification } from '@/hooks/useNotification';
 import { KoboDataService, KoboKpiMapping as KoboKpiMappingType, ProjectKoboTable, TableColumn } from '@/services/koboDataService';
 import { useProjects } from '@/contexts/ProjectsContext';
@@ -153,7 +154,7 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
-          <BarChart3 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <ChartBarIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
           <p className="text-gray-500">Loading KPI mappings...</p>
         </div>
       </div>
@@ -172,7 +173,7 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-2" />
+              <PlusIcon className="h-4 w-4 mr-2" />
               Create Mapping
             </Button>
           </DialogTrigger>
@@ -339,13 +340,13 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
       {mappings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <BarChart3 className="h-12 w-12 text-gray-400 mb-4" />
+            <ChartBarIcon className="h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-semibold mb-2">No KPI Mappings</h3>
             <p className="text-gray-500 text-center mb-4">
               No KPI mappings have been created yet. Create mappings to automatically calculate KPIs from Kobo data.
             </p>
             <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+              <PlusIcon className="h-4 w-4 mr-2" />
               Create Your First Mapping
             </Button>
           </CardContent>
@@ -396,7 +397,7 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
                         {mapping.columnName}
                       </TableCell>
                       <TableCell className="border-r px-3 py-3">
-                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
                           {getAggregationMethodLabel(mapping.aggregationMethod)}
                         </span>
                       </TableCell>
@@ -404,11 +405,11 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
                         {mapping.timeFilterField && mapping.timeFilterValue ? (
                           <div className="text-sm">
                             <div className="flex items-center text-gray-900">
-                              <Calendar className="h-3 w-3 mr-1" />
+                              <CalendarIcon className="h-3 w-3 mr-1" />
                               {mapping.timeFilterField}
                             </div>
                             <div className="flex items-center text-gray-500 text-xs">
-                              <Filter className="h-3 w-3 mr-1" />
+                              <FunnelIcon className="h-3 w-3 mr-1" />
                               Last {mapping.timeFilterValue} days
                             </div>
                           </div>
@@ -430,9 +431,9 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeleteMapping(mapping.id)}
-                          className="h-8 w-8 p-0 hover:bg-red-50 hover:border-red-200"
+                          className="h-8 w-8 p-0 hover:bg-emerald-50 hover:border-red-200"
                         >
-                          <Trash2 className="h-4 w-4 text-red-600" />
+                          <TrashIcon className="h-4 w-4 text-emerald-600" />
                         </Button>
                       </TableCell>
                     </TableRow>

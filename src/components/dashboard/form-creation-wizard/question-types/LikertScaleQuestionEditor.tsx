@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { GripVertical } from 'lucide-react';
+
 import { BaseQuestionEditor } from './BaseQuestionEditor';
 import { LikertScaleQuestion, LikertScaleStatement, ActivityKPIMapping, FormQuestion } from '../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -241,7 +243,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
               onClick={addStatement}
               className="flex items-center gap-2"
             >
-              <Plus className="w-4 h-4" />
+              <PlusIcon className="w-4 h-4" />
               Add Statement
             </Button>
           </div>
@@ -341,9 +343,9 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
                     size="sm"
                     onClick={() => removeStatement(index)}
                                          disabled={safeStatements.length <= 1}
-                    className="text-red-600"
+                    className="text-emerald-600"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <TrashIcon className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -353,7 +355,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
 
         {/* Preview */}
         <div className="p-4 border rounded-lg bg-white">
-          <Label className="text-sm font-medium mb-4 block text-blue-600">Preview</Label>
+          <Label className="text-sm font-medium mb-4 block text-emerald-600">Preview</Label>
                      <div className="space-y-6">
              {safeStatements.map((statement: LikertScaleStatement, index: number) => {
               const scaleOptions = getScaleOptions(statement.scaleType || '5_POINT', statement.customLabels);
@@ -367,7 +369,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
                   
                   {/* Scale Type Badge */}
                   <div className="flex justify-center">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
                       {(statement.scaleType || '5_POINT').replace('_', '-')} Scale
                     </span>
                   </div>
@@ -384,7 +386,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
                             value={option.value}
                             checked={selectedOptions[index] === option.value}
                             onChange={(e) => handleStatementChange(index, e.target.value)}
-                            className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            className="w-4 h-4 border-gray-300 text-emerald-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                           />
                           <Label 
                             htmlFor={`preview-${index}-${option.value}`}
@@ -407,7 +409,7 @@ export function LikertScaleQuestionEditor(props: LikertScaleQuestionEditorProps)
         </div>
 
         {/* Data Information */}
-       {/*  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+       {/*  <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
           <div>
             <p className="text-sm font-medium">Database Storage</p>
             <p className="text-xs text-gray-600">

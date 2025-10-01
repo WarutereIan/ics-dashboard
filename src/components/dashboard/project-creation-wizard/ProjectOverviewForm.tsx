@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, MapPin, FileText, Image, X, Target } from 'lucide-react';
+import { ArrowUpTrayIcon, MapPinIcon, DocumentTextIcon, XMarkIcon, FlagIcon } from '@heroicons/react/24/outline';
+import { Image } from 'lucide-react';
+
 import { ProjectFormData, ProjectMapFormData, TheoryOfChangeFormData } from './types';
 
 interface ProjectOverviewFormProps {
@@ -81,7 +83,7 @@ export function ProjectOverviewForm({ projectData, onUpdate }: ProjectOverviewFo
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+            <DocumentTextIcon className="h-5 w-5" />
             Background Information
           </CardTitle>
           <CardDescription>
@@ -109,7 +111,7 @@ export function ProjectOverviewForm({ projectData, onUpdate }: ProjectOverviewFo
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
+            <MapPinIcon className="h-5 w-5" />
             Map Visualization
           </CardTitle>
           <CardDescription>
@@ -245,7 +247,7 @@ export function ProjectOverviewForm({ projectData, onUpdate }: ProjectOverviewFo
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
+            <FlagIcon className="h-5 w-5" />
             Theory of Change (TOC)
           </CardTitle>
           <CardDescription>
@@ -289,7 +291,7 @@ export function ProjectOverviewForm({ projectData, onUpdate }: ProjectOverviewFo
                       onClick={removeImage}
                       className="absolute top-2 right-2"
                     >
-                      <X className="h-4 w-4" />
+                      <XMarkIcon className="h-4 w-4" />
                     </Button>
                   </div>
                   <div>
@@ -306,7 +308,7 @@ export function ProjectOverviewForm({ projectData, onUpdate }: ProjectOverviewFo
                 </div>
               ) : (
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <ArrowUpTrayIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <Label htmlFor="tocImageUpload" className="cursor-pointer">
                     <Button variant="outline" asChild>
                       <span>Upload Theory of Change Image</span>

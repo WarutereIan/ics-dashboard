@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Send, Save, AlertCircle } from 'lucide-react';
+import { CheckIcon, ExclamationCircleIcon, ArrowLeftIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
+
 import { QuestionRenderer } from './QuestionRenderer';
 import { Form, FormQuestion, FormResponse } from '../form-creation-wizard/types';
 
@@ -334,13 +335,13 @@ export function FormPreview({
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
-              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <ExclamationCircleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Form Not Found</h3>
               <p className="text-gray-600 mb-4">
                 The requested form could not be loaded.
               </p>
               <Button onClick={handleBack}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeftIcon className="w-4 h-4 mr-2" />
                 Go Back
               </Button>
             </div>
@@ -362,18 +363,18 @@ export function FormPreview({
                 onClick={handleBack}
                 className="flex items-center gap-2"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeftIcon className="w-4 h-4" />
                 Back
               </Button>
             )}
             
             {isPreviewMode && (
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+              <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
                 Preview Mode
               </Badge>
             )}
             {editMode && (
-              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+              <Badge variant="secondary" className="bg-lime-100 text-orange-800">
                 Edit Mode
               </Badge>
             )}
@@ -464,7 +465,7 @@ export function FormPreview({
                     disabled={isSubmitting}
                     className="flex items-center gap-2"
                   >
-                    <Save className="w-4 h-4" />
+                    <CheckIcon className="w-4 h-4" />
                     Save Draft
                   </Button>
                 )}
@@ -475,7 +476,7 @@ export function FormPreview({
                     disabled={isSubmitting || externalLoading}
                     className="flex items-center gap-2"
                   >
-                    <Send className="w-4 h-4" />
+                    <PaperAirplaneIcon className="w-4 h-4" />
                     {(isSubmitting || externalLoading)
                       ? (editMode ? 'Updating...' : 'Submitting...') 
                       : (editMode ? 'Update Response' : 'Submit Form')
