@@ -4,6 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Search, Globe } from 'lucide-react';
 import countryList from 'country-list';
 
+interface Country {
+  code: string;
+  name: string;
+}
+
 interface CountrySelectorProps {
   value?: string;
   onValueChange: (value: string) => void;
@@ -20,21 +25,21 @@ export function CountrySelector({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Get countries data and sort alphabetically
-  const countries = useMemo(() => {
+  const countries = useMemo((): Country[] => {
     return countryList.getData()
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a: Country, b: Country) => a.name.localeCompare(b.name));
   }, []);
 
   // Filter countries based on search term
-  const filteredCountries = useMemo(() => {
+  const filteredCountries = useMemo((): Country[] => {
     if (!searchTerm) return countries;
-    return countries.filter(country =>
+    return countries.filter((country: Country) =>
       country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       country.code.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [countries, searchTerm]);
 
-  const selectedCountry = countries.find(country => country.code === value);
+  const selectedCountry = countries.find((country: Country) => country.code === value);
 
   return (
     <Select value={value} onValueChange={onValueChange}>
@@ -62,7 +67,7 @@ export function CountrySelector({
         </div>
         <div className="max-h-[200px] overflow-y-auto">
           {filteredCountries.length > 0 ? (
-            filteredCountries.map((country) => (
+            filteredCountries.map((country: Country) => (
               <SelectItem key={country.code} value={country.code}>
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4" />
