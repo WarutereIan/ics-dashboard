@@ -133,7 +133,7 @@ function AppWithNotifications() {
             <FeedbackProvider projectId="organization">
               <FeedbackSubmissionInterface 
                 projectId="organization" 
-                projectName="ICS Organization" 
+                projectName="WISD Organization" 
               />
             </FeedbackProvider>
           } />
@@ -157,7 +157,7 @@ function AppWithNotifications() {
                           {/* Organization routes */}
                           <Route path="strategic-plan/create" element={<StrategicPlanCreate />} />
                           <Route path="strategic-plan/edit" element={<StrategicPlanEdit />} />
-                          <Route path="feedback/*" element={<FeedbackRoutes projectId="organization" projectName="ICS Organization" />} />
+                          <Route path="feedback/*" element={<FeedbackRoutes projectId="organization" projectName="WISD Organization" />} />
                           {/* Admin-only project creation */}
                           <Route path="projects/create" element={<ProtectedRoute roles={['global-admin', 'country-admin', 'project-admin']} />}>
                             <Route index element={<ProjectCreationWizard />} />

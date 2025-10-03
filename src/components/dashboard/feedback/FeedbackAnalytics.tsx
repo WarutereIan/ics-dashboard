@@ -6,6 +6,6 @@ interface FeedbackAnalyticsProps {
   projectName?: string;
 }
 
-export function FeedbackAnalytics({ projectId, projectName = "ICS Organization" }: FeedbackAnalyticsProps) {
+export function FeedbackAnalytics({ projectId, projectName = "WISD Organization" }: FeedbackAnalyticsProps) {
   return <FeedbackResolutionDashboard projectId={projectId} />;
 }

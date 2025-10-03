@@ -15,7 +15,7 @@ interface FeedbackSubmissionsViewProps {
   projectName?: string;
 }
 
-export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organization" }: FeedbackSubmissionsViewProps) {
+export function FeedbackSubmissionsView({ projectId, projectName = "WISD Organization" }: FeedbackSubmissionsViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');

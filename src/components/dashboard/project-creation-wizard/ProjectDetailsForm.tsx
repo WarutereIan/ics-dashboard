@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
+import { CountrySelector } from '@/components/ui/country-selector';
 import { ProjectFormData } from './types';
 
 interface ProjectDetailsFormProps {
@@ -26,17 +27,11 @@ export function ProjectDetailsForm({ projectData, onProjectChange }: ProjectDeta
         </div>
         <div>
           <Label htmlFor="country">Country *</Label>
-          <Select value={projectData.country} onValueChange={(value) => onProjectChange('country', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select country" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="kenya">Kenya</SelectItem>
-              <SelectItem value="tanzania">Tanzania</SelectItem>
-              <SelectItem value="cote d'ivoire">Côte d'Ivoire</SelectItem>
-             
-            </SelectContent>
-          </Select>
+          <CountrySelector
+            value={projectData.country}
+            onValueChange={(value) => onProjectChange('country', value)}
+            placeholder="Select country"
+          />
         </div>
       </div>
 

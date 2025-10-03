@@ -17,7 +17,7 @@ interface FeedbackFormManagementProps {
   projectName?: string;
 }
 
-export function FeedbackFormManagement({ projectId, projectName = "ICS Organization" }: FeedbackFormManagementProps) {
+export function FeedbackFormManagement({ projectId, projectName = "WISD Organization" }: FeedbackFormManagementProps) {
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { forms, categories, submissions, loading } = useFeedback();

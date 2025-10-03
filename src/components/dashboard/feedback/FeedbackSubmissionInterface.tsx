@@ -323,7 +323,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
                   <EnvelopeIcon className="w-5 h-5 text-emerald-600" />
                   <div>
                     <p className="font-medium">Emergency Email</p>
-                    <p className="text-sm text-gray-600">emergency@ics-program.org</p>
+                    <p className="text-sm text-gray-600">emergency@wisd-program.org</p>
                   </div>
                 </div>
               </div>
@@ -335,7 +335,7 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
                   <EnvelopeIcon className="w-5 h-5 text-emerald-600" />
                   <div>
                     <p className="font-medium">Feedback Email</p>
-                    <p className="text-sm text-gray-600">feedback@ics-program.org</p>
+                    <p className="text-sm text-gray-600">feedback@wisd-program.org</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
