@@ -122,6 +122,8 @@ export interface ChoiceOption {
   isOther?: boolean; // Allows custom text input
   hasConditionalQuestions?: boolean; // Whether this option has conditional questions
   conditionalQuestions?: FormQuestion[]; // Questions that appear when this option is selected
+  // ID of the conditional section to display when this option is selected
+  assignedSectionId?: string;
 }
 
 export interface SingleChoiceQuestion extends BaseQuestion {

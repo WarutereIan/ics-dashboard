@@ -1046,7 +1046,7 @@ export function FormProvider({ children }: FormProviderProps) {
     }
 
     // Check if any choice question option has assigned this section
-    for (const [questionId, response] of Object.entries(responses)) {
+    /* for (const [questionId, response] of Object.entries(responses)) {
       const question = form?.sections
         ?.flatMap(s => s.questions)
         ?.find(q => q.id === questionId);
@@ -1072,7 +1072,7 @@ export function FormProvider({ children }: FormProviderProps) {
           }
         }
       }
-    }
+    } */
 
     return false; // Don't show section if no choice option assigned it
   }, []);
