@@ -138,7 +138,8 @@ interface FormContextType {
   getConditionalQuestions: (form: Form) => FormQuestion[];
   getConditionalResponses: (response: FormResponse, questionId: string) => Record<string, any>;
   validateConditionalQuestions: (form: Form, responses: Record<string, any>) => Record<string, string>;
-  getFormStatistics: (form: Form) => { totalQuestions: number; conditionalQuestions: number; totalOptions: number };
+  shouldShowSection: (section: any, responses: Record<string, any>) => boolean;
+  getFormStatistics: (form: Form) => { totalQuestions: number; conditionalQuestions: number; conditionalSections: number; totalOptions: number };
   projectForms: Record<string, Form[]>;
 }
 
@@ -202,7 +203,25 @@ export function FormProvider({ children }: FormProviderProps) {
     try {
       const storedQueue = localStorage.getItem('formOfflineQueue');
       if (storedQueue) {
-        const queue = JSON.parse(storedQueue);
+        const rawQueue = JSON.parse(storedQueue);
+        // Sanitize any legacy queued items to only include API-allowed fields
+        const queue = (rawQueue as OfflineQueueItem[]).map(item => {
+          if (item.type === 'form_response') {
+            const d = item.data || {};
+            const sanitized = {
+              formId: d.formId,
+              respondentId: d.respondentId,
+              respondentEmail: d.respondentEmail,
+              isComplete: d.isComplete,
+              ipAddress: d.ipAddress,
+              userAgent: d.userAgent,
+              source: d.source,
+              data: d.data,
+            };
+            return { ...item, data: sanitized } as OfflineQueueItem;
+          }
+          return item;
+        });
         setOfflineQueue(queue);
         setSyncStatus(prev => ({ ...prev, pendingItems: queue.length }));
       }
@@ -602,7 +621,17 @@ export function FormProvider({ children }: FormProviderProps) {
   const addFormResponseToStorage = useCallback(async (response: FormResponse): Promise<FormResponse | null> => {
     try {
       if (!isOnline) {
-        addToOfflineQueue('form_response', response);
+        // Queue only allowed DTO fields for API
+        addToOfflineQueue('form_response', {
+          formId: response.formId,
+          respondentId: response.respondentId,
+          respondentEmail: response.respondentEmail,
+          isComplete: response.isComplete,
+          ipAddress: (response as any).ipAddress,
+          userAgent: (response as any).userAgent,
+          source: (response as any).source,
+          data: response.data
+        });
         toast({
           title: "Offline Mode",
           description: "Response will be submitted when you're back online",
@@ -636,8 +665,17 @@ export function FormProvider({ children }: FormProviderProps) {
         description: errorMessage,
         variant: "destructive",
       });
-      
-      addToOfflineQueue('form_response', response);
+      // Fallback to queueing allowed DTO only
+      addToOfflineQueue('form_response', {
+        formId: response.formId,
+        respondentId: response.respondentId,
+        respondentEmail: response.respondentEmail,
+        isComplete: response.isComplete,
+        ipAddress: (response as any).ipAddress,
+        userAgent: (response as any).userAgent,
+        source: (response as any).source,
+        data: response.data
+      });
       return null;
     }
   }, [isOnline, addToOfflineQueue]);
@@ -1000,10 +1038,54 @@ export function FormProvider({ children }: FormProviderProps) {
     return {};
   }, []);
 
+  // Helper function to evaluate section conditionals
+  const shouldShowSection = useCallback((section: any, responses: Record<string, any>, form?: Form): boolean => {
+    // If section is not marked as conditional, show it
+    if (!section.conditional) {
+      return true;
+    }
+
+    // Check if any choice question option has assigned this section
+    for (const [questionId, response] of Object.entries(responses)) {
+      const question = form?.sections
+        ?.flatMap(s => s.questions)
+        ?.find(q => q.id === questionId);
+      
+      if (question && (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE')) {
+        const options = question.options || [];
+        
+        if (question.type === 'SINGLE_CHOICE') {
+          // Single choice: check if selected option has this section assigned
+          const selectedOption = options.find(opt => opt.value === response);
+          if (selectedOption?.assignedSectionId === section.id) {
+            return true;
+          }
+        } else if (question.type === 'MULTIPLE_CHOICE') {
+          // Multiple choice: check if any selected option has this section assigned
+          const selectedValues = Array.isArray(response) ? response : [response];
+          const hasAssignedSection = selectedValues.some(selectedValue => {
+            const selectedOption = options.find(opt => opt.value === selectedValue);
+            return selectedOption?.assignedSectionId === section.id;
+          });
+          if (hasAssignedSection) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false; // Don't show section if no choice option assigned it
+  }, []);
+
   const validateConditionalQuestions = useCallback((form: Form, responses: Record<string, any>): Record<string, string> => {
     const errors: Record<string, string> = {};
     
     form.sections?.forEach(section => {
+      // Only validate questions in visible sections
+      if (!shouldShowSection(section, responses, form)) {
+        return;
+      }
+
       section.questions?.forEach(question => {
         if (question.conditional && question.isRequired) {
           const triggerQuestionId = question.conditional.dependsOn;
@@ -1019,14 +1101,19 @@ export function FormProvider({ children }: FormProviderProps) {
     });
     
     return errors;
-  }, []);
+  }, [shouldShowSection]);
 
-  const getFormStatistics = useCallback((form: Form): { totalQuestions: number; conditionalQuestions: number; totalOptions: number } => {
+  const getFormStatistics = useCallback((form: Form): { totalQuestions: number; conditionalQuestions: number; conditionalSections: number; totalOptions: number } => {
     let totalQuestions = 0;
     let conditionalQuestions = 0;
+    let conditionalSections = 0;
     let totalOptions = 0;
     
     form.sections?.forEach(section => {
+      if (section.conditional) {
+        conditionalSections++;
+      }
+      
       section.questions?.forEach(question => {
         totalQuestions++;
         
@@ -1044,6 +1131,7 @@ export function FormProvider({ children }: FormProviderProps) {
     return {
       totalQuestions,
       conditionalQuestions,
+      conditionalSections,
       totalOptions
     };
   }, []);
@@ -1097,6 +1185,7 @@ export function FormProvider({ children }: FormProviderProps) {
     getConditionalQuestions,
     getConditionalResponses,
     validateConditionalQuestions,
+    shouldShowSection,
     getFormStatistics,
     projectForms,
   };
