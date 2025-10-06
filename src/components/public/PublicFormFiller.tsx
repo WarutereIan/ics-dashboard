@@ -145,6 +145,13 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   }, [form?.id, responses, currentSectionIndex]);
 
   const handleResponseChange = (questionId: string, value: any) => {
+    console.log('🔄 Main question response changed:', {
+      questionId,
+      value,
+      currentSection: currentSection?.title,
+      allResponses: { ...responses, [questionId]: value }
+    });
+    
     setResponses(prev => ({
       ...prev,
       [questionId]: value
@@ -152,6 +159,13 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   };
 
   const handleConditionalChange = (questionId: string, value: any) => {
+    console.log('🔄 Conditional response changed:', {
+      questionId,
+      value,
+      currentSection: currentSection?.title,
+      allConditionalResponses: { ...conditionalResponses, [questionId]: value }
+    });
+    
     setConditionalResponses(prev => ({
       ...prev,
       [questionId]: value
@@ -276,12 +290,10 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     if (!form || !currentSection) return true;
     
     const allResponses = { ...responses, ...conditionalResponses };
-    // Only validate conditional questions within the current section to avoid blocking on other sections
-    const sectionOnlyForm = { ...form, sections: [currentSection] } as Form;
-    const errors = validateConditionalQuestions(sectionOnlyForm, allResponses);
+    const errors: Record<string, string> = {};
     
-    // Also validate main questions
-    currentSection.questions.forEach((question: FormQuestion) => {
+    // Validate main questions
+    filterMainQuestions(currentSection.questions).forEach((question: FormQuestion) => {
       if (question.isRequired) {
         const response = responses[question.id];
         if (response === undefined || response === '' || response === null ||
@@ -289,6 +301,45 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           errors[question.id] = 'This field is required';
         }
       }
+      
+      // Validate conditional questions within choice options
+      if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+        const choiceQuestion = question as any;
+        const selectedValues = responses[question.id];
+        
+        // For single choice, selectedValues is a string
+        // For multiple choice, selectedValues is an array
+        const selectedOptions = Array.isArray(selectedValues) ? selectedValues : [selectedValues];
+        
+        choiceQuestion.options.forEach((option: any) => {
+          if (option.conditionalQuestions && option.conditionalQuestions.length > 0) {
+            // Check if this option is selected
+            const isOptionSelected = selectedOptions.includes(option.value);
+            
+            if (isOptionSelected) {
+              // Validate all conditional questions for this option
+              option.conditionalQuestions.forEach((conditionalQuestion: any) => {
+                if (conditionalQuestion.isRequired) {
+                  const conditionalResponse = conditionalResponses[conditionalQuestion.id];
+                  if (conditionalResponse === undefined || conditionalResponse === '' || conditionalResponse === null ||
+                      (Array.isArray(conditionalResponse) && conditionalResponse.length === 0)) {
+                    errors[conditionalQuestion.id] = `${conditionalQuestion.title} is required`;
+                  }
+                }
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    console.log('🔍 Section validation:', {
+      sectionTitle: currentSection.title,
+      errors: Object.keys(errors),
+      errorCount: Object.keys(errors).length,
+      allResponses: Object.keys(allResponses),
+      mainResponses: Object.keys(responses),
+      conditionalResponses: Object.keys(conditionalResponses)
     });
     
     return Object.keys(errors).length === 0;
