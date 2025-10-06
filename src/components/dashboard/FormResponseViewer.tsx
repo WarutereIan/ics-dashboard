@@ -828,18 +828,111 @@ export function FormResponseViewer() {
   const handleExportData = () => {
     if (!form) return;
     
-    // Create CSV content
-    const headers = ['Response ID', 'Email', 'Status', 'Submitted At', 'Completion Time (minutes)'];
-    
-    // Add question headers
-    form.sections.forEach(section => {
-      section.questions.forEach(question => {
-        headers.push(question.title);
+    // Helper function to escape CSV values
+    const escapeCsvValue = (value: any): string => {
+      if (value === null || value === undefined) return '';
+      
+      const stringValue = String(value);
+      // If value contains comma, newline, or quote, wrap in quotes and escape quotes
+      if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    // Helper function to format GPS coordinates
+    const formatGpsCoordinates = (gpsData: any): string => {
+      if (!gpsData) return '';
+      
+      if (typeof gpsData === 'object') {
+        // Try different possible property names for coordinates
+        if (gpsData.latitude !== undefined && gpsData.longitude !== undefined) {
+          return `${gpsData.latitude}, ${gpsData.longitude}`;
+        }
+        if (gpsData.lat !== undefined && gpsData.lng !== undefined) {
+          return `${gpsData.lat}, ${gpsData.lng}`;
+        }
+        if (gpsData.coordinates) {
+          const coords = gpsData.coordinates;
+          if (coords.lat !== undefined && coords.lng !== undefined) {
+            return `${coords.lat}, ${coords.lng}`;
+          }
+          if (coords.latitude !== undefined && coords.longitude !== undefined) {
+            return `${coords.latitude}, ${coords.longitude}`;
+          }
+        }
+        
+        // If it's an object but we can't extract coordinates, log it for debugging
+        console.log('🔍 GPS data structure:', gpsData);
+        return `[GPS Object: ${JSON.stringify(gpsData)}]`;
+      }
+      
+      return String(gpsData);
+    };
+
+    // Helper function to get all questions including conditional ones
+    const getAllQuestions = () => {
+      const allQuestions: Array<{question: any, sectionTitle: string, isConditional?: boolean, parentQuestion?: string, parentOption?: string}> = [];
+      
+      form.sections.forEach(section => {
+        // Add main questions
+        section.questions.forEach(question => {
+          allQuestions.push({
+            question,
+            sectionTitle: section.title,
+            isConditional: false
+          });
+          
+          // Add conditional questions from choice options
+          if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+            question.options.forEach((option: any) => {
+              if (option.conditionalQuestions && option.conditionalQuestions.length > 0) {
+                option.conditionalQuestions.forEach((conditionalQuestion: any) => {
+                  allQuestions.push({
+                    question: conditionalQuestion,
+                    sectionTitle: section.title,
+                    isConditional: true,
+                    parentQuestion: question.title,
+                    parentOption: option.label
+                  });
+                });
+              }
+            });
+          }
+        });
       });
+      
+      return allQuestions;
+    };
+
+    // Create CSV content
+    const headers = [
+      'Response ID',
+      'Email', 
+      'Status', 
+      'Submitted At', 
+      'Completion Time (minutes)'
+    ];
+    
+    // Add question headers (flatten LOCATION questions)
+    const allQuestions = getAllQuestions();
+    allQuestions.forEach(({question, sectionTitle, isConditional, parentQuestion, parentOption}) => {
+      let headerTitle = question.title;
+      if (isConditional) {
+        headerTitle = `${question.title} (Conditional: ${parentQuestion} → ${parentOption})`;
+      }
+      if (question.type === 'LOCATION') {
+        headers.push(`${headerTitle} - Latitude`);
+        headers.push(`${headerTitle} - Longitude`);
+        headers.push(`${headerTitle} - Accuracy`);
+        headers.push(`${headerTitle} - Address`);
+      } else {
+        headers.push(headerTitle);
+      }
     });
 
     const csvContent = [
-      headers.join(','),
+      headers.map(escapeCsvValue).join(','),
       ...filteredResponses.map(response => {
         const completionTime = response.submittedAt && response.startedAt
           ? Math.round(((new Date(response.submittedAt)).getTime() - (new Date(response.startedAt)).getTime()) / (1000 * 60))
@@ -854,18 +947,38 @@ export function FormResponseViewer() {
         ];
         
         // Add question responses
-        form.sections.forEach(section => {
-          section.questions.forEach(question => {
-            const value = response.data[question.id];
-            const attachments = response.attachments?.filter(att => att.questionId === question.id) || [];
-            
+        allQuestions.forEach(({question}) => {
+          // Always read answers from response.data using the question ID.
+          // Conditional question answers are saved the same way as main questions.
+          const value = response.data[question.id];
+          const attachments = response.attachments?.filter(att => att.questionId === question.id) || [];
+          
+          if (question.type === 'LOCATION') {
+            // Flatten location into 4 columns
+            const lat = value && typeof value === 'object' ? (value.latitude ?? value.lat ?? '') : '';
+            const lng = value && typeof value === 'object' ? (value.longitude ?? value.lng ?? '') : '';
+            const acc = value && typeof value === 'object' ? (value.accuracy ?? '') : '';
+            const addr = value && typeof value === 'object' ? (value.address ?? '') : '';
+            row.push(String(lat));
+            row.push(String(lng));
+            row.push(String(acc));
+            row.push(String(addr));
+          } else {
             let displayValue = '';
             if (value !== undefined && value !== null) {
               if (Array.isArray(value)) {
                 displayValue = value.join('; ');
-              } else if (question.type === 'SINGLE_CHOICE') {
-                const option = question.options?.find(opt => opt.value === value);
+              } else if (question.type === 'SINGLE_CHOICE' && question.options) {
+                const option = question.options.find((opt: any) => opt.value === value);
                 displayValue = option ? option.label : String(value);
+              } else if (question.type === 'MULTIPLE_CHOICE' && question.options) {
+                // For multiple choice, value should be an array of selected values
+                const selectedOptions = Array.isArray(value) ? value : [value];
+                const optionLabels = selectedOptions.map((val: any) => {
+                  const option = question.options.find((opt: any) => opt.value === val);
+                  return option ? option.label : val;
+                });
+                displayValue = optionLabels.join('; ');
               } else {
                 displayValue = String(value);
               }
@@ -878,15 +991,15 @@ export function FormResponseViewer() {
             }
             
             row.push(displayValue);
-          });
+          }
         });
         
-        return row.join(',');
+        return row.map(escapeCsvValue).join(',');
       })
     ].join('\n');
 
     // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -896,7 +1009,7 @@ export function FormResponseViewer() {
 
     toast({
       title: "Export Complete",
-      description: "Response data has been exported to CSV.",
+      description: "Response data has been exported to CSV with improved formatting.",
     });
   };
 
