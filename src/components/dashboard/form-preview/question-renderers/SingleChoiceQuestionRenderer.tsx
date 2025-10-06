@@ -32,9 +32,8 @@ export function SingleChoiceQuestionRenderer({
           <Select
             value={value || ''}
             onValueChange={onChange}
-            disabled={isPreviewMode}
           >
-            <SelectTrigger className={isPreviewMode ? 'bg-gray-50' : ''}>
+            <SelectTrigger className={isPreviewMode ? 'bg-blue-50 border-blue-200' : ''}>
               <SelectValue placeholder="Select an option..." />
             </SelectTrigger>
             <SelectContent>
@@ -93,12 +92,11 @@ export function SingleChoiceQuestionRenderer({
                   value={option.value.toString()}
                   checked={value === option.value.toString()}
                   onChange={(e) => onChange?.(e.target.value)}
-                  disabled={isPreviewMode}
-                  className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className={`w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isPreviewMode ? 'border-blue-300' : ''}`}
                 />
                 <Label 
                   htmlFor={`${question.id}-${option.id}`}
-                  className={`text-sm ${isPreviewMode ? 'text-gray-500' : 'cursor-pointer'}`}
+                  className={`text-sm cursor-pointer ${isPreviewMode ? 'text-blue-700' : ''}`}
                 >
                   {option.label}
                 </Label>

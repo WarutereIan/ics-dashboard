@@ -103,7 +103,7 @@ export function MultipleChoiceQuestionRenderer({
       <div className="space-y-3">
         {question.options?.map((option) => {
           const isSelected = value.includes(option.value.toString());
-          const isDisabled = isPreviewMode || !!(
+          const isDisabled = !!(
             question.maxSelections && 
             !isSelected && 
             value.length >= question.maxSelections
@@ -118,13 +118,11 @@ export function MultipleChoiceQuestionRenderer({
                   checked={isSelected}
                   onChange={(e) => handleOptionChange(option.value.toString(), e.target.checked)}
                   disabled={isDisabled}
-                  className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className={`w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isPreviewMode ? 'border-blue-300' : ''}`}
                 />
                 <Label 
                   htmlFor={`${question.id}-${option.id}`}
-                  className={`text-sm ${
-                    isPreviewMode || isDisabled ? 'text-gray-500' : 'cursor-pointer'
-                  }`}
+                  className={`text-sm cursor-pointer ${isPreviewMode ? 'text-blue-700' : ''} ${isDisabled ? 'text-gray-500' : ''}`}
                 >
                   {option.label}
                 </Label>

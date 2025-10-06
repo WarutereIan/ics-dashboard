@@ -155,30 +155,55 @@ export function MultipleChoiceQuestionEditor(props: MultipleChoiceQuestionEditor
   const [selectedOptions, setSelectedOptions] = React.useState<string[]>([]);
   const [otherText, setOtherText] = React.useState('');
 
+  // Get options from multiple possible locations
+  const existingOptions = question.options || (question as any).config?.options || [];
+  
   // Debug logging for question rendering
   console.log('🎨 MultipleChoiceQuestionEditor: Rendering question:', {
     id: question.id,
     title: question.title,
     type: question.type,
     hasOptions: !!question.options,
-    optionsCount: question.options?.length || 0,
-    options: question.options?.map(opt => ({ id: opt.id, label: opt.label, value: opt.value })) || []
+    hasConfigOptions: !!(question as any).config?.options,
+    existingOptionsCount: existingOptions.length,
+    options: existingOptions.map(opt => ({ id: opt.id, label: opt.label, value: opt.value }))
+  });
+
+  // Debug the options detection logic
+  console.log('🔍 MultipleChoice Options detection debug:', {
+    'question.options': question.options,
+    'question.config?.options': (question as any).config?.options,
+    'existingOptions': existingOptions,
+    'existingOptions.length': existingOptions.length,
+    'existingOptions.length > 0': existingOptions.length > 0
   });
 
   // Ensure options array exists and has at least default options
-  const safeOptions = question.options || [
+  const safeOptions = existingOptions.length > 0 ? existingOptions : [
     { id: uuidv4(), label: 'Option 1', value: 'option1', hasConditionalQuestions: false, conditionalQuestions: [] },
     { id: uuidv4(), label: 'Option 2', value: 'option2', hasConditionalQuestions: false, conditionalQuestions: [] },
   ];
 
-  // Initialize options if they don't exist
+  console.log('🔍 MultipleChoice Safe options result:', {
+    'safeOptions.length': safeOptions.length,
+    'safeOptions': safeOptions.map(opt => ({ id: opt.id, label: opt.label, value: opt.value }))
+  });
+
+  // Initialize options if they don't exist in either location
   useEffect(() => {
-    if (!question.options || question.options.length === 0) {
+    // Only initialize if there are truly no options in any location
+    const hasOptionsInAnyLocation = (question.options && question.options.length > 0) || 
+                                   ((question as any).config?.options && (question as any).config.options.length > 0);
+    
+    if (!hasOptionsInAnyLocation) {
+      console.log('🎨 MultipleChoiceQuestionEditor: No options found, initializing with defaults');
       onUpdate({
         options: safeOptions
       } as Partial<FormQuestion>);
+    } else {
+      console.log('🎨 MultipleChoiceQuestionEditor: Options found, preserving existing options');
     }
-  }, [question.options, onUpdate]);
+  }, [question.options, (question as any).config?.options, onUpdate]);
 
   // Ensure display type is always RADIO
   useEffect(() => {
