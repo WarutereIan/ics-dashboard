@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Plus, HelpCircle, Layers } from 'lucide-react';
 import { FormSection, FormQuestion, QuestionType, ActivityKPIMapping } from './types';
+import { filterMainQuestions } from '../form-preview/utils/questionUtils';
 import {
   QUESTION_TYPE_LABELS,
   QUESTION_TYPE_DESCRIPTIONS,
@@ -241,7 +242,7 @@ export function QuestionsStep({
               </Card>
             ) : (
               <div className="space-y-4">
-                {section.questions.map((question) => (
+                {filterMainQuestions(section.questions).map((question) => (
                   <div key={question.id}>
                     {renderQuestionEditor(section.id, question)}
                   </div>

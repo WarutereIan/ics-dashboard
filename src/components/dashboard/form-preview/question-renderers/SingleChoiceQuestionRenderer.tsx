@@ -32,9 +32,8 @@ export function SingleChoiceQuestionRenderer({
           <Select
             value={value || ''}
             onValueChange={onChange}
-            disabled={isPreviewMode}
           >
-            <SelectTrigger className={isPreviewMode ? 'bg-gray-50' : ''}>
+            <SelectTrigger className={isPreviewMode ? 'bg-blue-50 border-blue-200' : ''}>
               <SelectValue placeholder="Select an option..." />
             </SelectTrigger>
             <SelectContent>
@@ -60,16 +59,35 @@ export function SingleChoiceQuestionRenderer({
                 Additional questions for "{selectedOption.label}":
               </div>
               <div className="space-y-4">
-                {selectedOption.conditionalQuestions.map((conditionalQuestion) => (
-                  <QuestionRenderer
-                    key={conditionalQuestion.id}
-                    question={conditionalQuestion}
-                    value={conditionalValues[conditionalQuestion.id]}
-                    onChange={(value) => onConditionalChange?.(conditionalQuestion.id, value)}
-                    error={undefined}
-                    isPreviewMode={isPreviewMode}
-                  />
-                ))}
+                {selectedOption.conditionalQuestions.map((conditionalQuestion) => {
+                  console.log('🔍 Rendering dropdown conditional question:', {
+                    questionId: conditionalQuestion.id,
+                    questionTitle: conditionalQuestion.title,
+                    questionType: conditionalQuestion.type,
+                    conditionalValues: conditionalValues,
+                    value: conditionalValues[conditionalQuestion.id],
+                    onConditionalChange: !!onConditionalChange
+                  });
+                  
+                  return (
+                    <QuestionRenderer
+                      key={conditionalQuestion.id}
+                      question={conditionalQuestion}
+                      value={conditionalValues[conditionalQuestion.id]}
+                      onChange={(value) => {
+                        console.log('🔄 Dropdown conditional question onChange called:', {
+                          questionId: conditionalQuestion.id,
+                          value: value
+                        });
+                        onConditionalChange?.(conditionalQuestion.id, value);
+                      }}
+                      error={undefined}
+                      isPreviewMode={isPreviewMode}
+                      conditionalValues={conditionalValues}
+                      onConditionalChange={onConditionalChange}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -93,12 +111,11 @@ export function SingleChoiceQuestionRenderer({
                   value={option.value.toString()}
                   checked={value === option.value.toString()}
                   onChange={(e) => onChange?.(e.target.value)}
-                  disabled={isPreviewMode}
-                  className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className={`w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isPreviewMode ? 'border-blue-300' : ''}`}
                 />
                 <Label 
                   htmlFor={`${question.id}-${option.id}`}
-                  className={`text-sm ${isPreviewMode ? 'text-gray-500' : 'cursor-pointer'}`}
+                  className={`text-sm cursor-pointer ${isPreviewMode ? 'text-blue-700' : ''}`}
                 >
                   {option.label}
                 </Label>
@@ -110,16 +127,28 @@ export function SingleChoiceQuestionRenderer({
                value === option.value.toString() && (
                 <div className="ml-6 mt-3 p-4 border-l-4 border-l-blue-500 bg-blue-50 rounded-r-lg">
                   <div className="space-y-4">
-                    {option.conditionalQuestions.map((conditionalQuestion) => (
-                      <QuestionRenderer
-                        key={conditionalQuestion.id}
-                        question={conditionalQuestion}
-                        value={conditionalValues[conditionalQuestion.id]}
-                        onChange={(value) => onConditionalChange?.(conditionalQuestion.id, value)}
-                        error={undefined}
-                        isPreviewMode={isPreviewMode}
-                      />
-                    ))}
+                    {option.conditionalQuestions.map((conditionalQuestion) => {
+                     
+                      
+                      return (
+                        <QuestionRenderer
+                          key={conditionalQuestion.id}
+                          question={conditionalQuestion}
+                          value={conditionalValues[conditionalQuestion.id]}
+                          onChange={(value) => {
+                            console.log('🔄 Conditional question onChange called:', {
+                              questionId: conditionalQuestion.id,
+                              value: value
+                            });
+                            onConditionalChange?.(conditionalQuestion.id, value);
+                          }}
+                          error={undefined}
+                          isPreviewMode={isPreviewMode}
+                          conditionalValues={conditionalValues}
+                          onConditionalChange={onConditionalChange}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               )}

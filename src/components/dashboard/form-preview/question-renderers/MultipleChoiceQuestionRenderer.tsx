@@ -103,7 +103,7 @@ export function MultipleChoiceQuestionRenderer({
       <div className="space-y-3">
         {question.options?.map((option) => {
           const isSelected = value.includes(option.value.toString());
-          const isDisabled = isPreviewMode || !!(
+          const isDisabled = !!(
             question.maxSelections && 
             !isSelected && 
             value.length >= question.maxSelections
@@ -118,13 +118,11 @@ export function MultipleChoiceQuestionRenderer({
                   checked={isSelected}
                   onChange={(e) => handleOptionChange(option.value.toString(), e.target.checked)}
                   disabled={isDisabled}
-                  className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className={`w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isPreviewMode ? 'border-blue-300' : ''}`}
                 />
                 <Label 
                   htmlFor={`${question.id}-${option.id}`}
-                  className={`text-sm ${
-                    isPreviewMode || isDisabled ? 'text-gray-500' : 'cursor-pointer'
-                  }`}
+                  className={`text-sm cursor-pointer ${isPreviewMode ? 'text-blue-700' : ''} ${isDisabled ? 'text-gray-500' : ''}`}
                 >
                   {option.label}
                 </Label>
@@ -139,16 +137,35 @@ export function MultipleChoiceQuestionRenderer({
                     Additional questions for "{option.label}":
                   </div>
                   <div className="space-y-4">
-                    {option.conditionalQuestions.map((conditionalQuestion) => (
-                      <QuestionRenderer
-                        key={conditionalQuestion.id}
-                        question={conditionalQuestion}
-                        value={conditionalValues[conditionalQuestion.id]}
-                        onChange={(value) => onConditionalChange?.(conditionalQuestion.id, value)}
-                        error={undefined}
-                        isPreviewMode={isPreviewMode}
-                      />
-                    ))}
+                    {option.conditionalQuestions.map((conditionalQuestion) => {
+                      console.log('🔍 Rendering multiple choice conditional question:', {
+                        questionId: conditionalQuestion.id,
+                        questionTitle: conditionalQuestion.title,
+                        questionType: conditionalQuestion.type,
+                        conditionalValues: conditionalValues,
+                        value: conditionalValues[conditionalQuestion.id],
+                        onConditionalChange: !!onConditionalChange
+                      });
+                      
+                      return (
+                        <QuestionRenderer
+                          key={conditionalQuestion.id}
+                          question={conditionalQuestion}
+                          value={conditionalValues[conditionalQuestion.id]}
+                          onChange={(value) => {
+                            console.log('🔄 Multiple choice conditional question onChange called:', {
+                              questionId: conditionalQuestion.id,
+                              value: value
+                            });
+                            onConditionalChange?.(conditionalQuestion.id, value);
+                          }}
+                          error={undefined}
+                          isPreviewMode={isPreviewMode}
+                          conditionalValues={conditionalValues}
+                          onConditionalChange={onConditionalChange}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               )}

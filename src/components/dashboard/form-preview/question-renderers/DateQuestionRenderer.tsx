@@ -29,7 +29,6 @@ export function DateQuestionRenderer({
           date={value}
           onDateChange={handleDateChange}
           placeholder="Select date and time"
-          disabled={isPreviewMode}
           minDate={question.minDate}
           maxDate={question.maxDate}
         />
@@ -38,7 +37,6 @@ export function DateQuestionRenderer({
           date={value}
           onDateChange={handleDateChange}
           placeholder="Select date"
-          disabled={isPreviewMode}
           minDate={question.minDate}
           maxDate={question.maxDate}
         />

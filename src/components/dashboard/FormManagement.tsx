@@ -24,13 +24,16 @@ import {
   Users,
   ArrowLeft,
   FolderOpen,
-  CheckCircle
+  CheckCircle,
+  Upload
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from '@/contexts/FormContext';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { toast } from '@/hooks/use-toast';
 import { Form } from './form-creation-wizard/types';
+import { FormImportModal } from './form-management/FormImportModal';
+import { FormExportModal } from './form-management/FormExportModal';
 import { 
   saveFormManagementFilters, 
   loadFormManagementFilters, 
@@ -344,6 +347,18 @@ export function FormManagement() {
     clearFormManagementFilters();
   };
 
+  const handleImportSuccess = async (importedForms: Form[]) => {
+    // Refresh the forms list to include the imported forms
+    if (projectId) {
+      await loadProjectForms(projectId);
+    }
+    
+    toast({
+      title: "Import Successful",
+      description: `${importedForms.length} form(s) imported successfully.`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Project Navigation Header */}
@@ -369,10 +384,32 @@ export function FormManagement() {
           <p className="text-gray-600 mt-2 text-sm md:text-base break-words">Create and manage data collection forms for {projectName}</p>
         </div>
         
-        <Button onClick={handleCreateForm} className="flex items-center gap-2 w-full lg:w-auto justify-center lg:justify-start">
-          <Plus className="w-4 h-4" />
-          <span className="whitespace-nowrap">Create New Form</span>
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+          <FormExportModal 
+            forms={forms}
+            projectId={projectId || ''}
+            trigger={
+              <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto justify-center">
+                <Download className="w-4 h-4" />
+                <span className="whitespace-nowrap">Export Forms ({forms.length})</span>
+              </Button>
+            }
+          />
+          <FormImportModal 
+            projectId={projectId || ''} 
+            onImportSuccess={handleImportSuccess}
+            trigger={
+              <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto justify-center">
+                <Upload className="w-4 h-4" />
+                <span className="whitespace-nowrap">Import Forms</span>
+              </Button>
+            }
+          />
+          <Button onClick={handleCreateForm} className="flex items-center gap-2 w-full sm:w-auto justify-center">
+            <Plus className="w-4 h-4" />
+            <span className="whitespace-nowrap">Create New Form</span>
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}

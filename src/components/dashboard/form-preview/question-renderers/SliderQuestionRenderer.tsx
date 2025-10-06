@@ -41,7 +41,6 @@ export function SliderQuestionRenderer({
             min={question.min}
             max={question.max}
             step={question.step}
-            disabled={isPreviewMode}
             className="w-full"
           />
         </div>

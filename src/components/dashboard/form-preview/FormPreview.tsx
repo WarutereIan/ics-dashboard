@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Send, Save, AlertCircle } from 'lucide-react';
 import { QuestionRenderer } from './QuestionRenderer';
 import { Form, FormQuestion, FormResponse } from '../form-creation-wizard/types';
+import { filterMainQuestions } from './utils/questionUtils';
 
 import { toast } from '@/hooks/use-toast';
 import { useForm } from '@/contexts/FormContext';
@@ -158,10 +159,20 @@ export function FormPreview({
 
   // Handle conditional question response
   const handleConditionalChange = (questionId: string, value: any) => {
-    setConditionalResponses(prev => ({
-      ...prev,
-      [questionId]: value
-    }));
+    console.log('🔄 FormPreview handleConditionalChange called:', {
+      questionId,
+      value,
+      currentConditionalResponses: conditionalResponses
+    });
+    
+    setConditionalResponses(prev => {
+      const newResponses = {
+        ...prev,
+        [questionId]: value
+      };
+      console.log('🔄 Updated conditionalResponses:', newResponses);
+      return newResponses;
+    });
   };
 
   // Validate current section
@@ -425,19 +436,32 @@ export function FormPreview({
               )}
             </CardHeader>
             <CardContent className="space-y-8">
-              {currentSection.questions.map((question) => (
-                <div key={question.id}>
-                  <QuestionRenderer
-                    question={question}
-                    value={responses[question.id]}
-                    onChange={(value) => handleQuestionChange(question.id, value)}
-                    error={errors[question.id]}
-                    isPreviewMode={isPreviewMode}
-                    conditionalValues={conditionalResponses}
-                    onConditionalChange={handleConditionalChange}
-                  />
-                </div>
-              ))}
+              {filterMainQuestions(currentSection.questions).map((question) => {
+                console.log('🔍 FormPreview rendering main question:', {
+                  questionId: question.id,
+                  questionTitle: question.title,
+                  questionType: question.type,
+                  hasConditionalQuestions: (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') 
+                    ? (question as any).options?.some((opt: any) => opt.hasConditionalQuestions) 
+                    : false,
+                  conditionalValues: conditionalResponses,
+                  onConditionalChange: !!handleConditionalChange
+                });
+                
+                return (
+                  <div key={question.id}>
+                    <QuestionRenderer
+                      question={question}
+                      value={responses[question.id]}
+                      onChange={(value) => handleQuestionChange(question.id, value)}
+                      error={errors[question.id]}
+                      isPreviewMode={isPreviewMode}
+                      conditionalValues={conditionalResponses}
+                      onConditionalChange={handleConditionalChange}
+                    />
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
         )}

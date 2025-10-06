@@ -51,6 +51,7 @@ export interface CreateFormTemplateDto {
   settings: any;
 }
 
+
 export const formsApi = {
   // ========================================
   // PROJECT FORM MANAGEMENT
@@ -132,6 +133,7 @@ export const formsApi = {
     }
     throw new Error(response.error || 'Failed to duplicate form');
   },
+
 
   // ========================================
   // FORM RESPONSES
@@ -387,7 +389,17 @@ export const formsApi = {
             await this.updateForm(item.data.projectId, item.data.id, item.data);
             break;
           case 'form_response':
-            await this.submitResponse(item.data);
+            // Defensive mapping to allowed DTO fields
+            await this.submitResponse({
+              formId: item.data.formId,
+              respondentId: item.data.respondentId,
+              respondentEmail: item.data.respondentEmail,
+              isComplete: item.data.isComplete,
+              ipAddress: item.data.ipAddress,
+              userAgent: item.data.userAgent,
+              source: item.data.source,
+              data: item.data.data
+            });
             break;
           case 'form_delete':
             await this.deleteForm(item.data.projectId, item.data.id);

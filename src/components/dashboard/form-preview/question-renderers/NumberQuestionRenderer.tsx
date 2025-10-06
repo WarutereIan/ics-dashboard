@@ -38,8 +38,7 @@ export function NumberQuestionRenderer({
         min={question.min}
         max={question.max}
         step={question.step || 1}
-        disabled={isPreviewMode}
-        className={isPreviewMode ? 'bg-gray-50' : ''}
+        className={isPreviewMode ? 'bg-blue-50 border-blue-200' : ''}
       />
     </BaseQuestionRenderer>
   );

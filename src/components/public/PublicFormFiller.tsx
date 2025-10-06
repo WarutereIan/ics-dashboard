@@ -16,8 +16,9 @@ import {
   EyeOff,
   Plus
 } from 'lucide-react';
-import { Form } from '@/components/dashboard/form-creation-wizard/types';
+import { Form, FormQuestion } from '@/components/dashboard/form-creation-wizard/types';
 import { QuestionRenderer } from '@/components/dashboard/form-preview/QuestionRenderer';
+import { filterMainQuestions } from '@/components/dashboard/form-preview/utils/questionUtils';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -36,7 +37,7 @@ interface PublicFormFillerProps {
 export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) {
   const { formId } = useParams<{ formId: string }>();
   const navigate = useNavigate();
-  const { addFormResponseToStorage, validateConditionalQuestions } = useForm();
+  const { addFormResponseToStorage, validateConditionalQuestions, isOnline, syncStatus, processOfflineQueue } = useForm();
   
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   const [conditionalResponses, setConditionalResponses] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
   const [showProgress, setShowProgress] = useState(true);
 
   // Load form data
@@ -108,10 +110,25 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       const savedData = loadFormPreviewData(form.id);
       if (savedData) {
         setResponses(savedData.responses);
+        setConditionalResponses((savedData as any).conditionalResponses || {});
         setCurrentSectionIndex(savedData.currentSection);
+        setIsDraft(true);
       }
     }
   }, [form?.id]);
+
+  // Handle section visibility changes when responses change
+  useEffect(() => {
+    if (!form) return;
+    
+    const visibleSections = getVisibleSections(form.sections, responses);
+    
+    // If current section is no longer visible, navigate to the next visible section
+    if (currentSectionIndex >= visibleSections.length) {
+      const newIndex = Math.max(0, visibleSections.length - 1);
+      setCurrentSectionIndex(newIndex);
+    }
+  }, [responses, form, currentSectionIndex]);
 
   // Auto-save draft data
   useEffect(() => {
@@ -141,6 +158,119 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     }));
   };
 
+  // Helper function to evaluate section conditionals
+  const shouldShowSection = (section: any, responses: Record<string, any>) => {
+    // If section is not marked as conditional, show it
+    if (!section.conditional) {
+      return true;
+    }
+
+    // For conditional sections, check if they are assigned to question options
+    // If assigned to question options, they should only show when the option is selected
+    // If not assigned to question options, they should show by default
+    
+    // Check if this section is assigned to any question option
+    const isAssignedToQuestion = form?.sections
+      ?.flatMap(s => s.questions)
+      ?.some(question => {
+        if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+          const options = question.options || [];
+          return options.some((opt: any) => opt.assignedSectionId === section.id);
+        }
+        return false;
+      });
+
+    if (isAssignedToQuestion) {
+      // This section is assigned to a question option, only show if that option is selected
+      for (const [questionId, response] of Object.entries(responses)) {
+        const question = form?.sections
+          ?.flatMap(s => s.questions)
+          ?.find(q => q.id === questionId);
+        
+        if (question && (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE')) {
+          const options = question.options || [];
+          
+          if (question.type === 'SINGLE_CHOICE') {
+            // Single choice: check if selected option has this section assigned
+            const selectedOption = options.find((opt: any) => opt.value === response);
+            if (selectedOption?.assignedSectionId === section.id) {
+              return true;
+            }
+          } else if (question.type === 'MULTIPLE_CHOICE') {
+            // Multiple choice: check if any selected option has this section assigned
+            const selectedValues = Array.isArray(response) ? response : [response];
+            const hasAssignedSection = selectedValues.some(selectedValue => {
+              const selectedOption = options.find((opt: any) => opt.value === selectedValue);
+              return selectedOption?.assignedSectionId === section.id;
+            });
+            if (hasAssignedSection) {
+              return true;
+            }
+          }
+        }
+      }
+      return false; // Don't show if assigned to question but option not selected
+    } else {
+      // This conditional section is not assigned to any question option, show it by default
+      return true;
+    }
+  };
+
+  // Get visible sections based on conditional logic (excluding assigned sections)
+  const getVisibleSections = (sections: any[], responses: Record<string, any>) => {
+    return sections.filter(section => {
+      // Don't show sections that are assigned to question options (they render inline)
+      if (section.conditional) {
+        // Check if this section is assigned to any question option
+        const isAssignedToQuestion = form?.sections
+          ?.flatMap(s => s.questions)
+          ?.some(question => {
+            if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+              const options = question.options || [];
+              return options.some((opt: any) => opt.assignedSectionId === section.id);
+            }
+            return false;
+          });
+        
+        if (isAssignedToQuestion) {
+          return false; // Don't show in main navigation, it will render inline
+        }
+      }
+      
+      // Show sections that are not conditional or have other conditional logic
+      return shouldShowSection(section, responses);
+    });
+  };
+
+  // Get assigned section for a question option
+  const getAssignedSectionForQuestion = (question: any, responses: Record<string, any>) => {
+    if (!question || (question.type !== 'SINGLE_CHOICE' && question.type !== 'MULTIPLE_CHOICE')) {
+      return null;
+    }
+
+    const response = responses[question.id];
+    if (!response) return null;
+
+    const options = question.options || [];
+    
+    if (question.type === 'SINGLE_CHOICE') {
+      const selectedOption = options.find((opt: any) => opt.value === response);
+      if (selectedOption?.assignedSectionId) {
+        return form?.sections?.find(section => section.id === selectedOption.assignedSectionId);
+      }
+    } else if (question.type === 'MULTIPLE_CHOICE') {
+      const selectedValues = Array.isArray(response) ? response : [response];
+      for (const selectedValue of selectedValues) {
+        const selectedOption = options.find((opt: any) => opt.value === selectedValue);
+        if (selectedOption?.assignedSectionId) {
+          return form?.sections?.find(section => section.id === selectedOption.assignedSectionId);
+        }
+      }
+    }
+
+    return null;
+  };
+
   // Validate current section including conditional questions
   const validateCurrentSection = () => {
     if (!form || !currentSection) return true;
@@ -151,7 +281,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     const errors = validateConditionalQuestions(sectionOnlyForm, allResponses);
     
     // Also validate main questions
-    currentSection.questions.forEach(question => {
+    currentSection.questions.forEach((question: FormQuestion) => {
       if (question.isRequired) {
         const response = responses[question.id];
         if (response === undefined || response === '' || response === null ||
@@ -165,7 +295,8 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   };
 
   const handleNextSection = () => {
-    if (form && currentSectionIndex < form.sections.length - 1) {
+    const visibleSections = getVisibleSections(form?.sections || [], responses);
+    if (currentSectionIndex < visibleSections.length - 1) {
       setCurrentSectionIndex(prev => prev + 1);
     }
   };
@@ -205,7 +336,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       console.log('📊 Response data:', responseData);
       
       // Submit via context (handles API call + local storage + offline queue)
-      await addFormResponseToStorage(responseData);
+      const submitted = await addFormResponseToStorage(responseData);
       
       // Clear draft data
       clearFormPreviewData(form.id);
@@ -216,8 +347,13 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       // Only show custom thank you message if different from default
       if (form.settings?.thankYouMessage && form.settings.thankYouMessage !== "Thank you for your response.") {
         toast({
-          title: "Form Submitted Successfully!",
-          description: form.settings.thankYouMessage,
+          title: submitted ? "Form Submitted Successfully!" : "Saved Offline",
+          description: submitted ? form.settings.thankYouMessage : `${form.settings.thankYouMessage} (Will auto-submit when online)`,
+        });
+      } else if (!submitted) {
+        toast({
+          title: "Saved Offline",
+          description: "We’ll auto-submit your response once connection is restored.",
         });
       }
     } catch (err: any) {
@@ -352,10 +488,35 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     );
   }
 
-  const currentSection = form.sections[currentSectionIndex];
+  // Get visible sections based on current responses
+  const visibleSections = getVisibleSections(form.sections, responses);
+  const currentSection = visibleSections[currentSectionIndex];
   const isFirstSection = currentSectionIndex === 0;
-  const isLastSection = currentSectionIndex === form.sections.length - 1;
-  const progress = ((currentSectionIndex + 1) / form.sections.length) * 100;
+  const isLastSection = currentSectionIndex === visibleSections.length - 1;
+  const progress = visibleSections.length > 0 ? ((currentSectionIndex + 1) / visibleSections.length) * 100 : 0;
+
+  // Safety check for currentSection
+  if (!currentSection) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Sections Available</h3>
+              <p className="text-gray-600 mb-4">
+                This form has no visible sections based on your responses.
+              </p>
+              <Button onClick={() => navigate('/')}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Go Back
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-gray-50 ${isEmbedded ? 'p-0' : 'p-4'}`}>
@@ -389,10 +550,39 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Progress</span>
-                  <span>{currentSectionIndex + 1} of {form.sections.length} sections</span>
+                  <span>{currentSectionIndex + 1} of {visibleSections.length} sections</span>
                 </div>
                 <Progress value={progress} className="h-2" />
               </div>
+            </CardContent>
+          )}
+          {!isEmbedded && (
+            <CardContent>
+              {!isOnline ? (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    You are currently offline. Submissions will be saved locally and auto-submitted when connection is restored{syncStatus.pendingItems ? ` (pending: ${syncStatus.pendingItems})` : ''}.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                syncStatus.pendingItems > 0 && (
+                  <Alert>
+                    <AlertDescription className="flex items-center justify-between w-full">
+                      <span>
+                        {syncStatus.isSyncing ? `Syncing ${syncStatus.pendingItems} pending item(s)...` : `${syncStatus.pendingItems} pending item(s) ready to sync.`}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {syncStatus.isSyncing && (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                        )}
+                        <Button variant="outline" size="sm" onClick={processOfflineQueue} disabled={syncStatus.isSyncing}>
+                          Sync now
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )
+              )}
             </CardContent>
           )}
         </Card>
@@ -409,29 +599,76 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {currentSection.questions.map((question) => (
-                <ErrorBoundary
-                  key={question.id}
-                  fallback={
-                    <Alert variant="destructive" className="my-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Error loading question: {question.title}. Please refresh the page or contact support.
-                      </AlertDescription>
-                    </Alert>
-                  }
-                >
-                  <QuestionRenderer
-                    question={question}
-                    value={responses[question.id]}
-                    onChange={(value) => handleResponseChange(question.id, value)}
-                    error={undefined}
-                    isPreviewMode={false}
-                    conditionalValues={conditionalResponses}
-                    onConditionalChange={handleConditionalChange}
-                  />
-                </ErrorBoundary>
-              ))}
+              {filterMainQuestions(currentSection.questions).map((question: FormQuestion) => {
+                const assignedSection = getAssignedSectionForQuestion(question, responses);
+                
+                return (
+                  <div key={question.id} className="space-y-4">
+                    <ErrorBoundary
+                      fallback={
+                        <Alert variant="destructive" className="my-4">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Error loading question: {question.title}. Please refresh the page or contact support.
+                          </AlertDescription>
+                        </Alert>
+                      }
+                    >
+                      <QuestionRenderer
+                        question={question}
+                        value={responses[question.id]}
+                        onChange={(value) => handleResponseChange(question.id, value)}
+                        error={undefined}
+                        isPreviewMode={false}
+                        conditionalValues={conditionalResponses}
+                        onConditionalChange={handleConditionalChange}
+                      />
+                    </ErrorBoundary>
+
+                    {/* Inline Assigned Section */}
+                    {assignedSection && (
+                      <Card className="border-blue-200 bg-blue-50">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg text-blue-900 flex items-center gap-2">
+                            <Plus className="w-5 h-5" />
+                            {assignedSection.title}
+                          </CardTitle>
+                          {assignedSection.description && (
+                            <p className="text-blue-700 text-sm">{assignedSection.description}</p>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {assignedSection.questions.map((inlineQuestion) => (
+                              <ErrorBoundary
+                                key={inlineQuestion.id}
+                                fallback={
+                                  <Alert variant="destructive" className="my-2">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                      Error loading question: {inlineQuestion.title}
+                                    </AlertDescription>
+                                  </Alert>
+                                }
+                              >
+                                <QuestionRenderer
+                                  question={inlineQuestion}
+                                  value={responses[inlineQuestion.id]}
+                                  onChange={(value) => handleResponseChange(inlineQuestion.id, value)}
+                                  error={undefined}
+                                  isPreviewMode={false}
+                                  conditionalValues={conditionalResponses}
+                                  onConditionalChange={handleConditionalChange}
+                                />
+                              </ErrorBoundary>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

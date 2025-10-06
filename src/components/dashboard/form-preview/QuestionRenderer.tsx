@@ -56,6 +56,13 @@ export function QuestionRenderer({
       );
 
     case 'SINGLE_CHOICE':
+      console.log('🔍 QuestionRenderer - SingleChoice:', {
+        questionId: question.id,
+        questionTitle: question.title,
+        conditionalValues: conditionalValues,
+        onConditionalChange: !!onConditionalChange,
+        hasConditionalQuestions: question.options?.some(opt => opt.hasConditionalQuestions)
+      });
       return (
         <SingleChoiceQuestionRenderer
           question={question}
@@ -69,6 +76,13 @@ export function QuestionRenderer({
       );
 
     case 'MULTIPLE_CHOICE':
+      console.log('🔍 QuestionRenderer - MultipleChoice:', {
+        questionId: question.id,
+        questionTitle: question.title,
+        conditionalValues: conditionalValues,
+        onConditionalChange: !!onConditionalChange,
+        hasConditionalQuestions: question.options?.some(opt => opt.hasConditionalQuestions)
+      });
       return (
         <MultipleChoiceQuestionRenderer
           question={question}
@@ -123,7 +137,7 @@ export function QuestionRenderer({
           question={question}
           value={value}
           onChange={onChange}
-          disabled={isPreviewMode}
+          disabled={false}
           isPreviewMode={isPreviewMode}
         />
       );
@@ -137,7 +151,7 @@ export function QuestionRenderer({
           question={question}
           value={value}
           onChange={onChange}
-          disabled={isPreviewMode}
+          disabled={false}
         />
       );
 

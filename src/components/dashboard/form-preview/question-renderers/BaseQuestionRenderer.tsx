@@ -42,7 +42,7 @@ export function BaseQuestionRenderer({
       {/* Preview Mode Indicator */}
       {isPreviewMode && (
         <p className="text-xs text-blue-600 italic">
-          Preview mode - responses will not be saved
+          Preview mode - you can fill out the form for testing, but responses will not be submitted
         </p>
       )}
     </div>

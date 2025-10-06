@@ -22,8 +22,7 @@ export function ShortTextQuestionRenderer({
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={question.placeholder || 'Enter your response...'}
-        disabled={isPreviewMode}
-        className={`min-h-[100px] ${isPreviewMode ? 'bg-gray-50' : ''}`}
+        className={`min-h-[100px] ${isPreviewMode ? 'bg-blue-50 border-blue-200' : ''}`}
         rows={4}
       />
     </BaseQuestionRenderer>

@@ -19,6 +19,7 @@ import {
   Download
 } from 'lucide-react';
 import { Form } from './types';
+import { filterMainQuestions } from '../form-preview/utils/questionUtils';
 
 interface ReviewStepProps {
   form: Partial<Form>;
@@ -333,7 +334,7 @@ export function ReviewStep({ form, onPublish }: ReviewStepProps) {
                       </div>
                       
                       <div className="space-y-3">
-                        {section.questions.map((question) => (
+                        {filterMainQuestions(section.questions).map((question) => (
                           <QuestionPreview
                             key={question.id}
                             question={question}
