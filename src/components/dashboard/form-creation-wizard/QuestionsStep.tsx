@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,8 +45,17 @@ export function QuestionsStep({
   onLinkQuestionToActivities,
 }: QuestionsStepProps) {
   const [selectedQuestionType, setSelectedQuestionType] = useState<QuestionType>('SHORT_TEXT');
+  const [selectedSectionId, setSelectedSectionId] = useState<string>(sections[0]?.id || '');
+
+  // Update selected section when sections change
+  useEffect(() => {
+    if (sections.length > 0 && (!selectedSectionId || !sections.find(s => s.id === selectedSectionId))) {
+      setSelectedSectionId(sections[0].id);
+    }
+  }, [sections, selectedSectionId]);
 
   const totalQuestions = sections.reduce((total, section) => total + section.questions.length, 0);
+  const currentSection = sections.find(s => s.id === selectedSectionId);
 
   const renderQuestionEditor = (sectionId: string, question: FormQuestion) => {
     const commonProps = {
@@ -194,41 +203,56 @@ export function QuestionsStep({
         </CardContent>
       </Card>
 
-      {/* Section Tabs */}
-      <Tabs defaultValue={sections[0]?.id} className="w-full">
-        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${sections.length}, 1fr)` }}>
-          {sections.map((section, index) => (
-            <TabsTrigger key={section.id} value={section.id} className="text-center">
-              <div>
-                <div className="font-medium">{section.title || `Section ${index + 1}`}</div>
-                <div className="text-xs text-gray-500">
-                  {section.questions.length} question{section.questions.length !== 1 ? 's' : ''}
-                </div>
-              </div>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* Section Selector */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-gray-600" />
+              <span className="font-medium text-gray-900">Select Section:</span>
+            </div>
+            <Select value={selectedSectionId} onValueChange={setSelectedSectionId}>
+              <SelectTrigger className="w-full max-w-md">
+                <SelectValue placeholder="Select a section" />
+              </SelectTrigger>
+              <SelectContent>
+                {sections.map((section, index) => (
+                  <SelectItem key={section.id} value={section.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{section.title || `Section ${index + 1}`}</span>
+                      <span className="text-xs text-gray-500">
+                        {section.questions.length} question{section.questions.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-        {sections.map((section) => (
-          <TabsContent key={section.id} value={section.id} className="space-y-6">
+      {/* Current Section Content */}
+      {currentSection && (
+        <div className="space-y-6">
             {/* Section Header */}
             <Card className="bg-gray-50">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-2">
                   <Layers className="w-5 h-5 text-gray-600" />
-                  <h3 className="font-semibold text-gray-900">{section.title}</h3>
+                  <h3 className="font-semibold text-gray-900">{currentSection.title}</h3>
                 </div>
-                {section.description && (
-                  <p className="text-sm text-gray-600">{section.description}</p>
+                {currentSection.description && (
+                  <p className="text-sm text-gray-600">{currentSection.description}</p>
                 )}
               </CardContent>
             </Card>
 
             {/* Add Question */}
-            <QuestionTypeSelector sectionId={section.id} />
+            <QuestionTypeSelector sectionId={currentSection.id} />
 
             {/* Questions List */}
-            {section.questions.length === 0 ? (
+            {currentSection.questions.length === 0 ? (
               <Card className="border-dashed border-2 border-gray-300">
                 <CardContent className="pt-6">
                   <div className="text-center py-8">
@@ -242,16 +266,15 @@ export function QuestionsStep({
               </Card>
             ) : (
               <div className="space-y-4">
-                {filterMainQuestions(section.questions).map((question) => (
+                {filterMainQuestions(currentSection.questions).map((question) => (
                   <div key={question.id}>
-                    {renderQuestionEditor(section.id, question)}
+                    {renderQuestionEditor(currentSection.id, question)}
                   </div>
                 ))}
               </div>
             )}
-          </TabsContent>
-        ))}
-      </Tabs>
+        </div>
+      )}
 
       {/* Question Guidelines */}
       <Card className="bg-green-50 border-green-200">
