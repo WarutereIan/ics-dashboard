@@ -441,7 +441,9 @@ export function FormPreview({
                   questionId: question.id,
                   questionTitle: question.title,
                   questionType: question.type,
-                  hasConditionalQuestions: question.options?.some(opt => opt.hasConditionalQuestions),
+                  hasConditionalQuestions: (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') 
+                    ? (question as any).options?.some((opt: any) => opt.hasConditionalQuestions) 
+                    : false,
                   conditionalValues: conditionalResponses,
                   onConditionalChange: !!handleConditionalChange
                 });
