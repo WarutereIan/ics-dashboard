@@ -59,16 +59,35 @@ export function SingleChoiceQuestionRenderer({
                 Additional questions for "{selectedOption.label}":
               </div>
               <div className="space-y-4">
-                {selectedOption.conditionalQuestions.map((conditionalQuestion) => (
-                  <QuestionRenderer
-                    key={conditionalQuestion.id}
-                    question={conditionalQuestion}
-                    value={conditionalValues[conditionalQuestion.id]}
-                    onChange={(value) => onConditionalChange?.(conditionalQuestion.id, value)}
-                    error={undefined}
-                    isPreviewMode={isPreviewMode}
-                  />
-                ))}
+                {selectedOption.conditionalQuestions.map((conditionalQuestion) => {
+                  console.log('🔍 Rendering dropdown conditional question:', {
+                    questionId: conditionalQuestion.id,
+                    questionTitle: conditionalQuestion.title,
+                    questionType: conditionalQuestion.type,
+                    conditionalValues: conditionalValues,
+                    value: conditionalValues[conditionalQuestion.id],
+                    onConditionalChange: !!onConditionalChange
+                  });
+                  
+                  return (
+                    <QuestionRenderer
+                      key={conditionalQuestion.id}
+                      question={conditionalQuestion}
+                      value={conditionalValues[conditionalQuestion.id]}
+                      onChange={(value) => {
+                        console.log('🔄 Dropdown conditional question onChange called:', {
+                          questionId: conditionalQuestion.id,
+                          value: value
+                        });
+                        onConditionalChange?.(conditionalQuestion.id, value);
+                      }}
+                      error={undefined}
+                      isPreviewMode={isPreviewMode}
+                      conditionalValues={conditionalValues}
+                      onConditionalChange={onConditionalChange}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -108,16 +127,28 @@ export function SingleChoiceQuestionRenderer({
                value === option.value.toString() && (
                 <div className="ml-6 mt-3 p-4 border-l-4 border-l-blue-500 bg-blue-50 rounded-r-lg">
                   <div className="space-y-4">
-                    {option.conditionalQuestions.map((conditionalQuestion) => (
-                      <QuestionRenderer
-                        key={conditionalQuestion.id}
-                        question={conditionalQuestion}
-                        value={conditionalValues[conditionalQuestion.id]}
-                        onChange={(value) => onConditionalChange?.(conditionalQuestion.id, value)}
-                        error={undefined}
-                        isPreviewMode={isPreviewMode}
-                      />
-                    ))}
+                    {option.conditionalQuestions.map((conditionalQuestion) => {
+                     
+                      
+                      return (
+                        <QuestionRenderer
+                          key={conditionalQuestion.id}
+                          question={conditionalQuestion}
+                          value={conditionalValues[conditionalQuestion.id]}
+                          onChange={(value) => {
+                            console.log('🔄 Conditional question onChange called:', {
+                              questionId: conditionalQuestion.id,
+                              value: value
+                            });
+                            onConditionalChange?.(conditionalQuestion.id, value);
+                          }}
+                          error={undefined}
+                          isPreviewMode={isPreviewMode}
+                          conditionalValues={conditionalValues}
+                          onConditionalChange={onConditionalChange}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               )}

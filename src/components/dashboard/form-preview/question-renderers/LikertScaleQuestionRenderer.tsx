@@ -100,13 +100,12 @@ export function LikertScaleQuestionRenderer({
                         value={option.value}
                         checked={value[statement.id] === option.value}
                         onChange={(e) => handleStatementChange(statement.id, e.target.value)}
-                        disabled={isPreviewMode}
-                        className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        className={`w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isPreviewMode ? 'border-blue-300' : ''}`}
                       />
                       <Label 
                         htmlFor={`${question.id}-${index}-${option.value}`}
                         className={`text-xs text-center leading-tight cursor-pointer ${
-                          isPreviewMode ? 'text-gray-400' : 'text-gray-700 hover:text-gray-900'
+                          isPreviewMode ? 'text-blue-700' : 'text-gray-700 hover:text-gray-900'
                         }`}
                       >
                         {option.label.split(' ').map((word: string, wordIndex: number) => (

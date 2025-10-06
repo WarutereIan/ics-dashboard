@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Form, FormQuestion } from '@/components/dashboard/form-creation-wizard/types';
 import { QuestionRenderer } from '@/components/dashboard/form-preview/QuestionRenderer';
+import { filterMainQuestions } from '@/components/dashboard/form-preview/utils/questionUtils';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -598,7 +599,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {currentSection.questions.map((question: FormQuestion) => {
+              {filterMainQuestions(currentSection.questions).map((question: FormQuestion) => {
                 const assignedSection = getAssignedSectionForQuestion(question, responses);
                 
                 return (

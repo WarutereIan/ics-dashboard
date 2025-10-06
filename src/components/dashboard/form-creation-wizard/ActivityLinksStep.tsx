@@ -17,6 +17,7 @@ import {
   Settings
 } from 'lucide-react';
 import { Form, FormQuestion, ActivityKPIMapping } from './types';
+import { filterMainQuestions } from '../form-preview/utils/questionUtils';
 
 interface ActivityLinksStepProps {
   form: Partial<Form>;
@@ -37,9 +38,9 @@ export function ActivityLinksStep({
 }: ActivityLinksStepProps) {
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
 
-  // Get all questions from all sections
+  // Get all questions from all sections (excluding conditional questions)
   const allQuestions = form.sections?.flatMap(section => 
-    section.questions.map(question => ({
+    filterMainQuestions(section.questions).map(question => ({
       ...question,
       sectionId: section.id,
       sectionTitle: section.title

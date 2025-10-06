@@ -137,16 +137,35 @@ export function MultipleChoiceQuestionRenderer({
                     Additional questions for "{option.label}":
                   </div>
                   <div className="space-y-4">
-                    {option.conditionalQuestions.map((conditionalQuestion) => (
-                      <QuestionRenderer
-                        key={conditionalQuestion.id}
-                        question={conditionalQuestion}
-                        value={conditionalValues[conditionalQuestion.id]}
-                        onChange={(value) => onConditionalChange?.(conditionalQuestion.id, value)}
-                        error={undefined}
-                        isPreviewMode={isPreviewMode}
-                      />
-                    ))}
+                    {option.conditionalQuestions.map((conditionalQuestion) => {
+                      console.log('🔍 Rendering multiple choice conditional question:', {
+                        questionId: conditionalQuestion.id,
+                        questionTitle: conditionalQuestion.title,
+                        questionType: conditionalQuestion.type,
+                        conditionalValues: conditionalValues,
+                        value: conditionalValues[conditionalQuestion.id],
+                        onConditionalChange: !!onConditionalChange
+                      });
+                      
+                      return (
+                        <QuestionRenderer
+                          key={conditionalQuestion.id}
+                          question={conditionalQuestion}
+                          value={conditionalValues[conditionalQuestion.id]}
+                          onChange={(value) => {
+                            console.log('🔄 Multiple choice conditional question onChange called:', {
+                              questionId: conditionalQuestion.id,
+                              value: value
+                            });
+                            onConditionalChange?.(conditionalQuestion.id, value);
+                          }}
+                          error={undefined}
+                          isPreviewMode={isPreviewMode}
+                          conditionalValues={conditionalValues}
+                          onConditionalChange={onConditionalChange}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               )}
