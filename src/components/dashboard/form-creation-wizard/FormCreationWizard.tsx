@@ -39,6 +39,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
     updateQuestion,
     removeQuestion,
     duplicateQuestion,
+    reorderQuestions,
     linkQuestionToActivity,
     linkQuestionToActivities,
     updateSettings,
@@ -109,6 +110,7 @@ export function FormCreationWizard({ formId }: FormCreationWizardProps) {
             onUpdateQuestion={updateQuestion}
             onRemoveQuestion={removeQuestion}
             onDuplicateQuestion={duplicateQuestion}
+            onReorderQuestions={reorderQuestions}
             onLinkQuestionToActivity={linkQuestionToActivity}
             onLinkQuestionToActivities={linkQuestionToActivities}
           />

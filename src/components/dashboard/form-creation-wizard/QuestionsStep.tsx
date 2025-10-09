@@ -4,7 +4,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Plus, HelpCircle, Layers } from 'lucide-react';
+import { AlertCircle, Plus, HelpCircle, Layers, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { FormSection, FormQuestion, QuestionType, ActivityKPIMapping } from './types';
 import { filterMainQuestions } from '../form-preview/utils/questionUtils';
 import {
@@ -30,8 +49,62 @@ interface QuestionsStepProps {
   onUpdateQuestion: (sectionId: string, questionId: string, updates: Partial<FormQuestion>) => void;
   onRemoveQuestion: (sectionId: string, questionId: string) => void;
   onDuplicateQuestion: (sectionId: string, questionId: string) => void;
+  onReorderQuestions: (sectionId: string, startIndex: number, endIndex: number) => void;
   onLinkQuestionToActivity: (sectionId: string, questionId: string, activityMapping: ActivityKPIMapping) => void;
   onLinkQuestionToActivities: (sectionId: string, questionId: string, activityMappings: ActivityKPIMapping[]) => void;
+}
+
+/**
+ * Sortable Question Item Component
+ * 
+ * Wraps question editors with drag-and-drop functionality.
+ * Provides a grip handle for reordering questions within a section.
+ * 
+ * Features:
+ * - Visual drag handle with hover effects
+ * - Smooth drag animations
+ * - Accessibility support with keyboard navigation
+ * - Maintains question editor functionality while dragging
+ */
+interface SortableQuestionItemProps {
+  question: FormQuestion;
+  sectionId: string;
+  children: React.ReactNode;
+}
+
+function SortableQuestionItem({ question, sectionId, children }: SortableQuestionItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: question.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative">
+      <div className="absolute left-0 top-0 h-full flex items-center justify-center w-8 cursor-grab active:cursor-grabbing z-10">
+        <div
+          {...attributes}
+          {...listeners}
+          className="p-2 hover:bg-gray-100 rounded transition-colors duration-200 group"
+          title="Drag to reorder"
+        >
+          <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+        </div>
+      </div>
+      <div className="ml-8">
+        {children}
+      </div>
+    </div>
+  );
 }
 
 export function QuestionsStep({
@@ -41,11 +114,38 @@ export function QuestionsStep({
   onUpdateQuestion,
   onRemoveQuestion,
   onDuplicateQuestion,
+  onReorderQuestions,
   onLinkQuestionToActivity,
   onLinkQuestionToActivities,
 }: QuestionsStepProps) {
   const [selectedQuestionType, setSelectedQuestionType] = useState<QuestionType>('SHORT_TEXT');
   const [selectedSectionId, setSelectedSectionId] = useState<string>(sections[0]?.id || '');
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const currentSection = sections.find(s => s.id === selectedSectionId);
+      if (!currentSection) return;
+
+      const questions = filterMainQuestions(currentSection.questions);
+      const oldIndex = questions.findIndex(q => q.id === active.id);
+      const newIndex = questions.findIndex(q => q.id === over.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        onReorderQuestions(selectedSectionId, oldIndex, newIndex);
+      }
+    }
+  };
 
   // Update selected section when sections change
   useEffect(() => {
@@ -251,6 +351,18 @@ export function QuestionsStep({
             {/* Add Question */}
             <QuestionTypeSelector sectionId={currentSection.id} />
 
+            {/* Reordering Instructions */}
+            {currentSection.questions.length > 1 && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <GripVertical className="w-4 h-4" />
+                    <span>Drag questions by the grip handle to reorder them</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Questions List */}
             {currentSection.questions.length === 0 ? (
               <Card className="border-dashed border-2 border-gray-300">
@@ -265,13 +377,28 @@ export function QuestionsStep({
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {filterMainQuestions(currentSection.questions).map((question) => (
-                  <div key={question.id}>
-                    {renderQuestionEditor(currentSection.id, question)}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={filterMainQuestions(currentSection.questions).map(q => q.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-4">
+                    {filterMainQuestions(currentSection.questions).map((question) => (
+                      <SortableQuestionItem
+                        key={question.id}
+                        question={question}
+                        sectionId={currentSection.id}
+                      >
+                        {renderQuestionEditor(currentSection.id, question)}
+                      </SortableQuestionItem>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </SortableContext>
+              </DndContext>
             )}
         </div>
       )}
