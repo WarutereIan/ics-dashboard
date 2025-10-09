@@ -171,7 +171,7 @@ export const Login: React.FC<LoginProps> = () => {
         </Card>
 
         {/* Demo Accounts */}
-        <Card className="shadow-lg">
+{/*         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg">Demo Accounts</CardTitle>
             <p className="text-sm text-gray-600">Click any account to auto-fill credentials</p>
@@ -191,12 +191,12 @@ export const Login: React.FC<LoginProps> = () => {
               </Button>
             ))}
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Help Text */}
-        <div className="text-center text-sm text-gray-600">
+       {/*  <div className="text-center text-sm text-gray-600">
           <p>This is a demo application. Use the demo accounts above to explore different user roles.</p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

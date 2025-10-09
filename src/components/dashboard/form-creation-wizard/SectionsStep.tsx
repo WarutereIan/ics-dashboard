@@ -6,7 +6,140 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Plus, Trash2, GripVertical, Layers } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { FormSection } from './types';
+
+/**
+ * Sortable Section Item Component
+ * 
+ * Wraps section cards with drag-and-drop functionality.
+ * Provides a grip handle for reordering sections within a form.
+ * 
+ * Features:
+ * - Visual drag handle with hover effects
+ * - Smooth drag animations
+ * - Accessibility support with keyboard navigation
+ * - Maintains section editing functionality while dragging
+ */
+interface SortableSectionItemProps {
+  section: FormSection;
+  index: number;
+  onUpdateSection: (sectionId: string, updates: Partial<FormSection>) => void;
+  onRemoveSection: (sectionId: string) => void;
+  sectionsLength: number;
+}
+
+function SortableSectionItem({ 
+  section, 
+  index, 
+  onUpdateSection, 
+  onRemoveSection, 
+  sectionsLength 
+}: SortableSectionItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className="relative">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3 flex-1">
+            <div
+              {...attributes}
+              {...listeners}
+              className="p-2 hover:bg-gray-100 rounded transition-colors duration-200 group cursor-grab active:cursor-grabbing"
+              title="Drag to reorder section"
+            >
+              <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+            </div>
+            <div className="flex-1 space-y-3">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">Section {index + 1}</Badge>
+                <span className="text-xs text-gray-500">
+                  {section.questions?.length || 0} questions
+                </span>
+              </div>
+              
+              <div>
+                <Label htmlFor={`section-title-${section.id}`}>Section Title</Label>
+                <Input
+                  id={`section-title-${section.id}`}
+                  value={section.title}
+                  onChange={(e) => onUpdateSection(section.id, { title: e.target.value })}
+                  placeholder="Enter section title..."
+                  className="font-medium"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor={`section-description-${section.id}`}>
+                  Section Description (optional)
+                </Label>
+                <Textarea
+                  id={`section-description-${section.id}`}
+                  value={section.description || ''}
+                  onChange={(e) => onUpdateSection(section.id, { description: e.target.value })}
+                  placeholder="Add instructions or context for this section..."
+                  rows={2}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 ml-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onRemoveSection(section.id)}
+              disabled={sectionsLength <= 1}
+              className="text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+
+      {section.description && (
+        <CardContent className="pt-0">
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">{section.description}</p>
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
 
 interface SectionsStepProps {
   sections: FormSection[];
@@ -23,6 +156,28 @@ export function SectionsStep({
   onRemoveSection,
   onReorderSections,
 }: SectionsStepProps) {
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = sections.findIndex(section => section.id === active.id);
+      const newIndex = sections.findIndex(section => section.id === over.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        onReorderSections(oldIndex, newIndex);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -46,6 +201,18 @@ export function SectionsStep({
         </CardContent>
       </Card>
 
+      {/* Reordering Instructions */}
+      {sections.length > 1 && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 text-sm text-blue-700">
+              <GripVertical className="w-4 h-4" />
+              <span>Drag sections by the grip handle to reorder them</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sections List */}
       {sections.length === 0 ? (
         <Card className="border-dashed border-2 border-gray-300">
@@ -64,71 +231,29 @@ export function SectionsStep({
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {sections.map((section, index) => (
-            <Card key={section.id} className="relative">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3 flex-1">
-                    <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">Section {index + 1}</Badge>
-                        <span className="text-xs text-gray-500">
-                          {section.questions?.length || 0} questions
-                        </span>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor={`section-title-${section.id}`}>Section Title</Label>
-                        <Input
-                          id={`section-title-${section.id}`}
-                          value={section.title}
-                          onChange={(e) => onUpdateSection(section.id, { title: e.target.value })}
-                          placeholder="Enter section title..."
-                          className="font-medium"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor={`section-description-${section.id}`}>
-                          Section Description (optional)
-                        </Label>
-                        <Textarea
-                          id={`section-description-${section.id}`}
-                          value={section.description || ''}
-                          onChange={(e) => onUpdateSection(section.id, { description: e.target.value })}
-                          placeholder="Add instructions or context for this section..."
-                          rows={2}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onRemoveSection(section.id)}
-                      disabled={sections.length <= 1}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-
-              {section.description && (
-                <CardContent className="pt-0">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">{section.description}</p>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sections.map(section => section.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-4">
+              {sections.map((section, index) => (
+                <SortableSectionItem
+                  key={section.id}
+                  section={section}
+                  index={index}
+                  onUpdateSection={onUpdateSection}
+                  onRemoveSection={onRemoveSection}
+                  sectionsLength={sections.length}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {/* Section Guidelines */}
@@ -141,6 +266,7 @@ export function SectionsStep({
             <li>• Use clear, descriptive section titles</li>
             <li>• Consider the logical flow from one section to the next</li>
             <li>• Add descriptions to provide context or instructions for complex sections</li>
+            <li>• Drag sections by the grip handle to reorder them for better user experience</li>
           </ul>
         </CardContent>
       </Card>

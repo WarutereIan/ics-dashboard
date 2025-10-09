@@ -401,6 +401,41 @@ export function useFormWizard(formId?: string) {
     }));
   }, [wizardState.form.sections]);
 
+  const reorderQuestions = useCallback((sectionId: string, startIndex: number, endIndex: number) => {
+    setWizardState(prev => {
+      const sections = [...(prev.form.sections || [])];
+      const sectionIndex = sections.findIndex(s => s.id === sectionId);
+      
+      if (sectionIndex === -1) return prev;
+      
+      const section = sections[sectionIndex];
+      const questions = [...section.questions];
+      const [removed] = questions.splice(startIndex, 1);
+      questions.splice(endIndex, 0, removed);
+      
+      // Update order values
+      const reorderedQuestions = questions.map((question, index) => ({
+        ...question,
+        order: index + 1,
+      }));
+
+      sections[sectionIndex] = {
+        ...section,
+        questions: reorderedQuestions,
+      };
+
+      return {
+        ...prev,
+        form: {
+          ...prev.form,
+          sections,
+          updatedAt: new Date(),
+        },
+        hasUnsavedChanges: true,
+      };
+    });
+  }, []);
+
   // Activity linking
   const linkQuestionToActivity = useCallback((
     sectionId: string, 
@@ -750,6 +785,7 @@ export function useFormWizard(formId?: string) {
     updateQuestion,
     removeQuestion,
     duplicateQuestion,
+    reorderQuestions,
     
     // Activity linking
     linkQuestionToActivity,
