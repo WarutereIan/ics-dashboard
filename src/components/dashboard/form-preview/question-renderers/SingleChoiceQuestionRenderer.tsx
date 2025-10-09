@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BaseQuestionRenderer, BaseQuestionRendererProps } from './BaseQuestionRenderer';
 import { SingleChoiceQuestion, FormQuestion } from '../../form-creation-wizard/types';
@@ -22,6 +23,28 @@ export function SingleChoiceQuestionRenderer({
   conditionalValues = {},
   onConditionalChange
 }: SingleChoiceQuestionRendererProps) {
+  const [otherText, setOtherText] = useState('');
+
+  // Extract "other" text from value if it exists
+  const isOtherSelected = value === 'other' || (typeof value === 'string' && value.startsWith('other:'));
+  const currentOtherText = typeof value === 'string' && value.startsWith('other:') ? value.replace('other:', '') : '';
+  
+  // Initialize otherText if we have a value
+  useEffect(() => {
+    if (currentOtherText && !otherText) {
+      setOtherText(currentOtherText);
+    }
+  }, [currentOtherText, otherText]);
+
+  const handleOtherTextChange = (text: string) => {
+    setOtherText(text);
+    
+    if (!onChange) return;
+
+    // Update the value to include the other text
+    const newValue = text ? `other:${text}` : 'other';
+    onChange(newValue);
+  };
   if (question.displayType === 'DROPDOWN') {
     // Find the selected option to check for conditional questions
     const selectedOption = question.options?.find(option => option.value.toString() === value);
@@ -46,8 +69,22 @@ export function SingleChoiceQuestionRenderer({
                   No options available
                 </SelectItem>
               )}
+              {question.allowOther && (
+                <SelectItem value="other">
+                  Other
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
+          
+          {/* Other option text input for dropdown */}
+          {question.allowOther && isOtherSelected && (
+            <Input 
+              placeholder="Please specify..." 
+              value={otherText}
+              onChange={(e) => handleOtherTextChange(e.target.value)}
+            />
+          )}
           
           {/* Conditional Questions for Dropdown */}
           {selectedOption && 
@@ -157,6 +194,34 @@ export function SingleChoiceQuestionRenderer({
         ) : (
           <div className="text-sm text-gray-500 italic">
             No options available for this question.
+          </div>
+        )}
+        
+        {/* Other option */}
+        {question.allowOther && (
+          <div className="flex items-center space-x-2">
+            <input
+              type="radio"
+              id={`${question.id}-other`}
+              name={question.id}
+              value="other"
+              checked={isOtherSelected}
+              onChange={(e) => onChange?.(e.target.value)}
+              className={`w-4 h-4 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isPreviewMode ? 'border-blue-300' : ''}`}
+            />
+            <Label 
+              htmlFor={`${question.id}-other`}
+              className={`text-sm cursor-pointer ${isPreviewMode ? 'text-blue-700' : ''}`}
+            >
+              Other:
+            </Label>
+            <Input 
+              placeholder="Please specify..." 
+              className="flex-1" 
+              value={isOtherSelected ? otherText : ''}
+              onChange={(e) => handleOtherTextChange(e.target.value)}
+              disabled={!isOtherSelected}
+            />
           </div>
         )}
       </div>

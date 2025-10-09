@@ -165,6 +165,16 @@ export function LocationQuestionRenderer({
   return (
     <BaseQuestionRenderer question={question}>
       <div className="space-y-4">
+        {/* Preview Mode Indicator */}
+        {isPreviewMode && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-blue-700">
+              <MapPin className="w-4 h-4" />
+              <span className="font-medium">Preview Mode:</span>
+              <span>Location capture is enabled for testing. This will work the same way for form respondents.</span>
+            </div>
+          </div>
+        )}
         {/* Location Display */}
         {value && (
           <Card className="border-green-200 bg-green-50">
@@ -197,7 +207,7 @@ export function LocationQuestionRenderer({
                   variant="ghost"
                   size="sm"
                   onClick={() => onChange?.(null)}
-                  disabled={disabled || isPreviewMode}
+                  disabled={disabled}
                   className="text-green-600 hover:text-green-700"
                 >
                   Clear
@@ -214,7 +224,7 @@ export function LocationQuestionRenderer({
             <Button
               type="button"
               onClick={getCurrentLocation}
-              disabled={disabled || isPreviewMode || isCapturing || !isGeolocationSupported()}
+              disabled={disabled || isCapturing || !isGeolocationSupported()}
               className="w-full"
               variant="outline"
             >
@@ -227,6 +237,11 @@ export function LocationQuestionRenderer({
                 <>
                   <Navigation className="w-4 h-4 mr-2" />
                   Get Current Location
+                  {isPreviewMode && (
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      Preview
+                    </span>
+                  )}
                 </>
               )}
             </Button>
@@ -236,12 +251,17 @@ export function LocationQuestionRenderer({
               <Button
                 type="button"
                 onClick={() => setShowManualInput(!showManualInput)}
-                disabled={disabled || isPreviewMode}
+                disabled={disabled}
                 variant="ghost"
                 className="w-full"
               >
                 <Globe className="w-4 h-4 mr-2" />
                 {showManualInput ? 'Hide' : 'Enter Coordinates Manually'}
+                {isPreviewMode && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    Preview
+                  </span>
+                )}
               </Button>
             )}
 
@@ -260,7 +280,7 @@ export function LocationQuestionRenderer({
                         placeholder="e.g., 40.7128"
                         value={manualLat}
                         onChange={(e) => setManualLat(e.target.value)}
-                        disabled={disabled || isPreviewMode}
+                        disabled={disabled}
                       />
                     </div>
                     <div>
@@ -273,18 +293,23 @@ export function LocationQuestionRenderer({
                         placeholder="e.g., -74.0060"
                         value={manualLng}
                         onChange={(e) => setManualLng(e.target.value)}
-                        disabled={disabled || isPreviewMode}
+                        disabled={disabled}
                       />
                     </div>
                   </div>
                   <Button
                     type="button"
                     onClick={handleManualSubmit}
-                    disabled={disabled || isPreviewMode || !manualLat || !manualLng}
+                    disabled={disabled || !manualLat || !manualLng}
                     className="w-full"
                   >
                     <Target className="w-4 h-4 mr-2" />
                     Set Location
+                    {isPreviewMode && (
+                      <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        Preview
+                      </span>
+                    )}
                   </Button>
                 </CardContent>
               </Card>
@@ -319,6 +344,9 @@ export function LocationQuestionRenderer({
               )}
               {question.captureAddress && (
                 <p>• Address will be captured automatically</p>
+              )}
+              {isPreviewMode && (
+                <p className="text-blue-600 font-medium">• Preview mode: Location capture is fully functional</p>
               )}
             </div>
           </div>
