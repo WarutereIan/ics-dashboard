@@ -14,7 +14,8 @@ import {
   Send,
   Eye,
   EyeOff,
-  Plus
+  Plus,
+  Download
 } from 'lucide-react';
 import { Form, FormQuestion } from '@/components/dashboard/form-creation-wizard/types';
 import { QuestionRenderer } from '@/components/dashboard/form-preview/QuestionRenderer';
@@ -29,6 +30,7 @@ import {
 } from '@/lib/formLocalStorageUtils';
 import { useForm } from '@/contexts/FormContext';
 import { formsApi } from '@/lib/api/formsApi';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 interface PublicFormFillerProps {
   isEmbedded?: boolean;
@@ -38,6 +40,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   const { formId } = useParams<{ formId: string }>();
   const navigate = useNavigate();
   const { addFormResponseToStorage, validateConditionalQuestions, isOnline, syncStatus, processOfflineQueue } = useForm();
+  const { isInstallable, isInstalled, installApp } = usePWAInstall();
   
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
@@ -425,6 +428,16 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     navigate(`/login?next=${next}`);
   };
 
+  const handleInstallApp = async () => {
+    const success = await installApp();
+    if (success) {
+      toast({
+        title: "App Installed!",
+        description: "ICS Dashboard has been installed on your device. You can now access it from your home screen.",
+      });
+    }
+  };
+
   const saveDraft = () => {
     if (form?.id) {
       const previewData: Omit<FormPreviewData, 'formId'> = {
@@ -584,15 +597,28 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                   <p className="text-gray-600 mt-2">{form.description}</p>
                 )}
               </div>
-              {!isEmbedded && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowProgress(!showProgress)}
-                >
-                  {showProgress ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {!isEmbedded && isInstallable && !isInstalled && (
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={handleInstallApp}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Install App
+                  </Button>
+                )}
+                {!isEmbedded && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowProgress(!showProgress)}
+                  >
+                    {showProgress ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           
@@ -609,6 +635,27 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           )}
           {!isEmbedded && (
             <CardContent>
+              {/* PWA Install Banner */}
+              {isInstallable && !isInstalled && (
+                <Alert className="mb-4 border-blue-200 bg-blue-50">
+                  <Download className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="flex items-center justify-between w-full">
+                    <span className="text-blue-800">
+                      Install ICS Dashboard for offline access and better performance
+                    </span>
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      onClick={handleInstallApp}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Install
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               {!isOnline ? (
                 <Alert variant="destructive">
                   <AlertDescription>
