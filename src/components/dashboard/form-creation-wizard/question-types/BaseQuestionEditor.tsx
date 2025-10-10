@@ -23,7 +23,7 @@ interface BaseQuestionEditorProps {
   onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => void;
   children?: React.ReactNode; // Question-specific configuration
   sectionId?: string; // Section ID for adding next question
-  onAddQuestion?: (sectionId: string, questionType: QuestionType) => void; // Function to add next question
+  onAddQuestion?: (sectionId: string, questionType: QuestionType) => void; // Function to add next question (injected to insert after current)
 }
 
 export function BaseQuestionEditor({

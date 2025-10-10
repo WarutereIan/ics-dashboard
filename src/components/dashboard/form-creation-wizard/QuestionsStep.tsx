@@ -41,11 +41,12 @@ import {
   MediaUploadQuestionEditor,
 } from './question-types';
 import { AddNextQuestionModal } from './AddNextQuestionModal';
+import { toast } from '@/hooks/use-toast';
 
 interface QuestionsStepProps {
   sections: FormSection[];
   availableActivities: ActivityKPIMapping[];
-  onAddQuestion: (sectionId: string, questionType: QuestionType) => void;
+  onAddQuestion: (sectionId: string, questionType: QuestionType, afterQuestionId?: string) => void;
   onUpdateQuestion: (sectionId: string, questionId: string, updates: Partial<FormQuestion>) => void;
   onRemoveQuestion: (sectionId: string, questionId: string) => void;
   onDuplicateQuestion: (sectionId: string, questionId: string) => void;
@@ -169,7 +170,7 @@ export function QuestionsStep({
       onLinkToActivities: (activityMappings: ActivityKPIMapping[]) => 
         onLinkQuestionToActivities(sectionId, question.id, activityMappings),
       sectionId,
-      onAddQuestion,
+      onAddQuestion: (sid: string, type: QuestionType) => onAddQuestion(sid, type, question.id),
     };
 
     switch (question.type) {
@@ -238,7 +239,13 @@ export function QuestionsStep({
 
             <div className="flex items-end">
               <Button 
-                onClick={() => onAddQuestion(sectionId, selectedQuestionType)}
+                onClick={() => {
+                  onAddQuestion(sectionId, selectedQuestionType);
+                  toast({
+                    title: 'Question added',
+                    description: `${selectedQuestionType.replace('_', ' ')} added to end of section.`,
+                  });
+                }}
                 className="w-full"
               >
                 <Plus className="w-4 h-4 mr-2" />

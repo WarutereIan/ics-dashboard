@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 import { QuestionType } from './types';
+import { toast } from '@/hooks/use-toast';
 import {
   QUESTION_TYPE_LABELS,
   QUESTION_TYPE_DESCRIPTIONS,
@@ -12,7 +13,7 @@ import {
 
 interface AddNextQuestionModalProps {
   sectionId: string;
-  onAddQuestion: (sectionId: string, questionType: QuestionType) => void;
+  onAddQuestion: (sectionId: string, questionType: QuestionType) => void; // already wrapped upstream to insert after current
 }
 
 export function AddNextQuestionModal({ sectionId, onAddQuestion }: AddNextQuestionModalProps) {
@@ -21,6 +22,10 @@ export function AddNextQuestionModal({ sectionId, onAddQuestion }: AddNextQuesti
 
   const handleAddQuestion = () => {
     onAddQuestion(sectionId, selectedQuestionType);
+    toast({
+      title: 'Question inserted',
+      description: `${selectedQuestionType.replace('_', ' ')} inserted below.`,
+    });
     setIsOpen(false);
     setSelectedQuestionType('SHORT_TEXT'); // Reset to default
   };
