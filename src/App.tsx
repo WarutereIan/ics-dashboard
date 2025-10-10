@@ -36,6 +36,7 @@ import { FeedbackRoutes } from '@/components/dashboard/feedback/FeedbackRoutes';
 import { FeedbackSubmissionInterface } from '@/components/dashboard/feedback/FeedbackSubmissionInterface';
 import { FeedbackProvider } from '@/contexts/FeedbackContext';
 // New all-outcomes and all-outputs pages will be created as OutcomesDetails and OutputsDetails
+import { Toaster as ShadToaster } from '@/components/ui/toaster';
 
 function ProtectedRoute({ roles }: { roles?: string[] }) {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -198,6 +199,7 @@ function AppWithNotifications() {
         notifications={notifications} 
         onRemove={removeNotification} 
       />
+      <ShadToaster />
     </>
   );
 }

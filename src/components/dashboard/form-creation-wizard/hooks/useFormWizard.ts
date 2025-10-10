@@ -300,7 +300,7 @@ export function useFormWizard(formId?: string) {
   }, []);
 
   // Question management
-  const addQuestion = useCallback((sectionId: string, questionType: QuestionType) => {
+  const addQuestion = useCallback((sectionId: string, questionType: QuestionType, afterQuestionId?: string) => {
     const section = wizardState.form.sections?.find(s => s.id === sectionId);
     if (!section) return;
 
@@ -322,11 +322,23 @@ export function useFormWizard(formId?: string) {
       ...prev,
       form: {
         ...prev.form,
-        sections: prev.form.sections?.map(s =>
-          s.id === sectionId 
-            ? { ...s, questions: [...s.questions, newQuestion] }
-            : s
-        ) || [],
+        sections: prev.form.sections?.map(s => {
+          if (s.id !== sectionId) return s;
+          const questions = [...s.questions];
+
+          if (afterQuestionId) {
+            const idx = questions.findIndex(q => q.id === afterQuestionId);
+            const insertIndex = idx !== -1 ? idx + 1 : questions.length;
+            questions.splice(insertIndex, 0, newQuestion);
+          } else {
+            questions.push(newQuestion);
+          }
+
+          // Recompute order
+          const reOrdered = questions.map((q, index) => ({ ...q, order: index + 1 }));
+
+          return { ...s, questions: reOrdered };
+        }) || [],
         updatedAt: new Date(),
       },
       hasUnsavedChanges: true,

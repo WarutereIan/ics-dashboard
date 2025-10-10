@@ -14,8 +14,10 @@ import {
   Clock,
   FileText,
   Camera,
-  Send
+  Send,
+  Share2
 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 import { GeneralFeedbackForm } from './forms/GeneralFeedbackForm';
 import { SafetyIncidentForm } from './forms/SafetyIncidentForm';
 import { EmergencyReportForm } from './forms/EmergencyReportForm';
@@ -31,6 +33,24 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
   const [activeTab, setActiveTab] = useState('general');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { forms, categories, loading, createSubmission } = useFeedback();
+
+  const handleShareLink = async () => {
+    try {
+      const baseUrl = window.location.origin;
+      const url = `${baseUrl}/feedback/submit`;
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: 'Link Copied!',
+        description: 'Feedback submission link copied to clipboard.',
+      });
+    } catch (err) {
+      toast({
+        title: 'Copy Failed',
+        description: 'Could not copy link. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleFormSubmit = async (formData: any, formType: string) => {
     setIsSubmitting(true);
@@ -195,9 +215,15 @@ export function FeedbackSubmissionInterface({ projectId, projectName = "ICS Prog
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-3">
-          <MessageSquare className="w-8 h-8 text-blue-600" />
-          <h1 className="text-3xl font-bold">Feedback & Reporting</h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <MessageSquare className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold">Feedback & Reporting</h1>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleShareLink}>
+            <Share2 className="w-4 h-4 mr-2" />
+            Share Link
+          </Button>
         </div>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           Your voice matters! Help us improve {projectName} by sharing your feedback, 
