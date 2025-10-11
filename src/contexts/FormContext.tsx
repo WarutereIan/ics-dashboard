@@ -610,6 +610,17 @@ export function FormProvider({ children }: FormProviderProps) {
         return null;
       }
 
+      console.log('🔧 FormContext.addFormResponseToStorage: About to submit response data:', {
+        formId: response.formId,
+        respondentId: response.respondentId,
+        respondentEmail: response.respondentEmail,
+        isComplete: response.isComplete,
+        data: response.data,
+        dataKeys: Object.keys(response.data || {}),
+        dataValues: response.data
+      });
+      
+      // Submit asynchronously to prevent blocking
       const submittedResponse = await formsApi.submitResponse({
         formId: response.formId,
         respondentId: response.respondentId,
@@ -617,6 +628,8 @@ export function FormProvider({ children }: FormProviderProps) {
         isComplete: response.isComplete,
         data: response.data
       });
+      
+      console.log('✅ FormContext.addFormResponseToStorage: Submission completed', submittedResponse);
 
       // Update local cache
       setAllFormResponses(prev => ({

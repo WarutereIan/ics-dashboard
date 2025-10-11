@@ -40,6 +40,8 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [showProgress, setShowProgress] = useState(true);
+  const [submissionLock, setSubmissionLock] = useState(false);
+  const [lastSubmissionTime, setLastSubmissionTime] = useState<number>(0);
 
   // Load form data
   useEffect(() => {
@@ -169,25 +171,64 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   };
 
   const handleSubmit = async () => {
-    if (!form || isSubmitting) return; // Prevent double submissions
+    if (!form || isSubmitting || submissionLock) {
+      console.log('🚫 Submission blocked - form:', !!form, 'isSubmitting:', isSubmitting, 'submissionLock:', submissionLock);
+      return; // Prevent double submissions and race conditions
+    }
 
+    // Record submission time for tracking
+    const now = Date.now();
+
+    // Validate that form has questions
+    const totalQuestions = form.sections?.reduce((total, section) => total + (section.questions?.length || 0), 0) || 0;
+    if (totalQuestions === 0) {
+      console.error('❌ Form has no questions to submit');
+      toast({
+        title: "Form Error",
+        description: "This form has no questions configured.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Set both submission states to prevent race conditions
     setIsSubmitting(true);
+    setSubmissionLock(true);
+    setLastSubmissionTime(now);
     
-    try {
-      console.log('📤 Submitting form response for form:', form.id);
+    console.log('📤 Submitting form response for form:', form.id);
+      
+      // Create a snapshot of current responses to prevent race conditions
+      const responseSnapshot = { ...responses };
+      const conditionalSnapshot = { ...conditionalResponses };
+      
+      console.log('📸 Response snapshot created:', {
+        responses: Object.keys(responseSnapshot),
+        conditional: Object.keys(conditionalSnapshot)
+      });
+      
+      // Debug: Log the form structure to see what question IDs we have
+      console.log('🔧 Form structure debug:', {
+        formId: form.id,
+        sections: form.sections?.map(s => ({
+          id: s.id,
+          title: s.title,
+          questions: s.questions?.map(q => ({ id: q.id, title: q.title }))
+        }))
+      });
       
       // Create the response object and submit via addFormResponseToStorage 
       // (which handles online/offline scenarios and API submission)
       const responseData = {
-        id: `response-${Date.now()}`,
+        id: `response-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         formId: form.id,
         formVersion: form.version || 1,
         startedAt: new Date(),
         submittedAt: new Date(),
         isComplete: true,
         data: {
-          ...responses,
-          ...conditionalResponses
+          ...responseSnapshot,
+          ...conditionalSnapshot
         },
         ipAddress: 'Unknown',
         userAgent: navigator.userAgent,
@@ -195,12 +236,49 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       };
 
       console.log('📊 Response data:', responseData);
+      console.log('📊 Responses state:', responses);
+      console.log('📊 Conditional responses state:', conditionalResponses);
+      console.log('📊 Combined data keys:', Object.keys(responseData.data));
+      console.log('📊 Combined data values:', responseData.data);
+      
+      // Check if we have any response data to submit
+      const hasResponseData = Object.keys(responseData.data).length > 0;
+      console.log('📊 Has response data:', hasResponseData);
+      
+      if (!hasResponseData) {
+        console.error('❌ No response data to submit!');
+        toast({
+          title: "Submission Error",
+          description: "No form data was captured. Please try again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
       // Submit via context (handles API call + local storage + offline queue)
-      await addFormResponseToStorage(responseData);
+      // Don't await this - let it run asynchronously to prevent blocking
+      const submissionPromise = addFormResponseToStorage(responseData);
       
-      // Clear draft data
-      clearFormPreviewData(form.id);
+      // Handle the submission result asynchronously
+      submissionPromise
+        .then((submissionResult) => {
+          if (submissionResult) {
+            console.log('✅ Form submission completed successfully');
+            clearFormPreviewData(form.id);
+          } else {
+            console.error('❌ Form submission failed, keeping draft data');
+          }
+        })
+        .catch((error) => {
+          console.error('❌ Form submission error:', error);
+          // Don't clear draft data on error
+        })
+        .finally(() => {
+          // Always reset submission states
+          setIsSubmitting(false);
+          setSubmissionLock(false);
+        });
       
       setIsComplete(true);
       
@@ -212,16 +290,6 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           description: form.settings.thankYouMessage,
         });
       }
-    } catch (err: any) {
-      console.error('Form submission failed:', err);
-      toast({
-        title: "Submission Failed",
-        description: err.message || "Please try again or contact support if the problem persists.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const handleLoginRedirect = () => {

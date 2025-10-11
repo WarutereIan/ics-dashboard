@@ -554,6 +554,52 @@ export const formsApi = {
 
     // 2) Insert question responses
     const entries = Object.entries(responseData.data || {});
+    console.log('🔧 FormsAPI.submitResponse: Question response entries:', entries);
+    console.log('🔧 FormsAPI.submitResponse: Response data keys:', Object.keys(responseData.data || {}));
+    console.log('🔧 FormsAPI.submitResponse: Response data values:', responseData.data);
+    
+    // Validate question IDs exist in the database
+    const questionIds = entries.map(([questionId]) => questionId);
+    console.log('🔧 FormsAPI.submitResponse: Question IDs to validate:', questionIds);
+    
+    if (questionIds.length > 0) {
+      const { data: existingQuestions, error: validateErr } = await (supabase as any)
+        .from('form_questions')
+        .select('id')
+        .in('id', questionIds);
+      
+      if (validateErr) {
+        console.error('❌ FormsAPI.submitResponse: Error validating question IDs', validateErr);
+      } else {
+        const existingQuestionIds = existingQuestions?.map((q: any) => q.id) || [];
+        const invalidQuestionIds = questionIds.filter(id => !existingQuestionIds.includes(id));
+        
+        if (invalidQuestionIds.length > 0) {
+          console.error('❌ FormsAPI.submitResponse: Invalid question IDs found:', invalidQuestionIds);
+          console.error('❌ FormsAPI.submitResponse: Valid question IDs:', existingQuestionIds);
+          
+          // Filter out invalid question IDs and continue with valid ones
+          console.warn('⚠️ FormsAPI.submitResponse: Filtering out invalid question IDs and continuing with valid ones');
+          const validEntries = entries.filter(([questionId]) => existingQuestionIds.includes(questionId));
+          console.log('🔧 FormsAPI.submitResponse: Valid entries after filtering:', validEntries);
+          
+          // Update entries to only include valid question IDs
+          entries.length = 0;
+          entries.push(...validEntries);
+        }
+        console.log('✅ FormsAPI.submitResponse: All question IDs are valid');
+      }
+    }
+    
+    // Check if we have any valid entries to submit
+    if (entries.length === 0) {
+      console.warn('⚠️ FormsAPI.submitResponse: No valid question responses to submit');
+      return mapFormResponseFromDb({
+        ...baseResp,
+        questionResponses: [],
+      });
+    }
+    
     if (entries.length > 0) {
       const qrPayloads = entries.map(([questionId, value]) => ({
         id: crypto.randomUUID(),
@@ -562,14 +608,31 @@ export const formsApi = {
         value: value as any,
       }));
       console.log('🔧 FormsAPI.submitResponse: Inserting question responses', { count: qrPayloads.length });
-      const { error: qrErr } = await (supabase as any)
+      const { data: qrData, error: qrErr } = await (supabase as any)
         .from('form_question_responses')
-        .insert(qrPayloads);
+        .insert(qrPayloads)
+        .select('*');
       if (qrErr) {
         console.error('❌ FormsAPI.submitResponse: Error inserting question responses', qrErr);
+        console.error('❌ FormsAPI.submitResponse: Failed payloads:', qrPayloads);
         throw qrErr;
       }
-      console.log('✅ FormsAPI.submitResponse: Question responses inserted', { inserted: qrPayloads.length });
+      console.log('✅ FormsAPI.submitResponse: Question responses inserted', { 
+        inserted: qrPayloads.length, 
+        actualInserted: qrData?.length || 0,
+        insertedData: qrData 
+      });
+      
+      // Verify that all question responses were actually inserted
+      if (qrData?.length !== qrPayloads.length) {
+        console.error('❌ FormsAPI.submitResponse: Mismatch in inserted question responses', {
+          expected: qrPayloads.length,
+          actual: qrData?.length || 0
+        });
+        throw new Error(`Failed to insert all question responses. Expected ${qrPayloads.length}, got ${qrData?.length || 0}`);
+      }
+    } else {
+      console.warn('⚠️ FormsAPI.submitResponse: No question responses to insert');
     }
 
     // 3) Update form response count
@@ -1108,6 +1171,7 @@ export const formsApi = {
       }
 
       console.log('✅ FormsAPI.getPublicForm: Questions fetched', { questionsCount: (questions || []).length });
+      console.log('🔧 FormsAPI.getPublicForm: Question IDs loaded:', (questions || []).map((q: any) => q.id));
 
       (questions || []).forEach((q: any) => {
         questionsBySection[q.sectionId] = questionsBySection[q.sectionId] || [];
@@ -1274,6 +1338,7 @@ function mapFormResponseFromDb(row: any): FormResponse {
     }, {}),
     formVersion: row.formVersion || 1,
     startedAt: row.startedAt ? new Date(row.startedAt) : new Date(),
+    submittedAt: row.submittedAt ? new Date(row.submittedAt) : undefined,
   };
 }
 
