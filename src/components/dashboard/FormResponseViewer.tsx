@@ -62,6 +62,49 @@ const transformQuestionData = (question: any) => {
   };
 };
 
+// Helper function to get all questions (main + conditional) in the correct order
+const getAllQuestionsInOrder = (form: Form): Array<{
+  question: FormQuestion;
+  isConditional: boolean;
+  parentQuestion?: FormQuestion;
+  parentOption?: any;
+}> => {
+  const allQuestions: Array<{
+    question: FormQuestion;
+    isConditional: boolean;
+    parentQuestion?: FormQuestion;
+    parentOption?: any;
+  }> = [];
+
+  form.sections.forEach(section => {
+    section.questions.forEach(question => {
+      // Add main question
+      allQuestions.push({
+        question,
+        isConditional: false
+      });
+
+      // Add conditional questions
+      if ((question as any).options && Array.isArray((question as any).options)) {
+        (question as any).options.forEach((option: any) => {
+          if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
+            option.conditionalQuestions.forEach((condQuestion: any) => {
+              allQuestions.push({
+                question: condQuestion as FormQuestion,
+                isConditional: true,
+                parentQuestion: question,
+                parentOption: option
+              });
+            });
+          }
+        });
+      }
+    });
+  });
+
+  return allQuestions;
+};
+
 // Helper function to transform form data structure
 const transformFormData = (form: any): Form => {
   if (!form) return form;
@@ -462,121 +505,7 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
   }
 }
 
-// Mock data - in a real app, this would come from your API
-const mockForm: Form = {
-  id: 'form-1',
-  title: 'Baseline Survey - Education Project',
-  description: 'Initial data collection for the education improvement project',
-  projectId: 'project-1',
-  createdBy: 'user-1',
-  createdAt: new Date('2024-01-15'),
-  updatedAt: new Date('2024-01-20'),
-  status: 'PUBLISHED',
-  version: 1,
-  sections: [
-    {
-      id: 'section-1',
-      title: 'Personal Information',
-      description: 'Basic information about the respondent',
-      order: 1,
-      questions: [
-        {
-          id: 'q1',
-          type: 'SHORT_TEXT',
-          title: 'Full Name',
-          description: '',
-          isRequired: true,
-          validationRules: [],
-          dataType: 'TEXT',
-          order: 1,
-        },
-        {
-          id: 'q2',
-          type: 'NUMBER',
-          title: 'Age',
-          description: '',
-          isRequired: true,
-          validationRules: [],
-          dataType: 'INTEGER',
-          order: 2,
-        },
-        {
-          id: 'q3',
-          type: 'SINGLE_CHOICE',
-          title: 'Gender',
-          description: '',
-          isRequired: false,
-          validationRules: [],
-          dataType: 'TEXT',
-          order: 3,
-          options: [
-            { id: '1', label: 'Male', value: 'male' },
-            { id: '2', label: 'Female', value: 'female' },
-            { id: '3', label: 'Other', value: 'other' },
-          ],
-          displayType: 'RADIO',
-        },
-      ],
-    },
-  ],
-  settings: {
-    requireAuthentication: false,
-    thankYouMessage: 'Thank you for your response!',
-    notificationEmails: [],
-  },
-  responseCount: 127,
-  lastResponseAt: new Date('2024-01-25'),
-  tags: ['baseline', 'education'],
-  category: 'Survey',
-};
 
-const mockResponses: FormResponse[] = [
-  {
-    id: 'response-1',
-    formId: 'form-1',
-    formVersion: 1,
-    respondentEmail: 'john.doe@example.com',
-    startedAt: new Date('2024-01-20T10:00:00'),
-    submittedAt: new Date('2024-01-20T10:15:00'),
-    isComplete: true,
-    data: {
-      q1: 'John Doe',
-      q2: 28,
-      q3: 'male',
-    },
-    ipAddress: '192.168.1.1',
-    userAgent: 'Mozilla/5.0...',
-  },
-  {
-    id: 'response-2',
-    formId: 'form-1',
-    formVersion: 1,
-    respondentEmail: 'jane.smith@example.com',
-    startedAt: new Date('2024-01-20T14:00:00'),
-    submittedAt: new Date('2024-01-20T14:12:00'),
-    isComplete: true,
-    data: {
-      q1: 'Jane Smith',
-      q2: 32,
-      q3: 'female',
-    },
-    ipAddress: '192.168.1.2',
-    userAgent: 'Mozilla/5.0...',
-  },
-  {
-    id: 'response-3',
-    formId: 'form-1',
-    formVersion: 1,
-    startedAt: new Date('2024-01-21T09:00:00'),
-    isComplete: false,
-    data: {
-      q1: 'Mike Johnson',
-      q2: 25,
-    },
-    ipAddress: '192.168.1.3',
-    userAgent: 'Mozilla/5.0...',
-  },
-];
 
 export function FormResponseViewer() {
   const { formId, projectId } = useParams();
@@ -872,7 +801,7 @@ export function FormResponseViewer() {
 
     // Helper function to get all questions including conditional ones
     const getAllQuestions = () => {
-      const allQuestions: Array<{question: any, sectionTitle: string, isConditional?: boolean, parentQuestion?: string, parentOption?: string}> = [];
+      const allQuestions: Array<{question: any, sectionTitle: string, isConditional?: boolean, parentQuestionId?: string, parentQuestionTitle?: string, parentOption?: string}> = [];
       
       form.sections.forEach(section => {
         // Add main questions
@@ -892,7 +821,8 @@ export function FormResponseViewer() {
                     question: conditionalQuestion,
                     sectionTitle: section.title,
                     isConditional: true,
-                    parentQuestion: question.title,
+                    parentQuestionId: question.id,
+                    parentQuestionTitle: question.title,
                     parentOption: option.label
                   });
                 });
@@ -916,10 +846,10 @@ export function FormResponseViewer() {
     
     // Add question headers (flatten LOCATION questions)
     const allQuestions = getAllQuestions();
-    allQuestions.forEach(({question, sectionTitle, isConditional, parentQuestion, parentOption}) => {
+    allQuestions.forEach(({question, sectionTitle, isConditional, parentQuestionTitle, parentOption}) => {
       let headerTitle = question.title;
       if (isConditional) {
-        headerTitle = `${question.title} (Conditional: ${parentQuestion} → ${parentOption})`;
+        headerTitle = `${question.title} (Conditional: ${parentQuestionTitle} → ${parentOption})`;
       }
       if (question.type === 'LOCATION') {
         headers.push(`${headerTitle} - Latitude`);
@@ -947,11 +877,28 @@ export function FormResponseViewer() {
         ];
         
         // Add question responses
-        allQuestions.forEach(({question}) => {
-          // Always read answers from response.data using the question ID.
-          // Conditional question answers are saved the same way as main questions.
-          const value = response.data[question.id];
-          const attachments = response.attachments?.filter(att => att.questionId === question.id) || [];
+        allQuestions.forEach(({question, isConditional, parentQuestionId}) => {
+          let value;
+          let attachments = response.attachments?.filter(att => att.questionId === question.id) || [];
+          
+          if (isConditional && parentQuestionId) {
+            // For conditional questions, extract from nested parent response
+            const parentResponseValue = response.data[parentQuestionId];
+            if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+              value = parentResponseValue[question.id];
+            } else {
+              value = null;
+            }
+          } else {
+            // For main questions, use direct response data
+            value = response.data[question.id];
+            
+            // Handle nested structure for parent questions that have conditional children
+            if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
+              // This is a parent question with conditional children, use the parent value for display
+              value = value._parentValue;
+            }
+          }
           
           if (question.type === 'LOCATION') {
             // Flatten location into 4 columns
@@ -1268,20 +1215,41 @@ export function FormResponseViewer() {
                           Row ID
                         </TableHead>
                         
-                        {/* Question columns */}
-                        {form?.sections.flatMap(section => 
-                          section.questions.map(question => (
-                            <TableHead key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
-                              <div>
-                                <div className={`${question.isRequired ? 'font-bold' : 'font-medium'}`}>
-                                  {question.title}
-                                  {question.isRequired && <span className="text-red-500 ml-1">*</span>}
+                        {/* Question columns - including conditional questions */}
+                        {form && getAllQuestionsInOrder(form).map(({ question, isConditional, parentQuestion, parentOption }) => {
+                          if (isConditional) {
+                            // Conditional question column
+                            return (
+                              <TableHead key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900 bg-blue-50">
+                                <div>
+                                  <div className="font-medium text-blue-800">
+                                    {question.title}
+                                    <span className="text-blue-600 ml-1">*</span>
+                                  </div>
+                                  <div className="text-blue-600 text-xs">
+                                    {question.type.replace('_', ' ')} (conditional)
+                                  </div>
+                                  <div className="text-blue-500 text-xs">
+                                    from: {parentQuestion?.title} → {parentOption?.label}
+                                  </div>
                                 </div>
-                                <div className="text-gray-500">{question.type.replace('_', ' ')}</div>
-                              </div>
-                            </TableHead>
-                          ))
-                        )}
+                              </TableHead>
+                            );
+                          } else {
+                            // Main question column
+                            return (
+                              <TableHead key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
+                                <div>
+                                  <div className={`${question.isRequired ? 'font-bold' : 'font-medium'}`}>
+                                    {question.title}
+                                    {question.isRequired && <span className="text-red-500 ml-1">*</span>}
+                                  </div>
+                                  <div className="text-gray-500">{question.type.replace('_', ' ')}</div>
+                                </div>
+                              </TableHead>
+                            );
+                          }
+                        })}
                         
                         {/* Metadata columns - moved to the right */}
                         <TableHead className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
@@ -1313,17 +1281,47 @@ export function FormResponseViewer() {
                             </div>
                           </TableCell>
                             
-                            {/* Question response cells */}
-                            {form?.sections.flatMap(section => 
-                              section.questions.map(question => {
+                            {/* Question response cells - matching the header structure exactly */}
+                            {form && getAllQuestionsInOrder(form).map(({ question, isConditional, parentQuestion }) => {
+                              if (isConditional) {
+                                // For conditional questions, extract response from parent question's nested data
+                                const parentResponseValue = row.data[parentQuestion?.id || ''];
+                                const conditionalResponse = (typeof parentResponseValue === 'object' && parentResponseValue !== null) 
+                                  ? parentResponseValue[question.id] 
+                                  : null;
+                                
+                                return (
+                                  <TableCell key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 bg-blue-50">
+                                    <div className="text-xs">
+                                      {conditionalResponse !== null && conditionalResponse !== undefined ? (
+                                        <div className="text-blue-800">
+                                          {typeof conditionalResponse === 'object' 
+                                            ? JSON.stringify(conditionalResponse) 
+                                            : String(conditionalResponse)
+                                          }
+                                        </div>
+                                      ) : (
+                                        <div className="text-gray-400 italic">No response</div>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                );
+                              } else {
+                                // For main questions, use the standard ResponseCell
                                 const responseValue = row.data[question.id];
                                 const attachments = row.attachments?.filter((att: any) => att.questionId === question.id) || [];
+                                
+                                // Extract the actual parent response value (handle nested structure)
+                                let actualResponseValue = responseValue;
+                                if (typeof responseValue === 'object' && responseValue !== null && !Array.isArray(responseValue) && responseValue._parentValue !== undefined) {
+                                  actualResponseValue = responseValue._parentValue;
+                                }
                                 
                                 return (
                                   <TableCell key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2">
                                     <ResponseCell 
                                       question={question}
-                                      value={responseValue}
+                                      value={actualResponseValue}
                                       attachments={attachments}
                                       isEditable={!row.isExisting}
                                       onValueChange={(value) => handleManualDataChange(row.rowIndex, question.id, value)}
@@ -1331,8 +1329,8 @@ export function FormResponseViewer() {
                                     />
                                   </TableCell>
                                 );
-                              })
-                            )}
+                              }
+                            })}
                             
                             {/* Metadata cells - moved to the right */}
                             <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">

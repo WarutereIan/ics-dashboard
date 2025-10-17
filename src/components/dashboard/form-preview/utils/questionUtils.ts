@@ -3,23 +3,30 @@ import { FormQuestion, SingleChoiceQuestion, MultipleChoiceQuestion } from '../.
 /**
  * Helper function to identify if a question is a conditional question
  * Conditional questions are those that appear in option.conditionalQuestions
- * but are now saved as separate questions in the database
+ * or are marked with isConditional flag in their config
  */
 export function isConditionalQuestion(question: FormQuestion, allQuestions: FormQuestion[]): boolean {
-  // Check if this question appears in any option's conditionalQuestions
+  // First check if the question has isConditional flag in config (more efficient)
+  if ((question as any).config?.isConditional || (question as any).isConditional) {
+    return true;
+  }
+  
+  // Fallback: Check if this question appears in any option's conditionalQuestions
   for (const otherQuestion of allQuestions) {
     // Only choice questions have options
     if (otherQuestion.type === 'SINGLE_CHOICE' || otherQuestion.type === 'MULTIPLE_CHOICE') {
       const choiceQuestion = otherQuestion as SingleChoiceQuestion | MultipleChoiceQuestion;
-      if (choiceQuestion.options) {
-        for (const option of choiceQuestion.options) {
-          if (option.conditionalQuestions) {
-            const isInConditionalQuestions = option.conditionalQuestions.some(
-              (condQuestion: any) => condQuestion.id === question.id
-            );
-            if (isInConditionalQuestions) {
-              return true;
-            }
+      
+      // Check options in both question.options and question.config.options
+      const options = choiceQuestion.options || (choiceQuestion as any).config?.options || [];
+      
+      for (const option of options) {
+        if (option.conditionalQuestions) {
+          const isInConditionalQuestions = option.conditionalQuestions.some(
+            (condQuestion: any) => condQuestion.id === question.id
+          );
+          if (isInConditionalQuestions) {
+            return true;
           }
         }
       }
@@ -50,7 +57,11 @@ export function getConditionalQuestionsForOption(
   }
 
   const choiceQuestion = parentQuestion as SingleChoiceQuestion | MultipleChoiceQuestion;
-  const option = choiceQuestion.options?.find((opt: any) => opt.id === optionId);
+  
+  // Check options in both question.options and question.config.options
+  const options = choiceQuestion.options || (choiceQuestion as any).config?.options || [];
+  const option = options.find((opt: any) => opt.id === optionId);
+  
   if (!option || !option.conditionalQuestions) {
     return [];
   }

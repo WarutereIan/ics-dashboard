@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Form, FormQuestion } from '@/components/dashboard/form-creation-wizard/types';
 import { QuestionRenderer } from '@/components/dashboard/form-preview/QuestionRenderer';
-import { filterMainQuestions } from '@/components/dashboard/form-preview/utils/questionUtils';
+import { filterMainQuestions, isConditionalQuestion } from '@/components/dashboard/form-preview/utils/questionUtils';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -368,6 +368,46 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       
       // Create the response object and submit via addFormResponseToStorage 
       // (which handles online/offline scenarios and API submission)
+      // Merge conditional responses into their parent question responses
+      const mergedResponses = { ...responses };
+      
+      // Add conditional responses to their parent question responses
+      Object.entries(conditionalResponses).forEach(([conditionalQuestionId, value]) => {
+        // Find the parent question that contains this conditional question
+        const parentQuestion = form.sections
+          .flatMap(section => section.questions)
+          .find(question => {
+            if ((question as any).options && Array.isArray((question as any).options)) {
+              return (question as any).options.some((option: any) => 
+                option.conditionalQuestions && 
+                option.conditionalQuestions.some((condQ: any) => condQ.id === conditionalQuestionId)
+              );
+            }
+            return false;
+          });
+        
+        if (parentQuestion) {
+          // Store conditional response as part of parent question's response
+          const parentResponse = mergedResponses[parentQuestion.id];
+          
+          if (parentResponse === undefined || parentResponse === null) {
+            // Parent question has no response yet, create object with conditional response
+            mergedResponses[parentQuestion.id] = {
+              [conditionalQuestionId]: value
+            };
+          } else if (typeof parentResponse === 'object' && !Array.isArray(parentResponse)) {
+            // Parent response is already an object, add conditional response to it
+            mergedResponses[parentQuestion.id][conditionalQuestionId] = value;
+          } else {
+            // Parent response is a simple value, convert to object with both parent and conditional responses
+            mergedResponses[parentQuestion.id] = {
+              _parentValue: parentResponse,
+              [conditionalQuestionId]: value
+            };
+          }
+        }
+      });
+
       const responseData = {
         id: `response-${Date.now()}`,
         formId: form.id,
@@ -375,10 +415,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
         startedAt: new Date(),
         submittedAt: new Date(),
         isComplete: true,
-        data: {
-          ...responses,
-          ...conditionalResponses
-        },
+        data: mergedResponses,
         ipAddress: 'Unknown',
         userAgent: navigator.userAgent,
         source: isEmbedded ? 'embed' : 'direct'
@@ -542,6 +579,27 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   // Get visible sections based on current responses
   const visibleSections = getVisibleSections(form.sections, responses);
   const currentSection = visibleSections[currentSectionIndex];
+  
+  // Debug logging to check conditional question filtering
+  if (currentSection) {
+    const allQuestions = currentSection.questions;
+    const filteredQuestions = filterMainQuestions(allQuestions);
+    const conditionalQuestions = allQuestions.filter((q: FormQuestion) => isConditionalQuestion(q, allQuestions));
+    
+    console.log('🔍 PublicFormFiller section analysis:', {
+      sectionTitle: currentSection.title,
+      totalQuestions: allQuestions.length,
+      filteredQuestions: filteredQuestions.length,
+      conditionalQuestions: conditionalQuestions.length,
+      conditionalQuestionIds: conditionalQuestions.map((q: FormQuestion) => ({ 
+        id: q.id, 
+        title: q.title, 
+        isConditional: (q as any).isConditional,
+        configIsConditional: (q as any).config?.isConditional,
+        checkResult: isConditionalQuestion(q, allQuestions)
+      }))
+    });
+  }
   const isFirstSection = currentSectionIndex === 0;
   const isLastSection = currentSectionIndex === visibleSections.length - 1;
   const progress = visibleSections.length > 0 ? ((currentSectionIndex + 1) / visibleSections.length) * 100 : 0;
@@ -651,6 +709,19 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           <CardContent>
             <div className="space-y-6">
               {filterMainQuestions(currentSection.questions).map((question: FormQuestion) => {
+                // Debug logging to check if conditional questions are being filtered correctly
+                console.log('🔍 PublicFormFiller rendering main question:', {
+                  questionId: question.id,
+                  questionTitle: question.title,
+                  questionType: question.type,
+                  isConditionalDirect: (question as any).isConditional,
+                  isConditionalConfig: (question as any).config?.isConditional,
+                  isConditionalCheck: isConditionalQuestion(question, currentSection.questions),
+                  shouldBeFiltered: isConditionalQuestion(question, currentSection.questions),
+                  totalQuestions: currentSection.questions.length,
+                  filteredQuestions: filterMainQuestions(currentSection.questions).length
+                });
+                
                 const assignedSection = getAssignedSectionForQuestion(question, responses);
                 
                 return (
