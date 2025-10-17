@@ -390,6 +390,8 @@ export const formsApi = {
             break;
           case 'form_response':
             // Defensive mapping to allowed DTO fields
+            // Note: item.data.data should already contain properly merged conditional responses
+            // (processed by PublicFormFiller.handleSubmit before being queued)
             await this.submitResponse({
               formId: item.data.formId,
               respondentId: item.data.respondentId,
@@ -398,7 +400,7 @@ export const formsApi = {
               ipAddress: item.data.ipAddress,
               userAgent: item.data.userAgent,
               source: item.data.source,
-              data: item.data.data
+              data: item.data.data // Should already contain nested conditional responses
             });
             break;
           case 'form_delete':
