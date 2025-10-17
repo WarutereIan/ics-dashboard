@@ -295,43 +295,189 @@ export function FormProvider({ children }: FormProviderProps) {
     setOfflineQueue(prev => [...prev, queueItem]);
   }, []);
 
+  // Helper function to migrate old conditional response structure to new nested structure
+  const migrateConditionalResponses = useCallback(async (responseData: any) => {
+    if (!responseData.data) return responseData;
+
+    // Check if this data has already been migrated
+    if (responseData.data._migrated) {
+      return responseData;
+    }
+
+    try {
+      // Try to load the form from localStorage first, then from API if needed
+      let form: Form | null = null;
+      
+      // Try localStorage first (faster)
+      try {
+        const { getFormById } = await import('@/lib/formLocalStorageUtils');
+        form = getFormById(responseData.formId);
+      } catch (error) {
+        console.warn('Could not load form from localStorage:', error);
+      }
+      
+      // If not found in localStorage, try to get from API (requires projectId)
+      if (!form) {
+        console.warn('Could not load form for migration, using original data');
+        return responseData;
+      }
+
+      const migratedData = { ...responseData };
+      const processedData: Record<string, any> = {};
+      const conditionalResponses: Record<string, any> = {};
+
+      // First pass: identify conditional questions and separate them
+      Object.entries(responseData.data).forEach(([questionId, responseValue]) => {
+        // Check if this is a conditional question response (old structure)
+        const isConditionalQuestion = form.sections
+          .flatMap(section => section.questions)
+          .some(question => {
+            if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+              const options = (question as any).options || [];
+              return options.some((option: any) => 
+                option.conditionalQuestions && 
+                option.conditionalQuestions.some((condQ: any) => condQ.id === questionId)
+              );
+            }
+            return false;
+          });
+
+        if (isConditionalQuestion) {
+          // Store conditional responses separately for processing
+          conditionalResponses[questionId] = responseValue;
+        } else {
+          // This is a main question response
+          processedData[questionId] = responseValue;
+        }
+      });
+
+      // Second pass: merge conditional responses into their parent questions
+      Object.entries(conditionalResponses).forEach(([conditionalQuestionId, value]) => {
+        // Find the parent question that contains this conditional question
+        const parentQuestion = form.sections
+          .flatMap(section => section.questions)
+          .find(question => {
+            if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
+              const options = (question as any).options || [];
+              return options.some((option: any) => 
+                option.conditionalQuestions && 
+                option.conditionalQuestions.some((condQ: any) => condQ.id === conditionalQuestionId)
+              );
+            }
+            return false;
+          });
+
+        if (parentQuestion) {
+          // Store conditional response as part of parent question's response
+          const parentResponse = processedData[parentQuestion.id];
+          
+          if (parentResponse === undefined || parentResponse === null) {
+            // Parent question has no response yet, create object with conditional response
+            processedData[parentQuestion.id] = {
+              [conditionalQuestionId]: value
+            };
+          } else if (typeof parentResponse === 'object' && !Array.isArray(parentResponse)) {
+            // Parent response is already an object, add conditional response to it
+            processedData[parentQuestion.id][conditionalQuestionId] = value;
+          } else {
+            // Parent response is a simple value, convert to object with both parent and conditional responses
+            processedData[parentQuestion.id] = {
+              _parentValue: parentResponse,
+              [conditionalQuestionId]: value
+            };
+          }
+        }
+      });
+
+      migratedData.data = {
+        ...processedData,
+        _migrated: true // Mark as migrated
+      };
+
+      console.log('🔄 Migrated conditional response structure:', {
+        originalKeys: Object.keys(responseData.data),
+        migratedKeys: Object.keys(processedData),
+        conditionalCount: Object.keys(conditionalResponses).length
+      });
+
+      return migratedData;
+    } catch (error) {
+      console.error('Error migrating conditional responses:', error);
+      return responseData; // Return original data if migration fails
+    }
+  }, []);
+
   const processOfflineQueue = useCallback(async () => {
     if (!isOnline || offlineQueue.length === 0) return;
 
     setSyncStatus(prev => ({ ...prev, isSyncing: true, syncProgress: 0 }));
     
-    const results = await formsApi.syncOfflineData(offlineQueue);
-    
-    if (results.success) {
-      setOfflineQueue([]);
-      setSyncStatus(prev => ({
-        ...prev,
-        isSyncing: false,
-        lastSyncTime: new Date(),
-        pendingItems: 0,
-        failedItems: 0,
-        syncProgress: 100
-      }));
-      toast({
-        title: "Sync Complete",
-        description: "All offline data has been synced successfully",
+    try {
+      // Process and migrate any stale data in the offline queue
+      const migratedQueue = await Promise.all(
+        offlineQueue.map(async (item) => {
+          if (item.type === 'form_response') {
+            // Migrate conditional response structure if needed
+            const migratedData = await migrateConditionalResponses(item.data);
+            return {
+              ...item,
+              data: migratedData
+            };
+          }
+          return item;
+        })
+      );
+      
+      console.log('🔄 Processing offline queue with migrated data:', {
+        originalCount: offlineQueue.length,
+        migratedCount: migratedQueue.length
       });
-    } else {
-      setOfflineQueue(results.failedItems);
+      
+      const results = await formsApi.syncOfflineData(migratedQueue);
+      
+      if (results.success) {
+        setOfflineQueue([]);
+        setSyncStatus(prev => ({
+          ...prev,
+          isSyncing: false,
+          lastSyncTime: new Date(),
+          pendingItems: 0,
+          failedItems: 0,
+          syncProgress: 100
+        }));
+        toast({
+          title: "Sync Complete",
+          description: "All offline data has been synced successfully",
+        });
+      } else {
+        setOfflineQueue(results.failedItems);
+        setSyncStatus(prev => ({
+          ...prev,
+          isSyncing: false,
+          pendingItems: results.failedItems.length,
+          failedItems: results.failedItems.length,
+          syncProgress: 100
+        }));
+        toast({
+          title: "Partial Sync",
+          description: `${offlineQueue.length - results.failedItems.length} items synced, ${results.failedItems.length} failed`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error processing offline queue:', error);
       setSyncStatus(prev => ({
         ...prev,
         isSyncing: false,
-        pendingItems: results.failedItems.length,
-        failedItems: results.failedItems.length,
         syncProgress: 100
       }));
       toast({
-        title: "Partial Sync",
-        description: `${offlineQueue.length - results.failedItems.length} items synced, ${results.failedItems.length} failed`,
+        title: "Sync Failed",
+        description: "Failed to process offline data. Please try again.",
         variant: "destructive",
       });
     }
-  }, [isOnline, offlineQueue]);
+  }, [isOnline, offlineQueue, migrateConditionalResponses]);
 
   const retryFailedItems = useCallback(async () => {
     const failedItems = offlineQueue.filter(item => item.retryCount >= item.maxRetries);
@@ -622,6 +768,8 @@ export function FormProvider({ children }: FormProviderProps) {
     try {
       if (!isOnline) {
         // Queue only allowed DTO fields for API
+        // Note: The response.data should already be processed with conditional responses merged
+        // by the calling code (PublicFormFiller.handleSubmit)
         addToOfflineQueue('form_response', {
           formId: response.formId,
           respondentId: response.respondentId,
@@ -630,7 +778,7 @@ export function FormProvider({ children }: FormProviderProps) {
           ipAddress: (response as any).ipAddress,
           userAgent: (response as any).userAgent,
           source: (response as any).source,
-          data: response.data
+          data: response.data // This should already contain merged conditional responses
         });
         toast({
           title: "Offline Mode",
