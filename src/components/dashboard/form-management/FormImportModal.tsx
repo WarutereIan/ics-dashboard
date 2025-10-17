@@ -91,7 +91,7 @@ const writeToFile = async () => {
 
 const finalizeLogFile = async () => {
   if (logFileHandle && logBuffer) {
-    await writeToFile();
+    //await writeToFile();
   }
 };
 
