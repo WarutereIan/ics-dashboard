@@ -1,4 +1,9 @@
-import { Form, FormQuestion, FormResponse } from '@/components/dashboard/form-creation-wizard/types';
+import { Form, FormQuestion, FormResponse, SingleChoiceQuestion, YesNoQuestion, MultipleChoiceQuestion } from '@/components/dashboard/form-creation-wizard/types';
+
+// Type guard to check if a question has options (choice questions)
+function hasOptions(question: FormQuestion): question is SingleChoiceQuestion | YesNoQuestion | MultipleChoiceQuestion {
+  return question.type === 'SINGLE_CHOICE' || question.type === 'YES_NO' || question.type === 'MULTIPLE_CHOICE';
+}
 
 /**
  * Extract conditional question responses from a form response
@@ -43,7 +48,7 @@ export function extractConditionalResponses(
 function findConditionalQuestion(form: Form, conditionalQuestionId: string): FormQuestion | null {
   for (const section of form.sections) {
     for (const question of section.questions) {
-      if (question.options && Array.isArray(question.options)) {
+      if (hasOptions(question)) {
         for (const option of question.options) {
           if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
             const conditionalQuestion = option.conditionalQuestions.find(
@@ -78,7 +83,7 @@ export function getAllConditionalQuestions(form: Form): Array<{
 
   for (const section of form.sections) {
     for (const question of section.questions) {
-      if (question.options && Array.isArray(question.options)) {
+      if (hasOptions(question)) {
         for (const option of question.options) {
           if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
             for (const conditionalQuestion of option.conditionalQuestions) {
