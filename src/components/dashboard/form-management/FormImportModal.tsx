@@ -16,6 +16,85 @@ import { toast } from '@/hooks/use-toast';
 import { formsApi } from '@/lib/api/formsApi';
 import { Form } from '@/components/dashboard/form-creation-wizard/types';
 
+// File logging helper for debugging form imports
+let logFileHandle: FileSystemFileHandle | null = null;
+let logBuffer: string = '';
+
+const logToFile = async (message: string, data?: any) => {
+  try {
+    const timestamp = new Date().toISOString();
+    const logEntry = `[${timestamp}] ${message}${data ? '\n' + JSON.stringify(data, null, 2) : ''}\n\n`;
+    
+    // Also log to console for immediate feedback
+    console.log(`[FRONTEND IMPORT LOG] ${message}`, data);
+    
+    // Initialize file handle if not already done
+    if (!logFileHandle) {
+      try {
+        // Request file system access
+        const fileHandle = await (window as any).showSaveFilePicker({
+          suggestedName: `form-import-debug-${new Date().toISOString().split('T')[0]}.txt`,
+          types: [{
+            description: 'Text files',
+            accept: { 'text/plain': ['.txt'] }
+          }]
+        });
+        logFileHandle = fileHandle;
+        logBuffer = ''; // Reset buffer
+      } catch (error) {
+        // User cancelled or file system not supported, fallback to localStorage
+        console.warn('File system access not available, falling back to localStorage');
+        const existingLogs = localStorage.getItem('form-import-logs') || '';
+        const newLogs = existingLogs + logEntry;
+        localStorage.setItem('form-import-logs', newLogs);
+        return;
+      }
+    }
+    
+    // Add to buffer
+    logBuffer += logEntry;
+    
+    // Write to file periodically (every 10 entries or immediately for important logs)
+    if (logBuffer.split('\n\n').length >= 10 || message.includes('✅') || message.includes('❌')) {
+      await writeToFile();
+    }
+    
+  } catch (error) {
+    console.error('Failed to log to file:', error);
+    console.log(`[FRONTEND IMPORT LOG] ${message}`, data);
+    
+    // Fallback to localStorage
+    try {
+      const timestamp = new Date().toISOString();
+      const logEntry = `[${timestamp}] ${message}${data ? '\n' + JSON.stringify(data, null, 2) : ''}\n\n`;
+      const existingLogs = localStorage.getItem('form-import-logs') || '';
+      const newLogs = existingLogs + logEntry;
+      localStorage.setItem('form-import-logs', newLogs);
+    } catch (localError) {
+      console.error('Failed to log to localStorage:', localError);
+    }
+  }
+};
+
+const writeToFile = async () => {
+  if (!logFileHandle || !logBuffer) return;
+  
+  try {
+    const writable = await logFileHandle.createWritable();
+    await writable.write(logBuffer);
+    await writable.close();
+    logBuffer = ''; // Clear buffer after writing
+  } catch (error) {
+    console.error('Failed to write to file:', error);
+  }
+};
+
+const finalizeLogFile = async () => {
+  if (logFileHandle && logBuffer) {
+    //await writeToFile();
+  }
+};
+
 interface FormImportModalProps {
   projectId: string;
   onImportSuccess?: (importedForms: Form[]) => void;
@@ -117,6 +196,12 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
   };
 
   const generateNewIds = (formData: any): any => {
+    logToFile('🔍 Import - Starting ID generation process', {
+      formTitle: formData.title,
+      formId: formData.id,
+      sectionsCount: formData.sections?.length || 0
+    });
+    
     // Generate new ID for the form itself
     const newFormId = uuidv4();
     
@@ -129,10 +214,41 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
       const newSectionId = uuidv4();
       idMapping.set(section.id, newSectionId);
 
-      // Generate new IDs for questions within sections
-      const newQuestions = section.questions?.map((question: any) => {
+      // First, identify which questions are conditional by checking if they appear in any option's conditionalQuestions
+      const conditionalQuestionIds = new Set<string>();
+      logToFile(`🔍 Import - Processing section "${section.title}" with ${section.questions?.length || 0} questions`);
+      
+      section.questions?.forEach((question: any, qIndex: number) => {
+        logToFile(`🔍 Import - Question ${qIndex}: "${question.title}" (${question.type}) - ID: ${question.id}`);
+        
+        if (question.options && Array.isArray(question.options)) {
+          question.options.forEach((option: any, optIndex: number) => {
+            if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
+              logToFile(`🔍 Import - Option ${optIndex} "${option.label}" has ${option.conditionalQuestions.length} conditional questions`);
+              option.conditionalQuestions.forEach((condQuestion: any, condIndex: number) => {
+                logToFile(`🔍 Import - Conditional question ${condIndex}: "${condQuestion.title}" (${condQuestion.type}) - ID: ${condQuestion.id}`);
+                conditionalQuestionIds.add(condQuestion.id);
+              });
+            }
+          });
+        }
+      });
+      
+      logToFile(`🔍 Import - Found ${conditionalQuestionIds.size} conditional question IDs`, Array.from(conditionalQuestionIds));
+
+      // Filter out conditional questions from main questions array to prevent duplicates
+      const filteredQuestions = section.questions?.filter((question: any) => 
+        !conditionalQuestionIds.has(question.id)
+      );
+      
+      logToFile(`🔍 Import - Filtered out ${(section.questions?.length || 0) - (filteredQuestions?.length || 0)} conditional questions from main questions array`);
+      logToFile(`🔍 Import - Processing ${filteredQuestions?.length || 0} main questions for section "${section.title}"`);
+      
+      const newQuestions = filteredQuestions?.map((question: any) => {
         const newQuestionId = uuidv4();
         idMapping.set(question.id, newQuestionId);
+
+        logToFile(`🔍 Import - Processing main question "${question.title}"`);
 
         // Generate new IDs for question options (check multiple possible locations)
         const originalOptions = question.options || question.config?.options || [];
@@ -140,59 +256,60 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
           const newOptionId = uuidv4();
           idMapping.set(option.id, newOptionId);
 
-          console.log('Processing option:', {
-            original: option,
-            label: option.label,
-            value: option.value
+          logToFile(`🔍 Import - Processing option "${option.label}" with ${option.conditionalQuestions?.length || 0} conditional questions`);
+
+          // Generate new IDs for conditional questions within this option
+          const newConditionalQuestions = option.conditionalQuestions?.map((condQuestion: any) => {
+            logToFile(`🔍 Import - Processing conditional question: "${condQuestion.title}" (${condQuestion.type}) - Old ID: ${condQuestion.id}`);
+            const newCondQuestionId = uuidv4();
+            idMapping.set(condQuestion.id, newCondQuestionId);
+
+            // Generate new IDs for conditional question options (check multiple possible locations)
+            const originalCondOptions = condQuestion.options || condQuestion.config?.options || [];
+            const newCondOptions = originalCondOptions.map((condOption: any) => {
+              const newCondOptionId = uuidv4();
+              idMapping.set(condOption.id, newCondOptionId);
+
+              return {
+                ...condOption,
+                id: newCondOptionId,
+                assignedSectionId: condOption.assignedSectionId ? idMapping.get(condOption.assignedSectionId) || uuidv4() : undefined
+              };
+            });
+
+            // Create the conditional question with options in the correct structure
+            const updatedCondQuestion = {
+              ...condQuestion,
+              id: newCondQuestionId
+            };
+
+            // Always put options directly on the conditional question object
+            updatedCondQuestion.options = newCondOptions;
+            
+            logToFile(`🔍 Import - Created conditional question with new ID: ${newCondQuestionId}`);
+
+            return updatedCondQuestion;
           });
 
           return {
             ...option,
             id: newOptionId,
+            conditionalQuestions: newConditionalQuestions,
             // Update conditional section references if they exist
             assignedSectionId: option.assignedSectionId ? idMapping.get(option.assignedSectionId) || uuidv4() : undefined
           };
         });
 
-        // Generate new IDs for conditional questions
-        const newConditionalQuestions = question.conditionalQuestions?.map((condQuestion: any) => {
-          const newCondQuestionId = uuidv4();
-          idMapping.set(condQuestion.id, newCondQuestionId);
-
-          // Generate new IDs for conditional question options (check multiple possible locations)
-          const originalCondOptions = condQuestion.options || condQuestion.config?.options || [];
-          const newCondOptions = originalCondOptions.map((option: any) => {
-            const newCondOptionId = uuidv4();
-            idMapping.set(option.id, newCondOptionId);
-
-            return {
-              ...option,
-              id: newCondOptionId,
-              assignedSectionId: option.assignedSectionId ? idMapping.get(option.assignedSectionId) || uuidv4() : undefined
-            };
-          });
-
-          // Create the conditional question with options in the correct structure
-          const updatedCondQuestion = {
-            ...condQuestion,
-            id: newCondQuestionId
-          };
-
-          // Always put options directly on the conditional question object
-          updatedCondQuestion.options = newCondOptions;
-
-          return updatedCondQuestion;
-        });
-
         // Create the question with options in the correct structure
         const updatedQuestion = {
           ...question,
-          id: newQuestionId,
-          conditionalQuestions: newConditionalQuestions
+          id: newQuestionId
         };
 
         // Always put options directly on the question object (backend expects this structure)
         updatedQuestion.options = newOptions;
+
+        logToFile(`🔍 Import - Created main question "${question.title}"`);
 
         return updatedQuestion;
       });
@@ -205,26 +322,51 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
     });
 
     // Return the form data with all new IDs
-    return {
+    const result = {
       ...formData,
       id: newFormId,
       sections: newSections
     };
+    
+    logToFile('✅ Import - ID generation completed', {
+      newFormId: newFormId,
+      sectionsProcessed: newSections?.length || 0,
+      totalQuestionsProcessed: newSections?.reduce((total: number, section: any) => total + (section.questions?.length || 0), 0) || 0
+    });
+    
+    return result;
   };
 
   const processFile = async (importFile: ImportFile): Promise<ImportFile> => {
     try {
+      logToFile('🔍 Import - Starting file processing', {
+        fileName: importFile.file.name,
+        fileSize: importFile.file.size
+      });
+      
       const formsData = await parseFileContent(importFile.file);
       const importedForms: Form[] = [];
       const errors: string[] = [];
+
+      logToFile('🔍 Import - File parsed successfully', {
+        formsCount: formsData.length
+      });
 
       // Process each form in the file
       for (let i = 0; i < formsData.length; i++) {
         const originalFormData = formsData[i];
         
+        logToFile(`🔍 Import - Processing form ${i + 1}/${formsData.length}`, {
+          formTitle: originalFormData.title,
+          formId: originalFormData.id
+        });
+        
         // Validate the form data first
         const validation = validateFormData(originalFormData);
         if (!validation.isValid) {
+          logToFile(`❌ Import - Form ${i + 1} validation failed`, {
+            error: validation.error
+          });
           errors.push(`Form ${i + 1}: ${validation.error}`);
           continue;
         }
@@ -249,7 +391,7 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
           createFormData.sections.forEach((section: any, sectionIndex: number) => {
             section.questions?.forEach((question: any, questionIndex: number) => {
               if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
-                console.log(`Import - Section ${sectionIndex}, Question ${questionIndex} (${question.title}):`, {
+                logToFile(`Import - Section ${sectionIndex}, Question ${questionIndex} (${question.title})`, {
                   type: question.type,
                   options: question.options.map((opt: any) => ({
                     id: opt.id,
@@ -264,7 +406,7 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
 
         try {
           // Debug: Log what we're sending to the API
-          console.log('🚀 Sending to createForm API:', {
+          logToFile('🚀 Sending to createForm API', {
             title: createFormData.title,
             sectionsCount: createFormData.sections?.length,
             sections: createFormData.sections?.map((section: any, sectionIndex: number) => ({
@@ -285,8 +427,13 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
           // Create the form using the existing createForm endpoint
           const importedForm = await formsApi.createForm(projectId, createFormData);
           
+          logToFile('✅ Import - Form created successfully via API', {
+            importedFormId: importedForm.id,
+            importedFormTitle: importedForm.title
+          });
+          
           // Debug: Log choice question options after API response
-          console.log('📡 Received from createForm API:', {
+          logToFile('📡 Received from createForm API', {
             id: importedForm.id,
             title: importedForm.title,
             sectionsCount: importedForm.sections?.length
@@ -296,7 +443,7 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
             importedForm.sections.forEach((section: any, sectionIndex: number) => {
               section.questions?.forEach((question: any, questionIndex: number) => {
                 if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
-                  console.log(`API Response - Section ${sectionIndex}, Question ${questionIndex} (${question.title}):`, {
+                  logToFile(`API Response - Section ${sectionIndex}, Question ${questionIndex} (${question.title})`, {
                     type: question.type,
                     hasOptions: !!question.options,
                     hasConfigOptions: !!question.config?.options,
@@ -339,6 +486,11 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
           error: `Imported ${importedForms.length} form(s), ${errors.length} failed: ${errors.join('; ')}`
         };
       } else {
+        logToFile('✅ Import - File processing completed successfully', {
+          importedFormsCount: importedForms.length,
+          totalFormsInFile: formsData.length
+        });
+        
         return {
           ...importFile,
           status: 'success',
@@ -348,6 +500,10 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
         };
       }
     } catch (error: any) {
+      logToFile('❌ Import - File processing failed', {
+        error: error.message || 'Failed to process file'
+      });
+      
       return {
         ...importFile,
         status: 'error',
@@ -358,6 +514,11 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
 
   const handleImport = async () => {
     if (files.length === 0) return;
+
+    logToFile('🔍 Import - Starting import process', {
+      filesCount: files.length,
+      fileNames: files.map(f => f.file.name)
+    });
 
     setIsImporting(true);
     setImportProgress(0);
@@ -399,6 +560,16 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
     const totalFiles = files.length;
     const successfulFiles = updatedFiles.filter(f => f.status === 'success').length;
 
+    logToFile('✅ Import - Import process completed', {
+      successCount,
+      totalFiles,
+      successfulFiles,
+      failedFiles: totalFiles - successfulFiles
+    });
+
+    // Finalize the log file
+    await finalizeLogFile();
+
     if (successCount > 0) {
       toast({
         title: "Import Successful",
@@ -412,6 +583,52 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
       toast({
         title: "Import Failed",
         description: "No forms were imported successfully. Please check the file formats and try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadLogs = async () => {
+    try {
+      // If we have a file handle, finalize the current file first
+      if (logFileHandle) {
+        await finalizeLogFile();
+        toast({
+          title: "Logs Saved",
+          description: "Import debugging logs have been saved to the selected file.",
+        });
+        return;
+      }
+      
+      // Fallback to localStorage download
+      const logs = localStorage.getItem('form-import-logs');
+      if (logs) {
+        const blob = new Blob([logs], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `form-import-debug-${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Logs Downloaded",
+          description: "Import debugging logs have been downloaded to your device.",
+        });
+      } else {
+        toast({
+          title: "No Logs Available",
+          description: "No import logs found. Import a form first to generate logs.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to download logs:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download logs. Please try again.",
         variant: "destructive",
       });
     }
@@ -575,30 +792,40 @@ export function FormImportModal({ projectId, onImportSuccess, trigger }: FormImp
           </Alert>
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-between">
             <Button
               variant="outline"
-              onClick={handleClose}
+              onClick={downloadLogs}
               disabled={isImporting}
             >
-              Cancel
+              <FileText className="w-4 h-4 mr-2" />
+              {logFileHandle ? 'Save Logs' : 'Download Logs'}
             </Button>
-            <Button
-              onClick={handleImport}
-              disabled={files.length === 0 || isImporting}
-            >
-              {isImporting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import {files.length} Form{files.length !== 1 ? 's' : ''}
-                </>
-              )}
-            </Button>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={isImporting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleImport}
+                disabled={files.length === 0 || isImporting}
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import {files.length} Form{files.length !== 1 ? 's' : ''}
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
