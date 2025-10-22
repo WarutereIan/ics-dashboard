@@ -52,6 +52,10 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   const [showProgress, setShowProgress] = useState(true);
   // Track number of instances per section to support repeatable sections without schema changes
   const [sectionInstanceCounts, setSectionInstanceCounts] = useState<Record<string, number>>({});
+  // Version checking state
+  const [currentFormVersion, setCurrentFormVersion] = useState<number>(1);
+  const [latestFormVersion, setLatestFormVersion] = useState<number>(1);
+  const [showVersionUpdatePrompt, setShowVersionUpdatePrompt] = useState(false);
 
   // Helpers for repeatable sections
   const getSectionInstanceCount = (sectionId: string) => {
@@ -69,6 +73,31 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     const section = form?.sections?.find(s => s.questions?.some(q => q.id === baseQuestionId));
     const isRepeatable = (section as any)?.conditional?.repeatable === true;
     return isRepeatable ? `${baseQuestionId}__i${instanceIndex}` : baseQuestionId;
+  };
+
+  // Check for form version updates
+  const checkForFormVersionUpdate = async () => {
+    if (!formId) return;
+    
+    try {
+      console.log('🔍 Checking for form version updates...');
+      const latestForm = await formsApi.getPublicForm(formId);
+      const newVersion = latestForm.version || 1;
+      
+      console.log('🔍 Version check result:', {
+        currentVersion: currentFormVersion,
+        latestVersion: newVersion,
+        hasUpdate: newVersion > currentFormVersion
+      });
+      
+      if (newVersion > currentFormVersion) {
+        setLatestFormVersion(newVersion);
+        setShowVersionUpdatePrompt(true);
+        console.log('🔄 New form version available:', newVersion);
+      }
+    } catch (err) {
+      console.error('Failed to check form version:', err);
+    }
   };
 
   // Load form data
@@ -92,6 +121,8 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           isRepeatable: (s as any).conditional?.repeatable
         })));
         setForm(foundForm);
+        setCurrentFormVersion(foundForm.version || 1);
+        setLatestFormVersion(foundForm.version || 1);
         setLoading(false);
       } catch (err: any) {
         console.error('Failed to load public form:', err);
@@ -111,6 +142,8 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                 isRepeatable: (s as any).conditional?.repeatable
               })));
               setForm(secureForm);
+              setCurrentFormVersion(secureForm.version || 1);
+              setLatestFormVersion(secureForm.version || 1);
               setRequiresAuth(false);
               setLoading(false);
               return;
@@ -175,6 +208,17 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       saveFormPreviewData(form.id, previewData);
     }
   }, [form?.id, responses, currentSectionIndex]);
+
+  // Periodic version checking (every 30 seconds)
+  useEffect(() => {
+    if (!form?.id) return;
+    
+    const versionCheckInterval = setInterval(() => {
+      checkForFormVersionUpdate();
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(versionCheckInterval);
+  }, [form?.id, currentFormVersion]);
 
   const handleResponseChange = (questionId: string, value: any) => {
     console.log('🔄 Main question response changed:', {
@@ -761,6 +805,27 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     }
   };
 
+  const handleReloadForUpdate = () => {
+    // Save current progress before reloading
+    if (form?.id) {
+      const previewData: Omit<FormPreviewData, 'formId'> = {
+        responses,
+        currentSection: currentSectionIndex,
+        isComplete: false,
+        startedAt: new Date(),
+        lastActivityAt: new Date(),
+      };
+      saveFormPreviewData(form.id, previewData);
+    }
+    
+    // Reload the page to get the latest form version
+    window.location.reload();
+  };
+
+  const handleDismissVersionUpdate = () => {
+    setShowVersionUpdatePrompt(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -977,6 +1042,47 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
             </CardContent>
           )}
         </Card>
+
+        {/* Version Update Prompt */}
+        {showVersionUpdatePrompt && (
+          <Card className="mb-6 border-blue-200 bg-blue-50">
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-medium text-blue-900 mb-2">
+                    Form Update Available
+                  </h4>
+                  <p className="text-sm text-blue-700 mb-3">
+                    A new version of this form (v{latestFormVersion}) is available. 
+                    Your current progress will be saved before reloading.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={handleReloadForUpdate}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <ArrowRight className="w-4 h-4 mr-1" />
+                      Reload to Update
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleDismissVersionUpdate}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Current Section */}
         <Card className="mb-6">
