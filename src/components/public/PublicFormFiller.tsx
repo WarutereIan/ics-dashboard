@@ -50,6 +50,26 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
   const [isComplete, setIsComplete] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
   const [showProgress, setShowProgress] = useState(true);
+  // Track number of instances per section to support repeatable sections without schema changes
+  const [sectionInstanceCounts, setSectionInstanceCounts] = useState<Record<string, number>>({});
+
+  // Helpers for repeatable sections
+  const getSectionInstanceCount = (sectionId: string) => {
+    // For backwards compatibility: only use instance counts for repeatable sections
+    const section = form?.sections?.find(s => s.id === sectionId);
+    const isRepeatable = (section as any)?.conditional?.repeatable === true;
+    return isRepeatable ? (sectionInstanceCounts[sectionId] ?? 1) : 1;
+  };
+  const updateSectionInstanceCount = (sectionId: string, next: number) => {
+    setSectionInstanceCounts(prev => ({ ...prev, [sectionId]: Math.max(1, next) }));
+  };
+  const getInstanceScopedQuestionId = (baseQuestionId: string, instanceIndex: number) => {
+    // For backwards compatibility: only add instance suffix for repeatable sections
+    const question = form?.sections?.flatMap(s => s.questions || [])?.find(q => q.id === baseQuestionId);
+    const section = form?.sections?.find(s => s.questions?.some(q => q.id === baseQuestionId));
+    const isRepeatable = (section as any)?.conditional?.repeatable === true;
+    return isRepeatable ? `${baseQuestionId}__i${instanceIndex}` : baseQuestionId;
+  };
 
   // Load form data
   useEffect(() => {
@@ -65,6 +85,12 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
         const foundForm = await formsApi.getPublicForm(formId);
         
         console.log('Public form loaded successfully:', foundForm);
+        console.log('🔍 Form sections with conditional data:', foundForm.sections?.map(s => ({
+          id: s.id,
+          title: s.title,
+          conditional: s.conditional,
+          isRepeatable: (s as any).conditional?.repeatable
+        })));
         setForm(foundForm);
         setLoading(false);
       } catch (err: any) {
@@ -78,6 +104,12 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
             try {
               console.log('Retrying with secure endpoint for authenticated user');
               const secureForm = await formsApi.getSecureForm(formId);
+              console.log('🔍 Secure form sections with conditional data:', secureForm.sections?.map(s => ({
+                id: s.id,
+                title: s.title,
+                conditional: s.conditional,
+                isRepeatable: (s as any).conditional?.repeatable
+              })));
               setForm(secureForm);
               setRequiresAuth(false);
               setLoading(false);
@@ -291,58 +323,198 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     
     const allResponses = { ...responses, ...conditionalResponses };
     const errors: Record<string, string> = {};
+    // Backwards compatible: check if section is repeatable, default to false for existing forms
+    const isRepeatable = (currentSection as any).conditional?.repeatable === true;
+    const instanceCount = getSectionInstanceCount(currentSection.id);
     
-    // Validate main questions
-    filterMainQuestions(currentSection.questions).forEach((question: FormQuestion) => {
-      if (question.isRequired) {
-        const response = responses[question.id];
-        if (response === undefined || response === '' || response === null ||
-            (Array.isArray(response) && response.length === 0)) {
-          errors[question.id] = 'This field is required';
-        }
-      }
-      
-      // Validate conditional questions within choice options
-      if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
-        const choiceQuestion = question as any;
-        const selectedValues = responses[question.id];
-        
-        // For single choice, selectedValues is a string
-        // For multiple choice, selectedValues is an array
-        const selectedOptions = Array.isArray(selectedValues) ? selectedValues : [selectedValues];
-        
-        choiceQuestion.options.forEach((option: any) => {
-          if (option.conditionalQuestions && option.conditionalQuestions.length > 0) {
-            // Check if this option is selected
-            const isOptionSelected = selectedOptions.includes(option.value);
-            
-            if (isOptionSelected) {
-              // Validate all conditional questions for this option
-              option.conditionalQuestions.forEach((conditionalQuestion: any) => {
-                if (conditionalQuestion.isRequired) {
-                  const conditionalResponse = conditionalResponses[conditionalQuestion.id];
-                  if (conditionalResponse === undefined || conditionalResponse === '' || conditionalResponse === null ||
-                      (Array.isArray(conditionalResponse) && conditionalResponse.length === 0)) {
-                    errors[conditionalQuestion.id] = `${conditionalQuestion.title} is required`;
-                  }
-                }
-              });
-            }
-          }
-        });
-      }
+    console.log('🔍 Section conditional check:', {
+      sectionId: currentSection.id,
+      sectionTitle: currentSection.title,
+      conditional: currentSection.conditional,
+      isRepeatable,
+      conditionalType: typeof currentSection.conditional,
+      conditionalKeys: currentSection.conditional ? Object.keys(currentSection.conditional) : 'no conditional'
     });
     
-    console.log('🔍 Section validation:', {
+    console.log('🔍 Section validation - Starting validation:', {
       sectionTitle: currentSection.title,
+      isRepeatable,
+      instanceCount,
+      availableResponses: Object.keys(responses),
+      availableConditionalResponses: Object.keys(conditionalResponses)
+    });
+    
+    // Validate each instance of the section
+    for (let instanceIndex = 0; instanceIndex < instanceCount; instanceIndex++) {
+      filterMainQuestions(currentSection.questions).forEach((question: FormQuestion) => {
+        if (question.isRequired) {
+          const questionId = isRepeatable ? getInstanceScopedQuestionId(question.id, instanceIndex) : question.id;
+          const response = responses[questionId];
+          
+          console.log('🔍 Validating question:', {
+            questionId,
+            questionTitle: question.title,
+            isRequired: question.isRequired,
+            response,
+            responseType: typeof response,
+            isEmpty: response === undefined || response === '' || response === null || (Array.isArray(response) && response.length === 0)
+          });
+          
+          if (response === undefined || response === '' || response === null ||
+              (Array.isArray(response) && response.length === 0)) {
+            errors[questionId] = 'This field is required';
+            console.log('❌ Validation error for question:', questionId, question.title);
+          } else {
+            console.log('✅ Question valid:', questionId, question.title);
+          }
+        }
+        
+        // Validate conditional questions within choice options
+        if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+          const choiceQuestion = question as any;
+          const questionId = isRepeatable ? getInstanceScopedQuestionId(question.id, instanceIndex) : question.id;
+          const selectedValues = responses[questionId];
+          
+          // For single choice, selectedValues is a string
+          // For multiple choice, selectedValues is an array
+          const selectedOptions = Array.isArray(selectedValues) ? selectedValues : [selectedValues];
+          
+          choiceQuestion.options.forEach((option: any) => {
+            if (option.conditionalQuestions && option.conditionalQuestions.length > 0) {
+              // Check if this option is selected
+              const isOptionSelected = selectedOptions.includes(option.value);
+              
+              if (isOptionSelected) {
+                // Validate all conditional questions for this option
+                option.conditionalQuestions.forEach((conditionalQuestion: any) => {
+                  if (conditionalQuestion.isRequired) {
+                    const conditionalQuestionId = isRepeatable ? 
+                      getInstanceScopedQuestionId(conditionalQuestion.id, instanceIndex) : 
+                      conditionalQuestion.id;
+                    const conditionalResponse = conditionalResponses[conditionalQuestionId];
+                    
+                    if (conditionalResponse === undefined || conditionalResponse === '' || conditionalResponse === null ||
+                        (Array.isArray(conditionalResponse) && conditionalResponse.length === 0)) {
+                      errors[conditionalQuestionId] = `${conditionalQuestion.title} is required`;
+                    }
+                  }
+                });
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    console.log('🔍 Section validation - Final result:', {
+      sectionTitle: currentSection.title,
+      isRepeatable,
+      instanceCount,
       errors: Object.keys(errors),
       errorCount: Object.keys(errors).length,
+      isValid: Object.keys(errors).length === 0,
       allResponses: Object.keys(allResponses),
       mainResponses: Object.keys(responses),
       conditionalResponses: Object.keys(conditionalResponses)
     });
     
     return Object.keys(errors).length === 0;
+  };
+
+  // Get validation errors for current section
+  const getSectionValidationErrors = () => {
+    if (!form || !currentSection) return [];
+    
+    const errors: Array<{ questionId: string; questionTitle: string; error: string; instanceIndex?: number }> = [];
+    // Backwards compatible: check if section is repeatable, default to false for existing forms
+    const isRepeatable = (currentSection as any).conditional?.repeatable === true;
+    const instanceCount = getSectionInstanceCount(currentSection.id);
+    
+    console.log('🔍 Error display - Section conditional check:', {
+      sectionId: currentSection.id,
+      sectionTitle: currentSection.title,
+      conditional: currentSection.conditional,
+      isRepeatable,
+      conditionalType: typeof currentSection.conditional,
+      conditionalKeys: currentSection.conditional ? Object.keys(currentSection.conditional) : 'no conditional'
+    });
+    
+    console.log('🔍 Getting validation errors:', {
+      sectionTitle: currentSection.title,
+      isRepeatable,
+      instanceCount,
+      availableResponses: Object.keys(responses)
+    });
+    
+    // Check each instance of the section
+    for (let instanceIndex = 0; instanceIndex < instanceCount; instanceIndex++) {
+      filterMainQuestions(currentSection.questions).forEach((question: FormQuestion) => {
+        if (question.isRequired) {
+          const questionId = isRepeatable ? getInstanceScopedQuestionId(question.id, instanceIndex) : question.id;
+          const response = responses[questionId];
+          
+          console.log('🔍 Checking question for errors:', {
+            questionId,
+            questionTitle: question.title,
+            response,
+            isEmpty: response === undefined || response === '' || response === null || (Array.isArray(response) && response.length === 0)
+          });
+          
+          if (response === undefined || response === '' || response === null ||
+              (Array.isArray(response) && response.length === 0)) {
+            errors.push({
+              questionId: questionId,
+              questionTitle: `${question.title}${isRepeatable ? ` (Instance ${instanceIndex + 1})` : ''}`,
+              error: 'This field is required',
+              instanceIndex: isRepeatable ? instanceIndex : undefined
+            });
+            console.log('❌ Added error for question:', questionId, question.title);
+          }
+        }
+        
+        // Check conditional questions within choice options
+        if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+          const choiceQuestion = question as any;
+          const questionId = isRepeatable ? getInstanceScopedQuestionId(question.id, instanceIndex) : question.id;
+          const selectedValues = responses[questionId];
+          const selectedOptions = Array.isArray(selectedValues) ? selectedValues : [selectedValues];
+          
+          choiceQuestion.options.forEach((option: any) => {
+            if (option.conditionalQuestions && option.conditionalQuestions.length > 0) {
+              const isOptionSelected = selectedOptions.includes(option.value);
+              
+              if (isOptionSelected) {
+                option.conditionalQuestions.forEach((conditionalQuestion: any) => {
+                  if (conditionalQuestion.isRequired) {
+                    const conditionalQuestionId = isRepeatable ? 
+                      getInstanceScopedQuestionId(conditionalQuestion.id, instanceIndex) : 
+                      conditionalQuestion.id;
+                    const conditionalResponse = conditionalResponses[conditionalQuestionId];
+                    
+                    if (conditionalResponse === undefined || conditionalResponse === '' || conditionalResponse === null ||
+                        (Array.isArray(conditionalResponse) && conditionalResponse.length === 0)) {
+                      errors.push({
+                        questionId: conditionalQuestionId,
+                        questionTitle: `${conditionalQuestion.title}${isRepeatable ? ` (Instance ${instanceIndex + 1})` : ''}`,
+                        error: 'This field is required',
+                        instanceIndex: isRepeatable ? instanceIndex : undefined
+                      });
+                    }
+                  }
+                });
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    console.log('🔍 Final validation errors:', {
+      errorCount: errors.length,
+      errors: errors.map(e => ({ questionId: e.questionId, questionTitle: e.questionTitle }))
+    });
+    
+    return errors;
   };
 
   const handleNextSection = () => {
@@ -368,81 +540,191 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       
       // Create the response object and submit via addFormResponseToStorage 
       // (which handles online/offline scenarios and API submission)
-      // Merge conditional responses into their parent question responses
-      const mergedResponses = { ...responses };
-      
-      // Add conditional responses to their parent question responses
-      Object.entries(conditionalResponses).forEach(([conditionalQuestionId, value]) => {
-        // Find the parent question that contains this conditional question
-        const parentQuestion = form.sections
-          .flatMap(section => section.questions)
-          .find(question => {
-            if ((question as any).options && Array.isArray((question as any).options)) {
-              return (question as any).options.some((option: any) => 
-                option.conditionalQuestions && 
-                option.conditionalQuestions.some((condQ: any) => condQ.id === conditionalQuestionId)
-              );
-            }
-            return false;
-          });
-        
-        if (parentQuestion) {
-          // Store conditional response as part of parent question's response
-          const parentResponse = mergedResponses[parentQuestion.id];
-          
-          if (parentResponse === undefined || parentResponse === null) {
-            // Parent question has no response yet, create object with conditional response
-            mergedResponses[parentQuestion.id] = {
-              [conditionalQuestionId]: value
-            };
-          } else if (typeof parentResponse === 'object' && !Array.isArray(parentResponse)) {
-            // Parent response is already an object, add conditional response to it
-            mergedResponses[parentQuestion.id][conditionalQuestionId] = value;
-          } else {
-            // Parent response is a simple value, convert to object with both parent and conditional responses
-            mergedResponses[parentQuestion.id] = {
-              _parentValue: parentResponse,
-              [conditionalQuestionId]: value
-            };
-          }
-        }
+      // Process repeatable sections to create multiple responses
+      const responsesToSubmit: Array<{ data: Record<string, any>; repeatableSectionId?: string; instanceIndex?: number }> = [];
+
+      console.log('🔄 Form submission - Processing repeatable sections:', {
+        formId: form.id,
+        sectionInstanceCounts,
+        rawResponses: Object.keys(responses).length
       });
 
-      const responseData = {
-        id: `response-${Date.now()}`,
-        formId: form.id,
-        formVersion: form.version || 1,
-        startedAt: new Date(),
-        submittedAt: new Date(),
-        isComplete: true,
-        data: mergedResponses,
-        ipAddress: 'Unknown',
-        userAgent: navigator.userAgent,
-        source: isEmbedded ? 'embed' : 'direct'
-      };
+      if (form) {
+        // Find repeatable sections and their instance counts
+        const repeatableSections = form.sections.filter(section => 
+          (section as any).conditional?.repeatable
+        );
 
-      console.log('📊 Response data:', responseData);
+        if (repeatableSections.length === 0) {
+          // No repeatable sections - create single response with all data
+          const singleResponse: Record<string, any> = {};
+          form.sections.forEach(section => {
+            section.questions.forEach((question: FormQuestion) => {
+              singleResponse[question.id] = responses[question.id];
+            });
+          });
+          responsesToSubmit.push({ data: singleResponse });
+        } else {
+          // Create separate responses for each instance of repeatable sections
+          const maxInstances = Math.max(...repeatableSections.map(section => 
+            getSectionInstanceCount(section.id)
+          ));
+
+          console.log('📊 Creating multiple responses:', {
+            repeatableSections: repeatableSections.length,
+            maxInstances,
+            repeatableSectionIds: repeatableSections.map(s => s.id)
+          });
+
+          for (let instanceIndex = 0; instanceIndex < maxInstances; instanceIndex++) {
+            const responseData: Record<string, any> = {};
+            
+            form.sections.forEach(section => {
+              const isRepeatable = (section as any).conditional?.repeatable;
+              const instanceCount = getSectionInstanceCount(section.id);
+              
+              section.questions.forEach((question: FormQuestion) => {
+                if (isRepeatable) {
+                  // For repeatable sections, use instance-scoped values
+                  const scopedId = getInstanceScopedQuestionId(question.id, instanceIndex);
+                  responseData[question.id] = responses[scopedId];
+                } else {
+                  // For non-repeatable sections, use the same value in all responses
+                  responseData[question.id] = responses[question.id];
+                }
+              });
+            });
+
+            // Only create response if there's actual data for this instance
+            const hasData = Object.values(responseData).some(value => 
+              value !== undefined && value !== null && value !== ''
+            );
+
+            if (hasData) {
+              responsesToSubmit.push({ 
+                data: responseData, 
+                repeatableSectionId: repeatableSections[0].id, // Primary repeatable section
+                instanceIndex 
+              });
+              
+              console.log(`📝 Response ${instanceIndex + 1} data:`, {
+                instanceIndex,
+                dataKeys: Object.keys(responseData),
+                hasData: true
+              });
+            }
+          }
+        }
+      }
+
+      console.log('📤 Total responses to submit:', responsesToSubmit.length);
       
-      // Submit via context (handles API call + local storage + offline queue)
-      const submitted = await addFormResponseToStorage(responseData);
+      // Submit each response individually
+      const submissionPromises = responsesToSubmit.map(async (responseData, index) => {
+        // Add conditional responses to this specific response
+        const mergedResponses = { ...responseData.data };
+        
+        Object.entries(conditionalResponses).forEach(([conditionalQuestionId, value]) => {
+          // Find the parent question that contains this conditional question
+          const parentQuestion = form.sections
+            .flatMap(section => section.questions)
+            .find(question => {
+              if ((question as any).options && Array.isArray((question as any).options)) {
+                return (question as any).options.some((option: any) => 
+                  option.conditionalQuestions && 
+                  option.conditionalQuestions.some((condQ: any) => condQ.id === conditionalQuestionId)
+                );
+              }
+              return false;
+            });
+          
+          if (parentQuestion) {
+            // Store conditional response as part of parent question's response
+            const parentResponse = mergedResponses[parentQuestion.id];
+            
+            if (parentResponse === undefined || parentResponse === null) {
+              // Parent question has no response yet, create object with conditional response
+              mergedResponses[parentQuestion.id] = {
+                [conditionalQuestionId]: value
+              };
+            } else if (typeof parentResponse === 'object' && !Array.isArray(parentResponse)) {
+              // Parent response is already an object, add conditional response to it
+              mergedResponses[parentQuestion.id][conditionalQuestionId] = value;
+            } else {
+              // Parent response is a simple value, convert to object with both parent and conditional responses
+              mergedResponses[parentQuestion.id] = {
+                _parentValue: parentResponse,
+                [conditionalQuestionId]: value
+              };
+            }
+          }
+        });
+
+        // Create source with metadata for repeatable sections
+        let sourceData = isEmbedded ? 'embed' : 'direct';
+        if (responseData.repeatableSectionId) {
+          sourceData = JSON.stringify({
+            type: 'repeatable',
+            repeatableSectionId: responseData.repeatableSectionId,
+            instanceIndex: responseData.instanceIndex,
+            originalSource: isEmbedded ? 'embed' : 'direct'
+          });
+        }
+
+        const responseObj = {
+          id: `response-${Date.now()}-${index}`,
+          formId: form.id,
+          formVersion: form.version || 1,
+          startedAt: new Date(),
+          submittedAt: new Date(),
+          isComplete: true,
+          data: mergedResponses,
+          ipAddress: 'Unknown',
+          userAgent: navigator.userAgent,
+          source: sourceData
+        };
+
+        console.log(`📊 Response ${index + 1} data:`, {
+          responseId: responseObj.id,
+          repeatableSectionId: responseData.repeatableSectionId,
+          instanceIndex: responseData.instanceIndex,
+          dataKeys: Object.keys(mergedResponses)
+        });
+        
+        return addFormResponseToStorage(responseObj);
+      });
+
+      // Submit all responses
+      const submissionResults = await Promise.all(submissionPromises);
+      const submitted = submissionResults.every(result => result);
       
       // Clear draft data
       clearFormPreviewData(form.id);
       
       setIsComplete(true);
       
-      // Success toast is already handled by addFormResponseToStorage
-      // Only show custom thank you message if different from default
-      if (form.settings?.thankYouMessage && form.settings.thankYouMessage !== "Thank you for your response.") {
+      // Success toast with multiple responses info
+      const responseCount = responsesToSubmit.length;
+      if (responseCount > 1) {
         toast({
-          title: submitted ? "Form Submitted Successfully!" : "Saved Offline",
-          description: submitted ? form.settings.thankYouMessage : `${form.settings.thankYouMessage} (Will auto-submit when online)`,
+          title: submitted ? "Multiple Responses Submitted!" : "Saved Offline",
+          description: submitted 
+            ? `Successfully submitted ${responseCount} responses. ${form.settings?.thankYouMessage || "Thank you for your responses."}`
+            : `Saved ${responseCount} responses offline. They will auto-submit when connection is restored.`,
         });
-      } else if (!submitted) {
-        toast({
-          title: "Saved Offline",
-          description: "We’ll auto-submit your response once connection is restored.",
-        });
+      } else {
+        // Single response - use existing logic
+        if (form.settings?.thankYouMessage && form.settings.thankYouMessage !== "Thank you for your response.") {
+          toast({
+            title: submitted ? "Form Submitted Successfully!" : "Saved Offline",
+            description: submitted ? form.settings.thankYouMessage : `${form.settings.thankYouMessage} (Will auto-submit when online)`,
+          });
+        } else if (!submitted) {
+          toast({
+            title: "Saved Offline",
+            description: "We'll auto-submit your response once connection is restored.",
+          });
+        }
       }
     } catch (err: any) {
       console.error('Form submission failed:', err);
@@ -708,7 +990,23 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {filterMainQuestions(currentSection.questions).map((question: FormQuestion) => {
+              {/* Render repeatable instances of current section */}
+              {Array.from({ length: getSectionInstanceCount(currentSection.id) }).map((_, instanceIndex) => (
+                <div key={`${currentSection.id}-instance-${instanceIndex}`} className="space-y-6 border rounded-md p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">Instance {instanceIndex + 1}</div>
+                    {getSectionInstanceCount(currentSection.id) > 1 && (currentSection as any).conditional?.repeatable && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updateSectionInstanceCount(currentSection.id, getSectionInstanceCount(currentSection.id) - 1)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  {filterMainQuestions(currentSection.questions).map((question: FormQuestion) => {
+                    const scopedId = getInstanceScopedQuestionId(question.id, instanceIndex);
                 // Debug logging to check if conditional questions are being filtered correctly
                 console.log('🔍 PublicFormFiller rendering main question:', {
                   questionId: question.id,
@@ -725,7 +1023,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                 const assignedSection = getAssignedSectionForQuestion(question, responses);
                 
                 return (
-                  <div key={question.id} className="space-y-4">
+                  <div key={scopedId} className="space-y-4">
                     <ErrorBoundary
                       fallback={
                         <Alert variant="destructive" className="my-4">
@@ -738,8 +1036,8 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                     >
                       <QuestionRenderer
                         question={question}
-                        value={responses[question.id]}
-                        onChange={(value) => handleResponseChange(question.id, value)}
+                        value={responses[scopedId]}
+                        onChange={(value) => handleResponseChange(scopedId, value)}
                         error={undefined}
                         isPreviewMode={false}
                         conditionalValues={conditionalResponses}
@@ -763,7 +1061,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                           <div className="space-y-4">
                             {assignedSection.questions.map((inlineQuestion) => (
                               <ErrorBoundary
-                                key={inlineQuestion.id}
+                                key={`${inlineQuestion.id}-i${instanceIndex}`}
                                 fallback={
                                   <Alert variant="destructive" className="my-2">
                                     <AlertCircle className="h-4 w-4" />
@@ -773,15 +1071,20 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                                   </Alert>
                                 }
                               >
+                                {(() => {
+                                  const inlineScopedId = getInstanceScopedQuestionId(inlineQuestion.id, instanceIndex);
+                                  return (
                                 <QuestionRenderer
                                   question={inlineQuestion}
-                                  value={responses[inlineQuestion.id]}
-                                  onChange={(value) => handleResponseChange(inlineQuestion.id, value)}
+                                    value={responses[inlineScopedId]}
+                                    onChange={(value) => handleResponseChange(inlineScopedId, value)}
                                   error={undefined}
                                   isPreviewMode={false}
                                   conditionalValues={conditionalResponses}
                                   onConditionalChange={handleConditionalChange}
                                 />
+                                  );
+                                })()}
                               </ErrorBoundary>
                             ))}
                           </div>
@@ -790,10 +1093,48 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                     )}
                   </div>
                 );
-              })}
+                  })}
+                </div>
+              ))}
+              {(currentSection as any).conditional?.repeatable === true && (
+                <div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateSectionInstanceCount(currentSection.id, getSectionInstanceCount(currentSection.id) + 1)}
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Add another {currentSection.title}
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Validation Errors */}
+        {!validateCurrentSection() && (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="font-medium text-red-900 mb-2">
+                    Please complete the required fields below:
+                  </h4>
+                  <ul className="space-y-1">
+                    {getSectionValidationErrors().map((error, index) => (
+                      <li key={index} className="text-sm text-red-700 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0"></span>
+                        <span className="font-medium">{error.questionTitle}</span>
+                        <span className="text-red-600">- {error.error}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Navigation */}
         <div className="flex justify-between items-center">

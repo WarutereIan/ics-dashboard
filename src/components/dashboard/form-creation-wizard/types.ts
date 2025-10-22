@@ -280,6 +280,9 @@ export interface FormSection {
   description?: string;
   order: number;
   questions: FormQuestion[];
+  config?: {
+    repeatable?: boolean;
+  };
   conditional?: {
     dependsOn: string; // Question ID
     showWhen: string | number | boolean;

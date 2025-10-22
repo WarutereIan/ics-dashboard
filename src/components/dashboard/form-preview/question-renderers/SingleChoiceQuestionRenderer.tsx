@@ -97,14 +97,7 @@ export function SingleChoiceQuestionRenderer({
               </div>
               <div className="space-y-4">
                 {selectedOption.conditionalQuestions.map((conditionalQuestion) => {
-                  console.log('🔍 Rendering dropdown conditional question:', {
-                    questionId: conditionalQuestion.id,
-                    questionTitle: conditionalQuestion.title,
-                    questionType: conditionalQuestion.type,
-                    conditionalValues: conditionalValues,
-                    value: conditionalValues[conditionalQuestion.id],
-                    onConditionalChange: !!onConditionalChange
-                  });
+                  
                   
                   return (
                     <QuestionRenderer
