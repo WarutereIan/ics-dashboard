@@ -32,6 +32,7 @@ interface ProjectsContextType {
   // Data refresh trigger for UI components
   dataRefreshTrigger: number;
   triggerDataRefresh: () => void;
+  clearProjectCache: (projectId: string) => void;
 }
 
 const ProjectsContext = createContext<ProjectsContextType | undefined>(undefined);
@@ -42,6 +43,9 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [dataRefreshTrigger, setDataRefreshTrigger] = useState(0);
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Cache for project data to prevent unnecessary re-fetches
+  const [projectDataCache, setProjectDataCache] = useState<Map<string, { data: any[], timestamp: number }>>(new Map());
 
   // Create enhanced permission manager with current auth context
   const permissionManager = createEnhancedPermissionManager({
@@ -215,30 +219,58 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
   const getProjectOutcomes = useCallback(async (projectId: string): Promise<Outcome[]> => {
     if (!canAccessProject(projectId)) return [];
     
+    const cacheKey = `outcomes-${projectId}`;
+    const cached = projectDataCache.get(cacheKey);
+    const now = Date.now();
+    
+    // Return cached data if it's less than 30 seconds old
+    if (cached && (now - cached.timestamp) < 30000) {
+      console.log(`📦 Using cached outcomes for project ${projectId} (${cached.data.length} items)`);
+      return cached.data;
+    }
+    
     try {
       console.log(`🔄 Fetching outcomes for project ${projectId} (refresh trigger: ${dataRefreshTrigger})`);
       const result = await projectDataApi.getProjectOutcomes(projectId);
       console.log(`✅ Fetched ${result.length} outcomes for project ${projectId}`);
+      
+      // Cache the result
+      setProjectDataCache(prev => new Map(prev.set(cacheKey, { data: result, timestamp: now })));
+      
       return result;
     } catch (error) {
       console.error('Error fetching project outcomes:', error);
       return [];
     }
-  }, [dataRefreshTrigger]);
+  }, [dataRefreshTrigger, canAccessProject, projectDataCache]);
 
   const getProjectActivities = useCallback(async (projectId: string): Promise<Activity[]> => {
     if (!canAccessProject(projectId)) return [];
+    
+    const cacheKey = `activities-${projectId}`;
+    const cached = projectDataCache.get(cacheKey);
+    const now = Date.now();
+    
+    // Return cached data if it's less than 30 seconds old
+    if (cached && (now - cached.timestamp) < 30000) {
+      console.log(`📦 Using cached activities for project ${projectId} (${cached.data.length} items)`);
+      return cached.data;
+    }
     
     try {
       console.log(`🔄 Fetching activities for project ${projectId} (refresh trigger: ${dataRefreshTrigger})`);
       const result = await projectDataApi.getProjectActivities(projectId);
       console.log(`✅ Fetched ${result.length} activities for project ${projectId}`);
+      
+      // Cache the result
+      setProjectDataCache(prev => new Map(prev.set(cacheKey, { data: result, timestamp: now })));
+      
       return result;
     } catch (error) {
       console.error('Error fetching project activities:', error);
       return [];
     }
-  }, [dataRefreshTrigger]);
+  }, [dataRefreshTrigger, canAccessProject, projectDataCache]);
 
   const getProjectOutputs = useCallback(async (projectId: string): Promise<any[]> => {
     if (!canAccessProject(projectId)) return [];
@@ -268,16 +300,30 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
   const getProjectKPIs = useCallback(async (projectId: string): Promise<any[]> => {
     if (!canAccessProject(projectId)) return [];
     
+    const cacheKey = `kpis-${projectId}`;
+    const cached = projectDataCache.get(cacheKey);
+    const now = Date.now();
+    
+    // Return cached data if it's less than 30 seconds old
+    if (cached && (now - cached.timestamp) < 30000) {
+      console.log(`📦 Using cached KPIs for project ${projectId} (${cached.data.length} items)`);
+      return cached.data;
+    }
+    
     try {
       console.log(`🔄 Fetching KPIs for project ${projectId} (refresh trigger: ${dataRefreshTrigger})`);
       const result = await projectDataApi.getProjectKPIs(projectId);
       console.log(`✅ Fetched ${result.length} KPIs for project ${projectId}`);
+      
+      // Cache the result
+      setProjectDataCache(prev => new Map(prev.set(cacheKey, { data: result, timestamp: now })));
+      
       return result;
     } catch (error) {
       console.error('Error fetching project KPIs:', error);
       return [];
     }
-  }, [dataRefreshTrigger]);
+  }, [dataRefreshTrigger, canAccessProject, projectDataCache]);
 
   const getProjectReports = useCallback(async (projectId: string): Promise<Report[]> => {
     if (!canAccessProject(projectId)) return [];
@@ -290,12 +336,26 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Clear cache for a specific project when data is updated
+  const clearProjectCache = useCallback((projectId: string) => {
+    setProjectDataCache(prev => {
+      const newCache = new Map(prev);
+      // Remove all cache entries for this project
+      for (const [key, value] of newCache.entries()) {
+        if (key.includes(projectId)) {
+          newCache.delete(key);
+        }
+      }
+      return newCache;
+    });
+  }, []);
+
   // Trigger data refresh for UI components
-  const triggerDataRefresh = () => {
+  const triggerDataRefresh = useCallback(() => {
     const newTrigger = dataRefreshTrigger + 1;
     console.log(`🔄 Triggering data refresh for all project components: ${dataRefreshTrigger} -> ${newTrigger}`);
     setDataRefreshTrigger(newTrigger);
-  };
+  }, [dataRefreshTrigger]);
 
   const value: ProjectsContextType = {
     projects,
@@ -318,6 +378,7 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
     getProjectReports,
     dataRefreshTrigger,
     triggerDataRefresh,
+    clearProjectCache,
   };
 
   return (

@@ -25,6 +25,7 @@ import {
 
 export function useProjectWizard() {
   const navigate = useNavigate();
+  const [saveInProgress, setSaveInProgress] = useState(false);
   const { projectId } = useParams();
   const { user } = useAuth();
   const { 
@@ -36,7 +37,7 @@ export function useProjectWizard() {
     getProjectOutcomes,
     getProjectActivities,
     getProjectKPIs,
-    triggerDataRefresh
+    clearProjectCache
   } = useProjects();
   const isEditMode = Boolean(projectId);
   
@@ -423,8 +424,8 @@ export function useProjectWizard() {
           ]);
           console.log(`✨ Fresh data loaded: ${freshOutcomes.length} outcomes, ${freshActivities.length} activities`);
           
-          // Trigger data refresh to ensure all components get the latest data
-          triggerDataRefresh();
+          // Clear cache to ensure fresh data on next fetch
+          clearProjectCache(wizardState.projectData.id);
           
           toast({
             title: "Project Updated Successfully",
@@ -526,6 +527,14 @@ export function useProjectWizard() {
 
   // Helper function to save outcomes, activities, and KPIs via API
   const saveOutcomesActivitiesKPIs = async (projectId: string, outcomes: any[], activities: any[], kpis: any[]) => {
+    // Add a flag to prevent multiple simultaneous saves
+    if (saveInProgress) {
+      console.log('⚠️ Save operation already in progress, skipping duplicate call');
+      return;
+    }
+    
+    setSaveInProgress(true);
+    
     try {
       // Get original data for comparison
       const originalOutcomes = originalProjectData?.outcomes || [];
@@ -640,9 +649,11 @@ export function useProjectWizard() {
         }
       }
 
-      // Handle KPIs (note: backend API might not be fully implemented yet)
-      // We'll implement this with error handling in case the endpoints don't exist
+      // Handle KPIs with duplicate prevention
       try {
+        // Get existing KPIs from database to prevent duplicates
+        const existingKPIs = await projectDataApi.getProjectKPIs(projectId);
+        
         for (const kpi of kpis) {
           const original = originalKPIs.find((k: any) => k.id === kpi.id);
           const isNewItem = !original;
@@ -650,19 +661,29 @@ export function useProjectWizard() {
           const realKpiOutcomeId = outcomeIdMapping[kpi.outcomeId] || kpi.outcomeId;
           
           if (isNewItem) {
-            // Create new KPI
-            const kpiData: CreateKPIDto = {
-              outcomeId: realKpiOutcomeId,
-              name: kpi.name,
-              title: kpi.name, // Keep for backward compatibility
-              description: `KPI for project ${projectId}`,
-              target: kpi.target,
-              current: 0,
-              unit: kpi.unit,
-              type: kpi.type || 'bar',
-              frequency: 'MONTHLY',
-            };
-            await projectDataApi.createProjectKPI(projectId, kpiData);
+            // Check if KPI already exists in database to prevent duplicates
+            const existingKPI = existingKPIs.find((existing: any) => 
+              existing.name === kpi.name && 
+              existing.outcomeId === realKpiOutcomeId
+            );
+            
+            if (!existingKPI) {
+              // Create new KPI only if it doesn't exist
+              const kpiData: CreateKPIDto = {
+                outcomeId: realKpiOutcomeId,
+                name: kpi.name,
+                title: kpi.name, // Keep for backward compatibility
+                description: `KPI for project ${projectId}`,
+                target: kpi.target,
+                current: 0,
+                unit: kpi.unit,
+                type: kpi.type || 'bar',
+                frequency: 'MONTHLY',
+              };
+              await projectDataApi.createProjectKPI(projectId, kpiData);
+            } else {
+              console.log(`KPI "${kpi.name}" already exists, skipping creation`);
+            }
           } else {
             // Update existing KPI if changed
             const needsUpdate = 
@@ -689,13 +710,27 @@ export function useProjectWizard() {
           }
         }
       } catch (kpiError) {
-        console.warn('KPI operations failed (API might not be fully implemented):', kpiError);
+        console.error('KPI operations failed:', kpiError);
+        // Log the specific error for debugging
+        if (kpiError instanceof Error) {
+          console.error('KPI Error details:', {
+            message: kpiError.message,
+            stack: kpiError.stack,
+            projectId,
+            kpiCount: kpis.length
+          });
+        }
         // Continue without failing the entire save operation
       }
+
+      // Clear cache after successful save to ensure fresh data
+      clearProjectCache(projectId);
 
     } catch (error) {
       console.error('Error saving outcomes/activities/KPIs:', error);
       throw error;
+    } finally {
+      setSaveInProgress(false);
     }
   };
 
