@@ -438,8 +438,8 @@ export function useProjectWizard() {
           
         } catch (error) {
           console.error('❌ Error fetching fresh data after save:', error);
-          // Fallback: trigger refresh and navigate with small delay
-          triggerDataRefresh();
+          // Fallback: clear cache and navigate with small delay
+          clearProjectCache(wizardState.projectData.id);
           setTimeout(() => {
             navigate(`/dashboard/projects/${wizardState.projectData.id}`);
           }, 500);
@@ -454,8 +454,8 @@ export function useProjectWizard() {
         await saveOutcomesActivitiesKPIs(newProject.id, outcomes, activities, kpis);
         console.log('✅ All database operations completed for new project');
         
-        // Trigger data refresh so all components reload their data
-        triggerDataRefresh();
+        // Clear cache so all components get fresh data
+        clearProjectCache(newProject.id);
         
         toast({
           title: "Project Created Successfully",
