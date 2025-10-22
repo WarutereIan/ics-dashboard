@@ -54,12 +54,12 @@ export function Header() {
             className="relative h-8 w-8 sm:h-9 sm:w-9"
           >
             <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-            <Badge 
+           {/*  <Badge 
               variant="destructive" 
               className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-xs"
             >
               3
-            </Badge>
+            </Badge> */}
           </Button>
           
           <UserMenu />

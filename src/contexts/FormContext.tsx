@@ -295,115 +295,93 @@ export function FormProvider({ children }: FormProviderProps) {
     setOfflineQueue(prev => [...prev, queueItem]);
   }, []);
 
-  // Helper function to migrate old conditional response structure to new nested structure
-  const migrateConditionalResponses = useCallback(async (responseData: any) => {
-    if (!responseData.data) return responseData;
-
-    // Check if this data has already been migrated
-    if (responseData.data._migrated) {
-      return responseData;
-    }
-
+  // Migrate legacy (flat) conditional responses into the new nested structure
+  const migrateConditionalResponses = useCallback(async (queuedData: any) => {
     try {
-      // Try to load the form from localStorage first, then from API if needed
+      // Expect shape queuedData = { formId, data, ... }
+      if (!queuedData || !queuedData.formId || !queuedData.data) return queuedData;
+
+      const originalData = queuedData.data;
+      // If already migrated, skip
+      if (originalData && typeof originalData === 'object' && originalData._migrated) {
+        return queuedData;
+      }
+
+      // Load form definition to resolve parent/conditional relationships
       let form: Form | null = null;
-      
-      // Try localStorage first (faster)
       try {
         const { getFormById } = await import('@/lib/formLocalStorageUtils');
-        form = getFormById(responseData.formId);
-      } catch (error) {
-        console.warn('Could not load form from localStorage:', error);
+        form = getFormById(queuedData.formId);
+      } catch (e) {
+        // no-op; fallback below
       }
-      
-      // If not found in localStorage, try to get from API (requires projectId)
       if (!form) {
-        console.warn('Could not load form for migration, using original data');
-        return responseData;
+        try {
+          form = await formsApi.getFormByIdOnly(queuedData.formId);
+        } catch (e) {
+          // If we cannot resolve the form, return original to avoid data loss
+          return queuedData;
+        }
+      }
+      if (!form) return queuedData;
+
+      // Build a quick lookup from conditional question id -> parent question id
+      const conditionalToParent: Record<string, { parentId: string }> = {};
+      form.sections.forEach(section => {
+        section.questions.forEach(question => {
+          if ((question as any).options && Array.isArray((question as any).options)) {
+            (question as any).options.forEach((opt: any) => {
+              if (opt.conditionalQuestions && Array.isArray(opt.conditionalQuestions)) {
+                opt.conditionalQuestions.forEach((cq: any) => {
+                  if (cq && cq.id) {
+                    conditionalToParent[cq.id] = { parentId: question.id };
+                  }
+                });
+              }
+            });
+          }
+        });
+      });
+
+      // Detect if any top-level keys are conditional question ids (legacy flat structure)
+      const processedData: Record<string, any> = {};
+      const stagedConditional: Record<string, { parentId: string; value: any }> = {};
+
+      Object.entries(originalData).forEach(([qid, value]) => {
+        const mapping = conditionalToParent[qid];
+        if (mapping) {
+          // Legacy conditional response found at top-level; stage for merge
+          stagedConditional[qid] = { parentId: mapping.parentId, value };
+        } else {
+          processedData[qid] = value;
+        }
+      });
+
+      // If nothing to migrate, return as-is
+      if (Object.keys(stagedConditional).length === 0) {
+        return queuedData;
       }
 
-      const migratedData = { ...responseData };
-      const processedData: Record<string, any> = {};
-      const conditionalResponses: Record<string, any> = {};
-
-      // First pass: identify conditional questions and separate them
-      Object.entries(responseData.data).forEach(([questionId, responseValue]) => {
-        // Check if this is a conditional question response (old structure)
-        const isConditionalQuestion = form.sections
-          .flatMap(section => section.questions)
-          .some(question => {
-            if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
-              const options = (question as any).options || [];
-              return options.some((option: any) => 
-                option.conditionalQuestions && 
-                option.conditionalQuestions.some((condQ: any) => condQ.id === questionId)
-              );
-            }
-            return false;
-          });
-
-        if (isConditionalQuestion) {
-          // Store conditional responses separately for processing
-          conditionalResponses[questionId] = responseValue;
+      // Merge staged conditionals into their parent entries using the new schema
+      Object.values(stagedConditional).forEach(({ parentId, value }, idx) => {
+        const conditionalId = Object.keys(stagedConditional)[idx];
+        const existingParent = processedData[parentId];
+        if (existingParent === undefined || existingParent === null) {
+          processedData[parentId] = { [conditionalId]: value };
+        } else if (typeof existingParent === 'object' && !Array.isArray(existingParent)) {
+          processedData[parentId] = { ...existingParent, [conditionalId]: value };
         } else {
-          // This is a main question response
-          processedData[questionId] = responseValue;
+          processedData[parentId] = { _parentValue: existingParent, [conditionalId]: value };
         }
       });
 
-      // Second pass: merge conditional responses into their parent questions
-      Object.entries(conditionalResponses).forEach(([conditionalQuestionId, value]) => {
-        // Find the parent question that contains this conditional question
-        const parentQuestion = form.sections
-          .flatMap(section => section.questions)
-          .find(question => {
-            if (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') {
-              const options = (question as any).options || [];
-              return options.some((option: any) => 
-                option.conditionalQuestions && 
-                option.conditionalQuestions.some((condQ: any) => condQ.id === conditionalQuestionId)
-              );
-            }
-            return false;
-          });
-
-        if (parentQuestion) {
-          // Store conditional response as part of parent question's response
-          const parentResponse = processedData[parentQuestion.id];
-          
-          if (parentResponse === undefined || parentResponse === null) {
-            // Parent question has no response yet, create object with conditional response
-            processedData[parentQuestion.id] = {
-              [conditionalQuestionId]: value
-            };
-          } else if (typeof parentResponse === 'object' && !Array.isArray(parentResponse)) {
-            // Parent response is already an object, add conditional response to it
-            processedData[parentQuestion.id][conditionalQuestionId] = value;
-          } else {
-            // Parent response is a simple value, convert to object with both parent and conditional responses
-            processedData[parentQuestion.id] = {
-              _parentValue: parentResponse,
-              [conditionalQuestionId]: value
-            };
-          }
-        }
-      });
-
-      migratedData.data = {
-        ...processedData,
-        _migrated: true // Mark as migrated
+      return {
+        ...queuedData,
+        data: { ...processedData, _migrated: true }
       };
-
-      console.log('🔄 Migrated conditional response structure:', {
-        originalKeys: Object.keys(responseData.data),
-        migratedKeys: Object.keys(processedData),
-        conditionalCount: Object.keys(conditionalResponses).length
-      });
-
-      return migratedData;
-    } catch (error) {
-      console.error('Error migrating conditional responses:', error);
-      return responseData; // Return original data if migration fails
+    } catch (e) {
+      // On any error, return original data to avoid losing submissions
+      return queuedData;
     }
   }, []);
 
@@ -411,73 +389,49 @@ export function FormProvider({ children }: FormProviderProps) {
     if (!isOnline || offlineQueue.length === 0) return;
 
     setSyncStatus(prev => ({ ...prev, isSyncing: true, syncProgress: 0 }));
+    // Migrate any legacy queued items into the latest schema before syncing
+    const migratedQueue: OfflineQueueItem[] = await Promise.all(
+      offlineQueue.map(async (item) => {
+        if (item.type === 'form_response' && item.data && item.data.data) {
+          const migrated = await migrateConditionalResponses(item.data);
+          return { ...item, data: migrated } as OfflineQueueItem;
+        }
+        return item;
+      })
+    );
+
+    const results = await formsApi.syncOfflineData(migratedQueue);
     
-    try {
-      // Process and migrate any stale data in the offline queue
-      const migratedQueue = await Promise.all(
-        offlineQueue.map(async (item) => {
-          if (item.type === 'form_response') {
-            // Migrate conditional response structure if needed
-            const migratedData = await migrateConditionalResponses(item.data);
-            return {
-              ...item,
-              data: migratedData
-            };
-          }
-          return item;
-        })
-      );
-      
-      console.log('🔄 Processing offline queue with migrated data:', {
-        originalCount: offlineQueue.length,
-        migratedCount: migratedQueue.length
-      });
-      
-      const results = await formsApi.syncOfflineData(migratedQueue);
-      
-      if (results.success) {
-        setOfflineQueue([]);
-        setSyncStatus(prev => ({
-          ...prev,
-          isSyncing: false,
-          lastSyncTime: new Date(),
-          pendingItems: 0,
-          failedItems: 0,
-          syncProgress: 100
-        }));
-        toast({
-          title: "Sync Complete",
-          description: "All offline data has been synced successfully",
-        });
-      } else {
-        setOfflineQueue(results.failedItems);
-        setSyncStatus(prev => ({
-          ...prev,
-          isSyncing: false,
-          pendingItems: results.failedItems.length,
-          failedItems: results.failedItems.length,
-          syncProgress: 100
-        }));
-        toast({
-          title: "Partial Sync",
-          description: `${offlineQueue.length - results.failedItems.length} items synced, ${results.failedItems.length} failed`,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error processing offline queue:', error);
+    if (results.success) {
+      setOfflineQueue([]);
       setSyncStatus(prev => ({
         ...prev,
         isSyncing: false,
+        lastSyncTime: new Date(),
+        pendingItems: 0,
+        failedItems: 0,
         syncProgress: 100
       }));
       toast({
-        title: "Sync Failed",
-        description: "Failed to process offline data. Please try again.",
+        title: "Sync Complete",
+        description: "All offline data has been synced successfully",
+      });
+    } else {
+      setOfflineQueue(results.failedItems);
+      setSyncStatus(prev => ({
+        ...prev,
+        isSyncing: false,
+        pendingItems: results.failedItems.length,
+        failedItems: results.failedItems.length,
+        syncProgress: 100
+      }));
+      toast({
+        title: "Partial Sync",
+        description: `${offlineQueue.length - results.failedItems.length} items synced, ${results.failedItems.length} failed`,
         variant: "destructive",
       });
     }
-  }, [isOnline, offlineQueue, migrateConditionalResponses]);
+  }, [isOnline, offlineQueue]);
 
   const retryFailedItems = useCallback(async () => {
     const failedItems = offlineQueue.filter(item => item.retryCount >= item.maxRetries);

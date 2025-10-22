@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Plus, Trash2, GripVertical, Layers } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { AlertCircle, Plus, Trash2, GripVertical, Layers, Repeat } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -111,6 +112,38 @@ function SortableSectionItem({
                   onChange={(e) => onUpdateSection(section.id, { description: e.target.value })}
                   placeholder="Add instructions or context for this section..."
                   rows={2}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Repeat className="w-4 h-4 text-gray-600" />
+                  <div>
+                    <Label htmlFor={`section-repeatable-${section.id}`} className="text-sm font-medium">
+                      Allow multiple instances
+                    </Label>
+                    <p className="text-xs text-gray-500">
+                      Users can fill this section multiple times (e.g., for multiple learners)
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id={`section-repeatable-${section.id}`}
+                  checked={section.conditional?.repeatable || false}
+                  onCheckedChange={(checked) => {
+                    console.log('🔄 Section repeatable toggle changed:', {
+                      sectionId: section.id,
+                      sectionTitle: section.title,
+                      repeatable: checked,
+                      previousConditional: section.conditional
+                    });
+                    onUpdateSection(section.id, { 
+                      conditional: { 
+                        ...section.conditional, 
+                        repeatable: checked 
+                      } 
+                    });
+                  }}
                 />
               </div>
             </div>
