@@ -284,9 +284,10 @@ export interface FormSection {
     repeatable?: boolean;
   };
   conditional?: {
-    dependsOn: string; // Question ID
-    showWhen: string | number | boolean;
-    operator: 'EQUALS' | 'NOT_EQUALS' | 'GREATER_THAN' | 'LESS_THAN' | 'CONTAINS';
+    dependsOn?: string; // Question ID
+    showWhen?: string | number | boolean;
+    operator?: 'EQUALS' | 'NOT_EQUALS' | 'GREATER_THAN' | 'LESS_THAN' | 'CONTAINS';
+    repeatable?: boolean; // For repeatable sections
   };
 }
 
