@@ -775,6 +775,19 @@ export function FormResponseViewer() {
       return stringValue;
     };
 
+    // Helper function to format dates as mm-dd-yyyy
+    const formatDate = (date: Date | string | null | undefined): string => {
+      if (!date) return '';
+      const dateObj = date instanceof Date ? date : new Date(date);
+      if (isNaN(dateObj.getTime())) return '';
+      
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const year = dateObj.getFullYear();
+      
+      return `${month}-${day}-${year}`;
+    };
+
     // Helper function to format GPS coordinates
     const formatGpsCoordinates = (gpsData: any): string => {
       if (!gpsData) return '';
@@ -867,9 +880,12 @@ export function FormResponseViewer() {
       }
     });
 
+    // Reverse the order to export oldest to newest
+    const reversedResponses = [...filteredResponses].reverse();
+
     const csvContent = [
       headers.map(escapeCsvValue).join(','),
-      ...filteredResponses.map(response => {
+      ...reversedResponses.map(response => {
         const completionTime = response.submittedAt && response.startedAt
           ? Math.round(((new Date(response.submittedAt)).getTime() - (new Date(response.startedAt)).getTime()) / (1000 * 60))
           : '';
@@ -878,7 +894,7 @@ export function FormResponseViewer() {
           response.id,
           response.respondentEmail || 'Anonymous',
           response.isComplete ? 'Complete' : 'Incomplete',
-          response.submittedAt ? (new Date(response.submittedAt)).toISOString() : 'Not submitted',
+          response.submittedAt ? formatDate(response.submittedAt) : 'Not submitted',
           completionTime
         ];
         
@@ -932,6 +948,9 @@ export function FormResponseViewer() {
                   return option ? option.label : val;
                 });
                 displayValue = optionLabels.join('; ');
+              } else if (question.type === 'DATE' || question.type === 'DATETIME') {
+                // Format dates as mm-dd-yyyy
+                displayValue = formatDate(value);
               } else {
                 displayValue = String(value);
               }
