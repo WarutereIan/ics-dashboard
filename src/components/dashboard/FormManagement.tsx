@@ -28,6 +28,7 @@ import {
   Upload
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { createEnhancedPermissionManager } from '@/lib/permissions';
 import { useForm } from '@/contexts/FormContext';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { toast } from '@/hooks/use-toast';
@@ -47,12 +48,19 @@ import {
 export function FormManagement() {
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const permissionManager = createEnhancedPermissionManager({ user, isAuthenticated, isLoading: authLoading });
   const { getProjectForms, loadProjectForms, duplicateForm, deleteForm, projectForms } = useForm();
   
   // Get forms from context for the current project
   const forms = projectId ? (projectForms[projectId] || []) : [];
-  const [isLoading, setIsLoading] = useState(true);
+  // Permission flags (project-scoped)
+  const canViewForms = projectId ? permissionManager.canViewForms(projectId) : false;
+  const canCreateForms = projectId ? permissionManager.hasProjectPermission('forms', 'create', projectId) : false;
+  const canEditForms = projectId ? permissionManager.canEditForms(projectId) : false;
+  const canDeleteForms = projectId ? permissionManager.hasProjectPermission('forms', 'delete', projectId) : false;
+  const canViewResponses = projectId ? permissionManager.canViewFormResponses(projectId) : false;
+  const [isFormsLoading, setIsFormsLoading] = useState(true);
   const [copiedFormId, setCopiedFormId] = useState<string | null>(null);
   const [showCopyPopup, setShowCopyPopup] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -63,7 +71,7 @@ export function FormManagement() {
   useEffect(() => {
     const loadForms = async () => {
       if (projectId) {
-        setIsLoading(true);
+        setIsFormsLoading(true);
         console.log('🔄 FormManagement: Loading fresh form data for project:', projectId);
         
         try {
@@ -78,7 +86,7 @@ export function FormManagement() {
             variant: "destructive",
           });
         } finally {
-          setIsLoading(false);
+          setIsFormsLoading(false);
         }
       }
     };
@@ -105,10 +113,10 @@ export function FormManagement() {
   // Refresh forms when window gains focus (user returns from form wizard)
   useEffect(() => {
     const handleFocus = async () => {
-      if (projectId) {
-        console.log('🔄 FormManagement: Refreshing forms on focus for project:', projectId);
-        await loadProjectForms(projectId);
-      }
+    if (projectId) {
+      console.log('🔄 FormManagement: Refreshing forms on focus for project:', projectId);
+      await loadProjectForms(projectId);
+    }
     };
 
     window.addEventListener('focus', handleFocus);
@@ -385,30 +393,36 @@ export function FormManagement() {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-          <FormExportModal 
-            forms={forms}
-            projectId={projectId || ''}
-            trigger={
-              <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto justify-center">
-                <Download className="w-4 h-4" />
-                <span className="whitespace-nowrap">Export Forms ({forms.length})</span>
-              </Button>
-            }
-          />
-          <FormImportModal 
-            projectId={projectId || ''} 
-            onImportSuccess={handleImportSuccess}
-            trigger={
-              <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto justify-center">
-                <Upload className="w-4 h-4" />
-                <span className="whitespace-nowrap">Import Forms</span>
-              </Button>
-            }
-          />
-          <Button onClick={handleCreateForm} className="flex items-center gap-2 w-full sm:w-auto justify-center">
-            <Plus className="w-4 h-4" />
-            <span className="whitespace-nowrap">Create New Form</span>
-          </Button>
+          {projectId && permissionManager.canExportFormResponses(projectId) && (
+            <FormExportModal 
+              forms={forms}
+              projectId={projectId}
+              trigger={
+                <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto justify-center">
+                  <Download className="w-4 h-4" />
+                  <span className="whitespace-nowrap">Export Forms ({forms.length})</span>
+                </Button>
+              }
+            />
+          )}
+          {canCreateForms && (
+            <FormImportModal 
+              projectId={projectId || ''} 
+              onImportSuccess={handleImportSuccess}
+              trigger={
+                <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto justify-center">
+                  <Upload className="w-4 h-4" />
+                  <span className="whitespace-nowrap">Import Forms</span>
+                </Button>
+              }
+            />
+          )}
+          {canCreateForms && (
+            <Button onClick={handleCreateForm} className="flex items-center gap-2 w-full sm:w-auto justify-center">
+              <Plus className="w-4 h-4" />
+              <span className="whitespace-nowrap">Create New Form</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -538,7 +552,7 @@ export function FormManagement() {
                   : 'Try adjusting your search or filter criteria'
                 }
               </p>
-              {forms.length === 0 && (
+              {forms.length === 0 && canCreateForms && (
                 <Button onClick={handleCreateForm}>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Your First Form
@@ -565,7 +579,7 @@ export function FormManagement() {
                       <TableRow 
                         key={form.id} 
                         className="cursor-pointer hover:bg-gray-50 transition-colors"
-                        onClick={() => handleViewResponses(form.id)}
+                        onClick={() => { if (canViewResponses) handleViewResponses(form.id); }}
                       >
                         <TableCell>
                           <div>
@@ -619,35 +633,41 @@ export function FormManagement() {
                                 <Eye className="mr-2 h-4 w-4" />
                                 Preview Form
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditForm(form.id); }}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Form
-                              </DropdownMenuItem>
-                              {form.responseCount > 0 && (
+                              {canEditForms && (
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditForm(form.id); }}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Form
+                                </DropdownMenuItem>
+                              )}
+                              {canViewResponses && form.responseCount > 0 && (
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewResponses(form.id); }}>
                                   <BarChart3 className="mr-2 h-4 w-4" />
                                   View Responses ({form.responseCount})
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
-                              {form.status === 'PUBLISHED' && (
+                              {form.status === 'PUBLISHED' && canViewForms && (
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareForm(form); }}>
                                 <Share2 className="mr-2 h-4 w-4" />
                                 Share Link
                               </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                Duplicate
-                              </DropdownMenuItem>
+                              {canCreateForms && (
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Duplicate
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={(e) => { e.stopPropagation(); handleDeleteForm(form); }}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
+                              {canDeleteForms && (
+                                <DropdownMenuItem 
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteForm(form); }}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -663,7 +683,7 @@ export function FormManagement() {
                   <Card 
                     key={form.id} 
                     className="w-full cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => handleViewResponses(form.id)}
+                    onClick={() => { if (canViewResponses) handleViewResponses(form.id); }}
                   >
                     <CardContent className="p-4">
                       <div className="flex flex-col space-y-3">
@@ -682,33 +702,38 @@ export function FormManagement() {
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewForm(form.id); }}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Preview Form
-                              </DropdownMenuItem>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewForm(form.id); }}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Preview Form
+                            </DropdownMenuItem>
+                            {canEditForms && (
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditForm(form.id); }}>
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Form
                               </DropdownMenuItem>
-                              {form.responseCount > 0 && (
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewResponses(form.id); }}>
-                                  <BarChart3 className="mr-2 h-4 w-4" />
-                                  View Responses ({form.responseCount})
-                                </DropdownMenuItem>
-                              )}
+                            )}
+                            {canViewResponses && form.responseCount > 0 && (
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewResponses(form.id); }}>
+                                <BarChart3 className="mr-2 h-4 w-4" />
+                                View Responses ({form.responseCount})
+                              </DropdownMenuItem>
+                            )}
                               <DropdownMenuSeparator />
-                              {form.status === 'PUBLISHED' && (
+                            {form.status === 'PUBLISHED' && canViewForms && (
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleShareForm(form); }}>
                                 <Share2 className="mr-2 h-4 w-4" />
                                 Share Link
                               </DropdownMenuItem>
                               )}
+                            {canCreateForms && (
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
                                 <Copy className="mr-2 h-4 w-4" />
                                 Duplicate
                               </DropdownMenuItem>
+                            )}
                               <DropdownMenuSeparator />
+                            {canDeleteForms && (
                               <DropdownMenuItem 
                                 onClick={(e) => { e.stopPropagation(); handleDeleteForm(form); }}
                                 className="text-red-600"
@@ -716,6 +741,7 @@ export function FormManagement() {
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
+                            )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

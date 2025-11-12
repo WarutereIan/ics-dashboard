@@ -11,6 +11,8 @@ import { Plus, Settings, Trash2, BarChart3, Calendar, Filter } from 'lucide-reac
 import { useNotification } from '@/hooks/useNotification';
 import { KoboDataService, KoboKpiMapping as KoboKpiMappingType, ProjectKoboTable, TableColumn } from '@/services/koboDataService';
 import { useProjects } from '@/contexts/ProjectsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { createEnhancedPermissionManager } from '@/lib/permissions';
 
 interface KoboKpiMappingProps {
   projectId: string;
@@ -19,6 +21,11 @@ interface KoboKpiMappingProps {
 export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
   const { showSuccess, showError } = useNotification();
   const { getProjectKPIs, dataRefreshTrigger } = useProjects();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const permissionManager = createEnhancedPermissionManager({ user, isAuthenticated, isLoading });
+  const canUpdate = permissionManager.hasProjectPermission('kobo', 'update', projectId) ||
+    permissionManager.hasResourcePermission('kobo', 'update', 'regional') ||
+    permissionManager.hasResourcePermission('kobo', 'update', 'global');
   const [mappings, setMappings] = useState<KoboKpiMappingType[]>([]);
   const [koboTables, setKoboTables] = useState<ProjectKoboTable[]>([]);
   const [projectKPIs, setProjectKPIs] = useState<any[]>([]);
@@ -169,6 +176,7 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
             Map Kobo table columns to project KPIs for automatic calculation
           </p>
         </div>
+        {canUpdate && (
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
@@ -334,6 +342,7 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {mappings.length === 0 ? (
@@ -426,6 +435,7 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
                         </span>
                       </TableCell>
                       <TableCell className="px-3 py-3">
+                        {canUpdate && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -434,6 +444,7 @@ export function KoboKpiMapping({ projectId }: KoboKpiMappingProps) {
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

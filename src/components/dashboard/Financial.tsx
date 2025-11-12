@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { createEnhancedPermissionManager } from '@/lib/permissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +46,14 @@ import { AddFinancialDataModal } from './modals/AddFinancialDataModal';
 
 export default function Financial() {
   const { projectId } = useParams<{ projectId: string }>();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const permissionManager = createEnhancedPermissionManager({ user, isAuthenticated, isLoading: authLoading });
+  const canRead = projectId ? permissionManager.canAccessProjectComponent(projectId, 'finance', 'read') : false;
+  const canWrite = projectId ? (
+    permissionManager.hasProjectPermission('finance', 'update', projectId) ||
+    permissionManager.hasResourcePermission('finance', 'update', 'regional') ||
+    permissionManager.hasResourcePermission('finance', 'update', 'global')
+  ) : false;
   const { currentProject } = useDashboard();
   const { projects, getProjectActivities } = useProjects();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -437,13 +447,13 @@ export default function Financial() {
       </div>
 
       {/* Always show the full financial interface with indicators when no data */}
-        <Tabs defaultValue="forms" className="space-y-4">
+        <Tabs defaultValue={canWrite ? 'forms' : 'overview'} className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="forms">Data Entry</TabsTrigger>
-            <TabsTrigger value="activities">Activities</TabsTrigger>
-            <TabsTrigger value="quarterly">Quarterly Breakdown</TabsTrigger>
-            <TabsTrigger value="charts">Charts</TabsTrigger>
+            {canWrite && <TabsTrigger value="forms">Data Entry</TabsTrigger>}
+            {canRead && <TabsTrigger value="activities">Activities</TabsTrigger>}
+            {canRead && <TabsTrigger value="quarterly">Quarterly Breakdown</TabsTrigger>}
+            {canRead && <TabsTrigger value="charts">Charts</TabsTrigger>}
           </TabsList>
 
           {/* Overview Tab */}

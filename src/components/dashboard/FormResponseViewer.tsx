@@ -35,6 +35,8 @@ import { Form, FormResponse, FormQuestion, MediaAttachment } from './form-creati
 import { useForm } from '@/contexts/FormContext';
 import { formsApi } from '@/lib/api/formsApi';
 import { ResponseEditModal } from './ResponseEditModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { createEnhancedPermissionManager } from '@/lib/permissions';
 
 // Helper function to transform backend question format to frontend format
 const transformQuestionData = (question: any) => {
@@ -511,6 +513,10 @@ export function FormResponseViewer() {
   const { formId, projectId } = useParams();
   const navigate = useNavigate();
   const { getFormResponses, deleteFormResponse, getProjectForms, loadProjectForms, addFormResponseToStorage } = useForm();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const permissionManager = createEnhancedPermissionManager({ user, isAuthenticated, isLoading: authLoading });
+  const canEdit = projectId ? permissionManager.canEditFormResponses(projectId) : false;
+  const canDelete = projectId ? permissionManager.canDeleteFormResponses(projectId) : false;
   
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -769,6 +775,19 @@ export function FormResponseViewer() {
       return stringValue;
     };
 
+    // Helper function to format dates as mm-dd-yyyy
+    const formatDate = (date: Date | string | null | undefined): string => {
+      if (!date) return '';
+      const dateObj = date instanceof Date ? date : new Date(date);
+      if (isNaN(dateObj.getTime())) return '';
+      
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const year = dateObj.getFullYear();
+      
+      return `${month}-${day}-${year}`;
+    };
+
     // Helper function to format GPS coordinates
     const formatGpsCoordinates = (gpsData: any): string => {
       if (!gpsData) return '';
@@ -861,9 +880,12 @@ export function FormResponseViewer() {
       }
     });
 
+    // Reverse the order to export oldest to newest
+    const reversedResponses = [...filteredResponses].reverse();
+
     const csvContent = [
       headers.map(escapeCsvValue).join(','),
-      ...filteredResponses.map(response => {
+      ...reversedResponses.map(response => {
         const completionTime = response.submittedAt && response.startedAt
           ? Math.round(((new Date(response.submittedAt)).getTime() - (new Date(response.startedAt)).getTime()) / (1000 * 60))
           : '';
@@ -872,7 +894,7 @@ export function FormResponseViewer() {
           response.id,
           response.respondentEmail || 'Anonymous',
           response.isComplete ? 'Complete' : 'Incomplete',
-          response.submittedAt ? (new Date(response.submittedAt)).toISOString() : 'Not submitted',
+          response.submittedAt ? formatDate(response.submittedAt) : 'Not submitted',
           completionTime
         ];
         
@@ -926,6 +948,9 @@ export function FormResponseViewer() {
                   return option ? option.label : val;
                 });
                 displayValue = optionLabels.join('; ');
+              } else if (question.type === 'DATE' || question.type === 'DATETIME') {
+                // Format dates as mm-dd-yyyy
+                displayValue = formatDate(value);
               } else {
                 displayValue = String(value);
               }
@@ -1352,30 +1377,36 @@ export function FormResponseViewer() {
                               </div>
                           </TableCell>
                             <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
-                              {row.isExisting ? (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-6 w-6 p-0">
-                                      <MoreVertical className="h-3 w-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem 
-                                  onClick={() => handleEditResponse(row)}
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit Response
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                      onClick={() => handleDeleteResponse(row.responseId!)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                              ) : (
+                            {row.isExisting ? (
+                              (canEdit || canDelete) ? (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-6 w-6 p-0">
+                                          <MoreVertical className="h-3 w-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {canEdit && (
+                                      <DropdownMenuItem 
+                                        onClick={() => handleEditResponse(row)}
+                                      >
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Edit Response
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canDelete && (
+                                      <DropdownMenuItem 
+                                            onClick={() => handleDeleteResponse(row.responseId!)}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : null
+                            ) : (
                                 <Button
                                   size="sm"
                                   onClick={() => handleSaveManualData(row.rowIndex)}

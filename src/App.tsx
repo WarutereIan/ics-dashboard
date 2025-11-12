@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { DashboardProvider } from '@/contexts/DashboardContext';
 import { FormProvider } from '@/contexts/FormContext';
@@ -37,6 +37,7 @@ import { FeedbackSubmissionInterface } from '@/components/dashboard/feedback/Fee
 import { FeedbackProvider } from '@/contexts/FeedbackContext';
 // New all-outcomes and all-outputs pages will be created as OutcomesDetails and OutputsDetails
 import { Toaster as ShadToaster } from '@/components/ui/toaster';
+import { createEnhancedPermissionManager } from '@/lib/permissions';
 
 function ProtectedRoute({ roles }: { roles?: string[] }) {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -93,6 +94,26 @@ function ProtectedRoute({ roles }: { roles?: string[] }) {
   }
   
   return <Outlet />;
+}
+
+function ProjectPermissionRoute({ check } : { check: (permissionManager: ReturnType<typeof createEnhancedPermissionManager>, projectId: string) => boolean }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { projectId } = useParams();
+  const location = useLocation();
+  const permissionManager = createEnhancedPermissionManager({ user, isAuthenticated, isLoading });
+
+  if (!projectId) return <Navigate to="/dashboard" replace />;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  const allowed = check(permissionManager, projectId);
+  return allowed ? <Outlet /> : <Navigate to={`/dashboard/projects/${projectId}`} replace />;
 }
 
 function App() {
@@ -167,18 +188,26 @@ function AppWithNotifications() {
                             <Route index element={<ProjectCreationWizard />} />
                           </Route>
                           <Route path="projects/:projectId" element={<ProjectOverview />} />
-                          <Route path="projects/:projectId/kpi" element={<KPIAnalytics />} />
+                          <Route path="projects/:projectId/kpi" element={<ProjectPermissionRoute check={(pm, pid) => pm.canAccessProjectComponent(pid, 'kpis', 'read')} />}>
+                            <Route index element={<KPIAnalytics />} />
+                          </Route>
                           <Route path="projects/:projectId/outcomes" element={<OutcomesDetails />} />
                           <Route path="projects/:projectId/outputs" element={<OutputsDetails />} />
                           <Route path="projects/:projectId/activities" element={<Activities />} />
                           <Route path="projects/:projectId/subactivities" element={<Subactivities />} />
-                          <Route path="projects/:projectId/reports" element={<Reports />} />
+                          <Route path="projects/:projectId/reports" element={<ProjectPermissionRoute check={(pm, pid) => pm.canAccessProjectComponent(pid, 'reports', 'read')} />}>
+                            <Route index element={<Reports />} />
+                          </Route>
                           <Route path="projects/:projectId/kobo-data" element={<KoboData />} />
                           <Route path="projects/:projectId/maps" element={<Maps />} />
-                          <Route path="projects/:projectId/financial" element={<Financial />} />
+                          <Route path="projects/:projectId/financial" element={<ProjectPermissionRoute check={(pm, pid) => pm.canAccessProjectComponent(pid, 'finance', 'read')} />}>
+                            <Route index element={<Financial />} />
+                          </Route>
                           <Route path="projects/:projectId/media" element={<Media />} />
                           {/* Project Forms - nested routing */}
-                          <Route path="projects/:projectId/forms/*" element={<FormRoutes />} />
+                          <Route path="projects/:projectId/forms/*" element={<ProjectPermissionRoute check={(pm, pid) => pm.canViewForms(pid)} />}>
+                            <Route path="*" element={<FormRoutes />} />
+                          </Route>
                           {/* Admin-only routes */}
                           <Route path="admin/users" element={<ProtectedRoute roles={['global-admin']} />}> 
                             <Route index element={<UserManagement />} />

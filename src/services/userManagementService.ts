@@ -81,6 +81,14 @@ export interface UpdateRoleRequest {
   permissions?: string[];
 }
 
+export interface CreateRoleRequest {
+  name: string;
+  description?: string;
+  level: number;
+  isActive?: boolean;
+  permissions?: string[];
+}
+
 export interface QueryUsersRequest {
   search?: string;
   isActive?: boolean;
@@ -162,6 +170,15 @@ class UserManagementService {
     return response.data;
   }
 
+  async createRole(roleData: CreateRoleRequest): Promise<Role> {
+    // Backend exposes role creation under user management controller at /users/roles
+    const response = await apiClient.post<Role>(`${this.baseUrl}/roles`, roleData);
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to create role');
+    }
+    return response.data;
+  }
+
   async updateRole(roleId: string, roleData: UpdateRoleRequest): Promise<Role> {
     const response = await apiClient.put<Role>(`${this.baseUrl}/roles/${roleId}`, roleData);
     if (!response.success || !response.data) {
@@ -237,11 +254,11 @@ class UserManagementService {
 
   // Utility methods
   async updateProjectAccessLevel(userId: string, projectId: string, accessLevel: 'read' | 'write' | 'admin'): Promise<void> {
-    // This would need to be implemented in the backend as a separate endpoint
-    // For now, we'll use the update user endpoint
-    await this.updateUser(userId, {
-      // This is a placeholder - the actual implementation would need a dedicated endpoint
-    });
+    // Leverage existing project user update endpoint to set access level
+    const response = await apiClient.put(`${this.baseUrl}/projects/${projectId}/${userId}`, { accessLevel });
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to update project access level');
+    }
   }
 
 }

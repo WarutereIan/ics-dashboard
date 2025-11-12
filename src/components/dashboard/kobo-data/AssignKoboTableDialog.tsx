@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Database, Loader2 } from 'lucide-react';
 import { KoboDataService, AvailableKoboTable } from '@/services/koboDataService';
+import { useAuth } from '@/contexts/AuthContext';
+import { createEnhancedPermissionManager } from '@/lib/permissions';
 import { useNotification } from '@/hooks/useNotification';
 
 interface AssignKoboTableDialogProps {
@@ -30,6 +32,11 @@ export function AssignKoboTableDialog({ open, onOpenChange, onAssign, projectId 
   const [availableTables, setAvailableTables] = useState<AvailableKoboTable[]>([]);
   const [loading, setLoading] = useState(false);
   const { showError } = useNotification();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const permissionManager = createEnhancedPermissionManager({ user, isAuthenticated, isLoading });
+  const canUpdate = projectId ? (permissionManager.hasProjectPermission('kobo', 'update', projectId) ||
+    permissionManager.hasResourcePermission('kobo', 'update', 'regional') ||
+    permissionManager.hasResourcePermission('kobo', 'update', 'global')) : false;
 
   // Fetch available tables when dialog opens
   useEffect(() => {
@@ -106,7 +113,7 @@ export function AssignKoboTableDialog({ open, onOpenChange, onAssign, projectId 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="tableSelect">Select Kobo Table *</Label>
-            <Select value={selectedTable?.id.toString() || ''} onValueChange={handleTableSelect} disabled={loading}>
+            <Select value={selectedTable?.id.toString() || ''} onValueChange={handleTableSelect} disabled={loading || !canUpdate}>
               <SelectTrigger className="min-h-[2.5rem]">
                 <SelectValue placeholder={loading ? "Loading tables..." : "Choose a Kobo table"} />
               </SelectTrigger>
@@ -157,6 +164,7 @@ export function AssignKoboTableDialog({ open, onOpenChange, onAssign, projectId 
               placeholder="e.g., Community Survey 2024"
               className="min-h-[2.5rem]"
               required
+              disabled={!canUpdate}
             />
             <p className="text-xs text-gray-500 mt-1">
               A user-friendly name for this table (you can edit the auto-filled name)
@@ -177,6 +185,7 @@ export function AssignKoboTableDialog({ open, onOpenChange, onAssign, projectId 
               placeholder="Optional description of this table's purpose..."
               rows={3}
               className="resize-none"
+              disabled={!canUpdate}
             />
             <p className="text-xs text-gray-500 mt-1">
               Optional: Describe what this table contains or its purpose
@@ -188,6 +197,7 @@ export function AssignKoboTableDialog({ open, onOpenChange, onAssign, projectId 
               id="isActive"
               checked={isActive}
               onCheckedChange={setIsActive}
+              disabled={!canUpdate}
             />
             <Label htmlFor="isActive">Active</Label>
             <p className="text-xs text-gray-500">
@@ -199,6 +209,7 @@ export function AssignKoboTableDialog({ open, onOpenChange, onAssign, projectId 
             <Button type="button" variant="outline" onClick={handleCancel} disabled={loading}>
               Cancel
             </Button>
+            {canUpdate && (
             <Button type="submit" disabled={!selectedTable || !displayName.trim() || loading}>
               {loading ? (
                 <>
@@ -209,6 +220,7 @@ export function AssignKoboTableDialog({ open, onOpenChange, onAssign, projectId 
                 'Assign Table'
               )}
             </Button>
+            )}
           </div>
         </form>
       </DialogContent>

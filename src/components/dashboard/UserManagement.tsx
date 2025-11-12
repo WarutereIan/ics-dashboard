@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/table';
 import { userManagementService, User, Role, QueryUsersRequest } from '@/services/userManagementService';
 import { CreateUserDialog } from './user-management/CreateUserDialog';
+import { CreateRoleDialog } from './user-management/CreateRoleDialog';
 import { EditUserDialog } from './user-management/EditUserDialog';
 import { UserDetailsDialog } from './user-management/UserDetailsDialog';
 import { RoleManagement } from './user-management/RoleManagement';
@@ -48,6 +49,7 @@ export function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -60,6 +62,7 @@ export function UserManagement() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [createRoleOpen, setCreateRoleOpen] = useState(false);
 
   if (!user) return null;
 
@@ -164,13 +167,20 @@ export function UserManagement() {
             Manage users, roles, and permissions across the organization
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)} className="flex items-center gap-2">
-          <UserPlus className="h-4 w-4" />
-          Add User
-        </Button>
+        {activeTab === 'users' ? (
+          <Button onClick={() => setCreateDialogOpen(true)} className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            Add User
+          </Button>
+        ) : (
+          <Button onClick={() => setCreateRoleOpen(true)} className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Add Role
+          </Button>
+        )}
       </div>
 
-      <Tabs defaultValue="users" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-4">
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
@@ -416,6 +426,12 @@ export function UserManagement() {
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
         user={selectedUser}
+      />
+
+      <CreateRoleDialog
+        open={createRoleOpen}
+        onOpenChange={setCreateRoleOpen}
+        onCreated={loadRoles}
       />
     </div>
   );

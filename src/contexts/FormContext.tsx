@@ -401,6 +401,7 @@ export function FormProvider({ children }: FormProviderProps) {
     );
 
     const results = await formsApi.syncOfflineData(migratedQueue);
+    const syncedCount = migratedQueue.length;
     
     if (results.success) {
       setOfflineQueue([]);
@@ -413,8 +414,9 @@ export function FormProvider({ children }: FormProviderProps) {
         syncProgress: 100
       }));
       toast({
-        title: "Sync Complete",
-        description: "All offline data has been synced successfully",
+        title: "✅ Sync Complete!",
+        description: `Successfully synced ${syncedCount} ${syncedCount === 1 ? 'item' : 'items'} to the server. All pending data has been uploaded.`,
+        duration: 5000,
       });
     } else {
       setOfflineQueue(results.failedItems);

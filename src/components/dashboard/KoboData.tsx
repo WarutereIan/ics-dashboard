@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Database, Plus, Settings, Eye, BarChart3, Calendar, Filter } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { createEnhancedPermissionManager } from '@/lib/permissions';
 import { useNotification } from '@/hooks/useNotification';
 import { KoboDataService, TableStats } from '@/services/koboDataService';
 import { KoboTableViewer } from './kobo-data/KoboTableViewer';
@@ -38,6 +40,14 @@ interface KoboKpiMapping {
 
 export function KoboData() {
   const { projectId } = useParams<{ projectId: string }>();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const permissionManager = createEnhancedPermissionManager({ user, isAuthenticated, isLoading });
+  const canRead = projectId ? (permissionManager.canAccessProjectComponent(projectId, 'kobo', 'read')) : false;
+  const canUpdate = projectId ? (
+    permissionManager.hasProjectPermission('kobo', 'update', projectId) ||
+    permissionManager.hasResourcePermission('kobo', 'update', 'regional') ||
+    permissionManager.hasResourcePermission('kobo', 'update', 'global')
+  ) : false;
   const { showSuccess, showError } = useNotification();
   const [koboTables, setKoboTables] = useState<ProjectKoboTable[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,10 +148,12 @@ export function KoboData() {
             View and manage archived Kobo form data for this project
           </p>
         </div>
-        <Button onClick={() => setShowAssignDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Assign Table
-        </Button>
+        {canUpdate && (
+          <Button onClick={() => setShowAssignDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Assign Table
+          </Button>
+        )}
       </div>
 
       {koboTables.length === 0 ? (
@@ -152,17 +164,21 @@ export function KoboData() {
             <p className="text-gray-500 text-center mb-4">
               No Kobo form tables have been assigned to this project yet.
             </p>
-            <Button onClick={() => setShowAssignDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Assign Your First Table
-            </Button>
+            {canUpdate && (
+              <Button onClick={() => setShowAssignDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Assign Your First Table
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
         <Tabs defaultValue="tables" className="space-y-4">
           <TabsList>
             <TabsTrigger value="tables">Tables</TabsTrigger>
-            <TabsTrigger value="kpi-mappings">KPI Mappings</TabsTrigger>
+            {canUpdate && (
+              <TabsTrigger value="kpi-mappings">KPI Mappings</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="tables" className="space-y-4">
@@ -216,6 +232,7 @@ export function KoboData() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        {canUpdate && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -226,6 +243,7 @@ export function KoboData() {
                         >
                           Delete
                         </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -256,18 +274,22 @@ export function KoboData() {
             )}
           </TabsContent>
 
-          <TabsContent value="kpi-mappings" className="space-y-4">
-            <KoboKpiMapping projectId={projectId!} />
-          </TabsContent>
+          {canUpdate && (
+            <TabsContent value="kpi-mappings" className="space-y-4">
+              <KoboKpiMapping projectId={projectId!} />
+            </TabsContent>
+          )}
         </Tabs>
       )}
 
+      {canUpdate && (
       <AssignKoboTableDialog
         open={showAssignDialog}
         onOpenChange={setShowAssignDialog}
         onAssign={handleAssignTable}
         projectId={projectId!}
       />
+      )}
     </div>
   );
 }

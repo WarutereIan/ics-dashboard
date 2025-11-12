@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Settings, Key } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Role, Permission, userManagementService } from '@/services/userManagementService';
+import { permissionsService } from '@/services/permissionsService';
 import { useNotifications } from '@/contexts/NotificationContext';
 
 interface EditRoleDialogProps {
@@ -44,6 +45,7 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
     isActive: true,
   });
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [initialPermissions, setInitialPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingPermissions, setLoadingPermissions] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -70,14 +72,16 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
   const loadRolePermissions = async (roleId: string) => {
     setLoadingPermissions(true);
     try {
-      // Try to fetch real role permissions from API
-      const rolePermissions = await userManagementService.getRolePermissions(roleId);
+      // Try to fetch real role permissions from API (permissions service)
+      const rolePermissions = await permissionsService.getRolePermissions(roleId);
       setSelectedPermissions(rolePermissions);
+      setInitialPermissions(rolePermissions);
     } catch (error) {
       console.error('Failed to load role permissions from API, using mock data:', error);
       // Fallback to mock data if API fails
       const mockRolePermissions = getMockRolePermissions(roleId);
       setSelectedPermissions(mockRolePermissions);
+      setInitialPermissions(mockRolePermissions);
     } finally {
       setLoadingPermissions(false);
     }
@@ -124,21 +128,84 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
     if (!role || !validateForm()) return;
 
     setLoading(true);
+    let roleUpdateSuccess = false;
+    let permissionsUpdateSuccess = false;
+    
     try {
-      const updateData = {
-        ...formData,
-        permissions: selectedPermissions,
+      // Prepare update data (exclude permissions as they're handled separately)
+      const updateData: any = {
+        name: formData.name,
+        description: formData.description,
+        level: formData.level,
+        isActive: formData.isActive,
       };
 
+      // Update role basic information first
+      console.log('🔄 Updating role basic information:', { roleId: role.id, updateData });
       await onSubmit(role.id, updateData);
-      
-      addNotification({
-        type: 'success',
-        title: 'Role Updated',
-        message: `Role "${formData.name}" has been updated successfully.`,
-        duration: 3000
+      roleUpdateSuccess = true;
+      console.log('✅ Role basic information updated successfully');
+
+      // Calculate permission changes
+      const toAdd = selectedPermissions.filter(id => !initialPermissions.includes(id));
+      const toRemove = initialPermissions.filter(id => !selectedPermissions.includes(id));
+
+      console.log('🔄 Permission changes detected:', {
+        toAdd: toAdd.length,
+        toRemove: toRemove.length,
+        totalSelected: selectedPermissions.length,
+        totalInitial: initialPermissions.length
       });
+
+      // Update permissions if there are any changes
+      if (toAdd.length > 0 || toRemove.length > 0) {
+        try {
+          if (toAdd.length > 0) {
+            console.log('➕ Adding permissions:', toAdd);
+            await permissionsService.assignRolePermissions(role.id, toAdd);
+          }
+          if (toRemove.length > 0) {
+            console.log('➖ Removing permissions:', toRemove);
+            await permissionsService.removeRolePermissions(role.id, toRemove);
+          }
+          setInitialPermissions(selectedPermissions);
+          permissionsUpdateSuccess = true;
+          console.log('✅ Permissions updated successfully');
+        } catch (permErr: any) {
+          console.error('❌ Permissions update error:', permErr);
+          permissionsUpdateSuccess = false;
+          addNotification({
+            type: 'error',
+            title: 'Permissions Update Failed',
+            message: permErr?.message || 'Failed to update role permissions. Role information was updated successfully.',
+            duration: 5000,
+          });
+          // Don't throw - role was updated successfully, just permissions failed
+        }
+      } else {
+        // No permission changes, mark as success
+        permissionsUpdateSuccess = true;
+        console.log('ℹ️ No permission changes detected, skipping permissions update');
+      }
+      
+      // Success notification (parent will close dialog and refresh roles list)
+      if (roleUpdateSuccess && permissionsUpdateSuccess) {
+        addNotification({
+          type: 'success',
+          title: 'Role Updated',
+          message: `Role "${formData.name}" and its permissions have been updated successfully.`,
+          duration: 3000
+        });
+      } else if (roleUpdateSuccess) {
+        addNotification({
+          type: 'success',
+          title: 'Role Updated (Partial)',
+          message: `Role "${formData.name}" was updated, but there was an issue updating permissions.`,
+          duration: 5000
+        });
+      }
     } catch (error: any) {
+      console.error('❌ Role update error:', error);
       addNotification({
         type: 'error',
         title: 'Update Failed',
