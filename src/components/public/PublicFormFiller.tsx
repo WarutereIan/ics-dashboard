@@ -742,8 +742,14 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       const submissionResults = await Promise.all(submissionPromises);
       const submitted = submissionResults.every(result => result);
       
-      // Clear draft data
-      clearFormPreviewData(form.id);
+      // Only clear locally stored data if submission was successful on the server
+      if (submitted) {
+        clearFormPreviewData(form.id);
+        // Clear form responses state
+        setResponses({});
+        setConditionalResponses({});
+        setSectionInstanceCounts({});
+      }
       
       setIsComplete(true);
       
@@ -895,6 +901,8 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                 onClick={() => {
                   // Reset form state for new response
                   setResponses({});
+                  setConditionalResponses({});
+                  setSectionInstanceCounts({});
                   setCurrentSectionIndex(0);
                   setIsComplete(false);
                   setShowProgress(true);
