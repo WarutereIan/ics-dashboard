@@ -137,8 +137,11 @@ export class APIClient {
     });
   }
 
-  async delete<T>(endpoint: string): Promise<APIResponse<T>> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  async delete<T>(endpoint: string, data?: any): Promise<APIResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+      body: data ? JSON.stringify(data) : undefined,
+    });
   }
 
   // Helper method for file uploads

@@ -35,7 +35,8 @@ class PermissionsService {
   }
 
   async removeRolePermissions(roleId: string, permissionIds: string[]): Promise<void> {
-    const response = await apiClient.delete(`${this.baseUrl}/roles/${roleId}/remove`, { body: { permissionIds } });
+    const response = await apiClient.delete(`${this.baseUrl}/roles/${roleId}/remove`, { permissionIds });
+    
     if (!response.success) {
       throw new Error(response.error || 'Failed to remove role permissions');
     }
