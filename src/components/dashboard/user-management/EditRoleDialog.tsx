@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Settings, Key } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Role, Permission, userManagementService } from '@/services/userManagementService';
+import { permissionsService } from '@/services/permissionsService';
 import { useNotifications } from '@/contexts/NotificationContext';
 
 interface EditRoleDialogProps {
@@ -44,6 +45,7 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
     isActive: true,
   });
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [initialPermissions, setInitialPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingPermissions, setLoadingPermissions] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -70,14 +72,16 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
   const loadRolePermissions = async (roleId: string) => {
     setLoadingPermissions(true);
     try {
-      // Try to fetch real role permissions from API
-      const rolePermissions = await userManagementService.getRolePermissions(roleId);
+      // Try to fetch real role permissions from API (permissions service)
+      const rolePermissions = await permissionsService.getRolePermissions(roleId);
       setSelectedPermissions(rolePermissions);
+      setInitialPermissions(rolePermissions);
     } catch (error) {
       console.error('Failed to load role permissions from API, using mock data:', error);
       // Fallback to mock data if API fails
       const mockRolePermissions = getMockRolePermissions(roleId);
       setSelectedPermissions(mockRolePermissions);
+      setInitialPermissions(mockRolePermissions);
     } finally {
       setLoadingPermissions(false);
     }
@@ -131,6 +135,27 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
       };
 
       await onSubmit(role.id, updateData);
+
+      // Diff permissions and sync via permissions API
+      try {
+        const toAdd = selectedPermissions.filter(id => !initialPermissions.includes(id));
+        const toRemove = initialPermissions.filter(id => !selectedPermissions.includes(id));
+
+        if (toAdd.length > 0) {
+          await permissionsService.assignRolePermissions(role.id, toAdd);
+        }
+        if (toRemove.length > 0) {
+          await permissionsService.removeRolePermissions(role.id, toRemove);
+        }
+        setInitialPermissions(selectedPermissions);
+      } catch (permErr: any) {
+        addNotification({
+          type: 'error',
+          title: 'Permissions Update Failed',
+          message: permErr?.message || 'Failed to update role permissions.',
+          duration: 5000,
+        });
+      }
       
       addNotification({
         type: 'success',

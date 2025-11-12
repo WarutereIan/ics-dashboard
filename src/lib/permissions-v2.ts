@@ -235,15 +235,8 @@ export class EnhancedPermissionManager {
       return true;
     }
 
-    // Check if any of user's roles have this permission
-    for (const role of user.roles) {
-      if (!role.isActive) continue;
-      
-      const rolePermissions = ROLE_PERMISSIONS[role.roleName as keyof typeof ROLE_PERMISSIONS];
-      if (rolePermissions && rolePermissions.includes(permission)) {
-        return true;
-      }
-    }
+    // Do NOT infer permissions from static role presets for custom roles.
+    // Rely on server-provided permissions only (or global-admin short-circuit above).
 
     return false;
   }
@@ -259,6 +252,36 @@ export class EnhancedPermissionManager {
     // Then check with scope suffix if provided
     const scoped = scope !== 'global' ? this.hasPermission(`${resource}:${action}-${scope}`) : false;
     return scoped;
+  }
+
+  /**
+   * Project-scoped permission check: does the user have the given project-scoped permission for this project?
+   * This ties the permission to a specific role assignment that includes the target projectId.
+   */
+  hasProjectPermission(resource: string, action: string, projectId: string): boolean {
+    const { user } = this.context;
+    if (!user || !Array.isArray(user.roles)) return false;
+
+    // Global admin: allow
+    if (this.isGlobalAdmin()) return true;
+
+    // If user has regional/global permission, allow regardless of project
+    if (this.hasResourcePermission(resource, action, 'regional')) return true;
+    if (this.hasResourcePermission(resource, action, 'global')) return true;
+
+    // For project-scoped permission, user must BOTH:
+    // 1) Have the project-scoped permission in their aggregated permissions
+    // 2) Have an active role assignment for the target projectId
+    const permissionKey = `${resource}:${action}-project`;
+    const directPermissions = (user as any).permissions as string[] | undefined;
+    const hasProjectScopedPermission = Array.isArray(directPermissions) && directPermissions.includes(permissionKey);
+    const hasProjectRole = user.roles.some(r => r.isActive && r.projectId === projectId);
+
+    if (hasProjectScopedPermission && hasProjectRole) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -295,11 +318,45 @@ export class EnhancedPermissionManager {
       return false;
     }
 
+    // Check for explicit project-scoped permissions first (direct or from any role)
+    const hasProjectRead = this.hasResourcePermission('projects', 'read', 'project');
+    const hasProjectWrite = this.hasResourcePermission('projects', 'update', 'project');
+    const hasProjectRole = user.roles.some(r => r.isActive && r.projectId === projectId);
+    if (accessLevel === 'read' && hasProjectRead && hasProjectRole) {
+      console.log(`🔐 Project ${projectId} access via project-scoped permission: GRANTED (projects:read-project)`);
+      return true;
+    }
+    if ((accessLevel === 'write' || accessLevel === 'admin') && hasProjectWrite && hasProjectRole) {
+      console.log(`🔐 Project ${projectId} access via project-scoped permission: GRANTED (projects:update-project)`);
+      return true;
+    }
+
     // Check for project-specific roles
     const projectRole = user.roles.find(role => role.projectId === projectId && role.isActive);
     if (projectRole) {
       const hasAccess = this.checkRoleAccess(projectRole, accessLevel);
-      console.log(`🔐 Project ${projectId} role-based access: ${hasAccess ? 'GRANTED' : 'DENIED'} (role: ${projectRole.roleName}, level: ${projectRole.level})`);
+      console.log(
+        `🔐 Project ${projectId} role-based access: ${hasAccess ? 'GRANTED' : 'DENIED'} (role: ${projectRole.roleName}, level: ${projectRole.level})`,
+        {
+          requiredAccess: accessLevel,
+          projectId,
+          role: {
+            id: (projectRole as any).id,
+            roleName: projectRole.roleName,
+            level: projectRole.level,
+            projectId: projectRole.projectId,
+            isActive: projectRole.isActive,
+          },
+          allUserRoles: user.roles.map(r => ({
+            id: (r as any).id,
+            roleName: r.roleName,
+            level: r.level,
+            projectId: r.projectId,
+            isActive: r.isActive,
+          })),
+          directPermissions: (user as any).permissions,
+        }
+      );
       return hasAccess;
     }
 
@@ -308,11 +365,34 @@ export class EnhancedPermissionManager {
     const hasRegionalAccess = this.hasResourcePermission('projects', 'read', 'regional');
     
     if (hasGlobalAccess || hasRegionalAccess) {
-      console.log(`🔐 Global/Regional access granted for project ${projectId}`);
+      console.log(
+        `🔐 Global/Regional access granted for project ${projectId}`,
+        {
+          projectId,
+          hasGlobalAccess,
+          hasRegionalAccess,
+          directPermissions: (user as any).permissions,
+        }
+      );
       return true;
     }
 
-    console.log(`🔐 No access found for project ${projectId} - user has no applicable roles`);
+    console.warn(
+      `🔐 No access found for project ${projectId} - user has no applicable roles`,
+      {
+        projectId,
+        requiredAccess: accessLevel,
+        reason: 'no-project-role-and-no-global/regional-access',
+        allUserRoles: user.roles.map(r => ({
+          id: (r as any).id,
+          roleName: r.roleName,
+          level: r.level,
+          projectId: r.projectId,
+          isActive: r.isActive,
+        })),
+        directPermissions: (user as any).permissions,
+      }
+    );
     return false;
   }
 
@@ -349,14 +429,14 @@ export class EnhancedPermissionManager {
   /**
    * Check if user can access a specific project component
    */
-  canAccessProjectComponent(projectId: string, component: 'kpis' | 'reports' | 'finance' | 'kobo' | 'analytics', action: 'read' | 'write' = 'read'): boolean {
+  canAccessProjectComponent(projectId: string, component: 'kpis' | 'reports' | 'finance' | 'kobo' | 'analytics' | 'forms', action: 'read' | 'write' = 'read'): boolean {
     // First check if user can access the project at all
     if (!this.canAccessProject(projectId, 'read')) {
       return false;
     }
 
-    // Check for component-specific permissions
-    const hasProjectPermission = this.hasResourcePermission(component, action, 'project');
+    // Check for component-specific permissions tied to this project
+    const hasProjectPermission = this.hasProjectPermission(component, action, projectId);
     const hasRegionalPermission = this.hasResourcePermission(component, action, 'regional');
     const hasGlobalPermission = this.hasResourcePermission(component, action, 'global');
 
@@ -418,6 +498,33 @@ export class EnhancedPermissionManager {
    */
   canManageProjectData(projectId: string): boolean {
     return this.canAccessProject(projectId, 'write');
+  }
+
+  /**
+   * Forms-specific helpers
+   */
+  canViewForms(projectId: string): boolean {
+    return this.canAccessProjectComponent(projectId, 'forms', 'read');
+  }
+
+  canEditForms(projectId: string): boolean {
+    return this.hasProjectPermission('forms', 'update', projectId) || this.hasResourcePermission('forms', 'update', 'regional') || this.hasResourcePermission('forms', 'update', 'global');
+  }
+
+  canViewFormResponses(projectId: string): boolean {
+    return this.hasProjectPermission('forms', 'responses-read', projectId) || this.hasResourcePermission('forms', 'responses-read', 'regional') || this.hasResourcePermission('forms', 'responses-read', 'global');
+  }
+
+  canEditFormResponses(projectId: string): boolean {
+    return this.hasProjectPermission('forms', 'responses-update', projectId) || this.hasResourcePermission('forms', 'responses-update', 'regional') || this.hasResourcePermission('forms', 'responses-update', 'global');
+  }
+
+  canDeleteFormResponses(projectId: string): boolean {
+    return this.hasProjectPermission('forms', 'responses-delete', projectId) || this.hasResourcePermission('forms', 'responses-delete', 'regional') || this.hasResourcePermission('forms', 'responses-delete', 'global');
+  }
+
+  canExportFormResponses(projectId: string): boolean {
+    return this.hasProjectPermission('forms', 'responses-export', projectId) || this.hasResourcePermission('forms', 'responses-export', 'regional') || this.hasResourcePermission('forms', 'responses-export', 'global');
   }
 }
 

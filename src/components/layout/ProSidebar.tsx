@@ -265,8 +265,8 @@ export function ProSidebar() {
                           </MenuItem>
                         )}
                         
-                        {/* Forms - Check for project read permissions */}
-                        {permissionManager.canAccessProject(project.id, 'read') && (
+                        {/* Forms - Check for forms permissions */}
+                        {permissionManager.canViewForms(project.id) && (
                           <MenuItem 
                             component={<Link to={`/dashboard/projects/${project.id}/forms`} onClick={handleCloseSidebar} />}
                             className="text-sm"

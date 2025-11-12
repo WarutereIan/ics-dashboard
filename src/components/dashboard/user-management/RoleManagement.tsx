@@ -48,6 +48,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Role, Permission, userManagementService } from '@/services/userManagementService';
+import { permissionsService } from '@/services/permissionsService';
 import { EditRoleDialog } from './EditRoleDialog';
 import { useNotifications } from '@/contexts/NotificationContext';
 
@@ -74,65 +75,8 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
 
   const loadPermissions = async () => {
     try {
-      // This would be an API call to get all permissions
-      // For now, we'll use mock data based on the seeded permissions
-      const mockPermissions: Permission[] = [
-        // User Management
-        { id: '1', name: 'users:create', description: 'Create users', resource: 'users', action: 'create', scope: 'global', isActive: true },
-        { id: '2', name: 'users:read', description: 'Read users', resource: 'users', action: 'read', scope: 'global', isActive: true },
-        { id: '3', name: 'users:update', description: 'Update users', resource: 'users', action: 'update', scope: 'global', isActive: true },
-        { id: '4', name: 'users:delete', description: 'Delete users', resource: 'users', action: 'delete', scope: 'global', isActive: true },
-        { id: '5', name: 'users:read-own', description: 'Read own user data', resource: 'users', action: 'read', scope: 'own', isActive: true },
-        { id: '6', name: 'users:update-own', description: 'Update own user data', resource: 'users', action: 'update', scope: 'own', isActive: true },
-        { id: '7', name: 'users:create-project', description: 'Create users within project scope', resource: 'users', action: 'create', scope: 'project', isActive: true },
-        { id: '8', name: 'users:read-project', description: 'Read users within project scope', resource: 'users', action: 'read', scope: 'project', isActive: true },
-        { id: '9', name: 'users:update-project', description: 'Update users within project scope', resource: 'users', action: 'update', scope: 'project', isActive: true },
-        { id: '10', name: 'users:delete-project', description: 'Delete users within project scope', resource: 'users', action: 'delete', scope: 'project', isActive: true },
-
-        // Project Management
-        { id: '11', name: 'projects:create', description: 'Create projects', resource: 'projects', action: 'create', scope: 'global', isActive: true },
-        { id: '12', name: 'projects:read', description: 'Read projects', resource: 'projects', action: 'read', scope: 'global', isActive: true },
-        { id: '13', name: 'projects:update', description: 'Update projects', resource: 'projects', action: 'update', scope: 'global', isActive: true },
-        { id: '14', name: 'projects:delete', description: 'Delete projects', resource: 'projects', action: 'delete', scope: 'global', isActive: true },
-        { id: '15', name: 'projects:read-regional', description: 'Read regional projects', resource: 'projects', action: 'read', scope: 'regional', isActive: true },
-        { id: '16', name: 'projects:update-regional', description: 'Update regional projects', resource: 'projects', action: 'update', scope: 'regional', isActive: true },
-        { id: '17', name: 'projects:read-project', description: 'Read project data', resource: 'projects', action: 'read', scope: 'project', isActive: true },
-        { id: '18', name: 'projects:update-project', description: 'Update project data', resource: 'projects', action: 'update', scope: 'project', isActive: true },
-
-        // Finance Management
-        { id: '19', name: 'finance:read', description: 'Read finance data', resource: 'finance', action: 'read', scope: 'global', isActive: true },
-        { id: '20', name: 'finance:update', description: 'Update finance data', resource: 'finance', action: 'update', scope: 'global', isActive: true },
-        { id: '21', name: 'finance:read-regional', description: 'Read regional finance data', resource: 'finance', action: 'read', scope: 'regional', isActive: true },
-        { id: '22', name: 'finance:update-regional', description: 'Update regional finance data', resource: 'finance', action: 'update', scope: 'regional', isActive: true },
-        { id: '23', name: 'finance:read-project', description: 'Read project finance data', resource: 'finance', action: 'read', scope: 'project', isActive: true },
-        { id: '24', name: 'finance:update-project', description: 'Update project finance data', resource: 'finance', action: 'update', scope: 'project', isActive: true },
-
-        // KPI Management
-        { id: '25', name: 'kpis:read', description: 'Read KPIs', resource: 'kpis', action: 'read', scope: 'global', isActive: true },
-        { id: '26', name: 'kpis:update', description: 'Update KPIs', resource: 'kpis', action: 'update', scope: 'global', isActive: true },
-        { id: '27', name: 'kpis:read-regional', description: 'Read regional KPIs', resource: 'kpis', action: 'read', scope: 'regional', isActive: true },
-        { id: '28', name: 'kpis:update-regional', description: 'Update regional KPIs', resource: 'kpis', action: 'update', scope: 'regional', isActive: true },
-        { id: '29', name: 'kpis:read-project', description: 'Read project KPIs', resource: 'kpis', action: 'read', scope: 'project', isActive: true },
-        { id: '30', name: 'kpis:update-project', description: 'Update project KPIs', resource: 'kpis', action: 'update', scope: 'project', isActive: true },
-
-        // Reports Management
-        { id: '31', name: 'reports:create', description: 'Create reports', resource: 'reports', action: 'create', scope: 'global', isActive: true },
-        { id: '32', name: 'reports:read', description: 'Read reports', resource: 'reports', action: 'read', scope: 'global', isActive: true },
-        { id: '33', name: 'reports:update', description: 'Update reports', resource: 'reports', action: 'update', scope: 'global', isActive: true },
-        { id: '34', name: 'reports:delete', description: 'Delete reports', resource: 'reports', action: 'delete', scope: 'global', isActive: true },
-        { id: '35', name: 'reports:read-regional', description: 'Read regional reports', resource: 'reports', action: 'read', scope: 'regional', isActive: true },
-        { id: '36', name: 'reports:create-regional', description: 'Create regional reports', resource: 'reports', action: 'create', scope: 'regional', isActive: true },
-        { id: '37', name: 'reports:read-project', description: 'Read project reports', resource: 'reports', action: 'read', scope: 'project', isActive: true },
-        { id: '38', name: 'reports:create-project', description: 'Create project reports', resource: 'reports', action: 'create', scope: 'project', isActive: true },
-        { id: '39', name: 'reports:update-project', description: 'Update project reports', resource: 'reports', action: 'update', scope: 'project', isActive: true },
-        { id: '40', name: 'reports:delete-project', description: 'Delete project reports', resource: 'reports', action: 'delete', scope: 'project', isActive: true },
-
-        // Analytics
-        { id: '41', name: 'analytics:read', description: 'Read analytics', resource: 'analytics', action: 'read', scope: 'global', isActive: true },
-        { id: '42', name: 'analytics:read-regional', description: 'Read regional analytics', resource: 'analytics', action: 'read', scope: 'regional', isActive: true },
-        { id: '43', name: 'analytics:read-project', description: 'Read project analytics', resource: 'analytics', action: 'read', scope: 'project', isActive: true },
-      ];
-      setPermissions(mockPermissions);
+      const all = await permissionsService.getAllPermissions();
+      setPermissions(all);
     } catch (error) {
       console.error('Failed to load permissions:', error);
     }
@@ -315,10 +259,10 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
-                       {/*  <DropdownMenuItem onClick={() => handleEditRole(role)}>
+                        <DropdownMenuItem onClick={() => handleEditRole(role)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Role
-                        </DropdownMenuItem> */}
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {/* <DropdownMenuItem 
                           onClick={() => handleDeleteRole(role)}
@@ -431,13 +375,13 @@ export function RoleManagement({ roles, onRolesChange }: RoleManagementProps) {
       </Dialog>
 
       {/* Edit Role Dialog */}
-      {/* <EditRoleDialog
+      <EditRoleDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         role={selectedRole}
         permissions={permissions}
         onSubmit={handleUpdateRole}
-      /> */}
+      />
     </div>
   );
 }

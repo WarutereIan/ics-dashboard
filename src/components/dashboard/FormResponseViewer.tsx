@@ -35,6 +35,8 @@ import { Form, FormResponse, FormQuestion, MediaAttachment } from './form-creati
 import { useForm } from '@/contexts/FormContext';
 import { formsApi } from '@/lib/api/formsApi';
 import { ResponseEditModal } from './ResponseEditModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { createEnhancedPermissionManager } from '@/lib/permissions';
 
 // Helper function to transform backend question format to frontend format
 const transformQuestionData = (question: any) => {
@@ -511,6 +513,10 @@ export function FormResponseViewer() {
   const { formId, projectId } = useParams();
   const navigate = useNavigate();
   const { getFormResponses, deleteFormResponse, getProjectForms, loadProjectForms, addFormResponseToStorage } = useForm();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const permissionManager = createEnhancedPermissionManager({ user, isAuthenticated, isLoading: authLoading });
+  const canEdit = projectId ? permissionManager.canEditFormResponses(projectId) : false;
+  const canDelete = projectId ? permissionManager.canDeleteFormResponses(projectId) : false;
   
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -1352,30 +1358,36 @@ export function FormResponseViewer() {
                               </div>
                           </TableCell>
                             <TableCell className="sticky right-0 bg-white z-10 border border-gray-300 px-2 py-2">
-                              {row.isExisting ? (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-6 w-6 p-0">
-                                      <MoreVertical className="h-3 w-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem 
-                                  onClick={() => handleEditResponse(row)}
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit Response
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                      onClick={() => handleDeleteResponse(row.responseId!)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                              ) : (
+                            {row.isExisting ? (
+                              (canEdit || canDelete) ? (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-6 w-6 p-0">
+                                          <MoreVertical className="h-3 w-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {canEdit && (
+                                      <DropdownMenuItem 
+                                        onClick={() => handleEditResponse(row)}
+                                      >
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Edit Response
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canDelete && (
+                                      <DropdownMenuItem 
+                                            onClick={() => handleDeleteResponse(row.responseId!)}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              ) : null
+                            ) : (
                                 <Button
                                   size="sm"
                                   onClick={() => handleSaveManualData(row.rowIndex)}
