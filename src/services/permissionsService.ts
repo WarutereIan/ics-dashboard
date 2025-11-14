@@ -19,8 +19,9 @@ class PermissionsService {
     return response.data;
   }
 
-  async getRolePermissions(roleId: string): Promise<string[]> {
-    const response = await apiClient.get<string[]>(`${this.baseUrl}/roles/${roleId}`);
+  async getRolePermissions(roleId: string): Promise<Permission[]> {
+    // NOTE: API returns full permission objects, not just IDs
+    const response = await apiClient.get<Permission[]>(`${this.baseUrl}/roles/${roleId}`);
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to fetch role permissions');
     }

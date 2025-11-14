@@ -51,9 +51,10 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('basic');
 
-  // Initialize form data when role changes
+  // Initialize form data when role changes or dialog opens
   useEffect(() => {
-    if (role) {
+    if (role && open) {
+      console.log('🔄 EditRoleDialog: Initializing form data for role:', role.id, role.name);
       setFormData({
         name: role.name,
         description: role.description || '',
@@ -61,27 +62,104 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
         isActive: role.isActive,
       });
       
+      // Reset permissions state first
+      setSelectedPermissions([]);
+      setInitialPermissions([]);
+      
       // Load role's current permissions
       loadRolePermissions(role.id);
       
       setErrors({});
       setActiveTab('basic');
+    } else if (!open) {
+      // Reset state when dialog closes
+      setSelectedPermissions([]);
+      setInitialPermissions([]);
+      setErrors({});
     }
-  }, [role]);
+  }, [role, open]);
+
+  // Debug: Log when selectedPermissions changes
+  useEffect(() => {
+    if (selectedPermissions.length > 0 && permissions.length > 0) {
+      console.log('🔍 EditRoleDialog: selectedPermissions state:', {
+        count: selectedPermissions.length,
+        firstFew: selectedPermissions.slice(0, 5),
+        availablePermissionIds: permissions.slice(0, 5).map(p => String(p.id)),
+        matches: selectedPermissions.slice(0, 5).map(id => 
+          permissions.some(p => String(p.id) === String(id))
+        )
+      });
+    }
+  }, [selectedPermissions, permissions]);
 
   const loadRolePermissions = async (roleId: string) => {
     setLoadingPermissions(true);
     try {
-      // Try to fetch real role permissions from API (permissions service)
+      console.log('🔄 EditRoleDialog: Loading permissions for role:', roleId);
+      // Fetch real role permissions from API
+      // NOTE: API returns permission objects, not just IDs
       const rolePermissions = await permissionsService.getRolePermissions(roleId);
-      setSelectedPermissions(rolePermissions);
-      setInitialPermissions(rolePermissions);
+      
+      // Ensure we have a valid array
+      const validPermissions = Array.isArray(rolePermissions) ? rolePermissions : [];
+      
+      // Extract permission IDs from objects (API returns full permission objects)
+      // Handle both cases: array of objects or array of strings
+      const permissionIds = validPermissions.map((p: any) => {
+        // If it's already a string, return it
+        if (typeof p === 'string') return p;
+        // If it's an object, extract the id property
+        if (typeof p === 'object' && p !== null) {
+          return p.id || p.permissionId || p;
+        }
+        return String(p);
+      });
+      
+      // Convert all IDs to strings for consistent comparison
+      const normalizedPermissionIds = permissionIds.map(id => String(id));
+      
+      // Get all available permission IDs from the permissions prop for comparison
+      const availablePermissionIds = permissions.map(p => String(p.id));
+      
+      // Find matching permissions
+      const matchingIds = normalizedPermissionIds.filter(id => availablePermissionIds.includes(id));
+      const missingIds = normalizedPermissionIds.filter(id => !availablePermissionIds.includes(id));
+      
+      console.log('✅ EditRoleDialog: Loaded permissions:', {
+        count: normalizedPermissionIds.length,
+        rawResponse: validPermissions.slice(0, 2), // Show first 2 raw objects
+        permissionIds: normalizedPermissionIds.slice(0, 10),
+        totalAvailablePermissions: permissions.length,
+        availablePermissionIds: availablePermissionIds.slice(0, 10),
+        matchingIds: matchingIds.length,
+        missingIds: missingIds.length > 0 ? missingIds.slice(0, 5) : 'none'
+      });
+      
+      if (missingIds.length > 0) {
+        console.warn('⚠️ EditRoleDialog: Some loaded permission IDs do not match available permissions:', missingIds);
+      }
+      
+      // Set both selected and initial permissions to the normalized ones
+      setSelectedPermissions(normalizedPermissionIds);
+      setInitialPermissions(normalizedPermissionIds);
+      
+      console.log('✅ EditRoleDialog: Permissions state updated:', {
+        selectedCount: normalizedPermissionIds.length,
+        firstFewSelected: normalizedPermissionIds.slice(0, 5),
+        firstFewAvailable: availablePermissionIds.slice(0, 5)
+      });
     } catch (error) {
-      console.error('Failed to load role permissions from API, using mock data:', error);
+      console.error('❌ EditRoleDialog: Failed to load role permissions from API:', error);
       // Fallback to mock data if API fails
       const mockRolePermissions = getMockRolePermissions(roleId);
-      setSelectedPermissions(mockRolePermissions);
-      setInitialPermissions(mockRolePermissions);
+      const normalizedMockIds = mockRolePermissions.map(id => String(id));
+      console.log('⚠️ EditRoleDialog: Using mock permissions as fallback:', {
+        count: normalizedMockIds.length,
+        permissionIds: normalizedMockIds.slice(0, 10)
+      });
+      setSelectedPermissions(normalizedMockIds);
+      setInitialPermissions(normalizedMockIds);
     } finally {
       setLoadingPermissions(false);
     }
@@ -348,68 +426,93 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Key className="h-5 w-5" />
                     Role Permissions
+                    {!loadingPermissions && selectedPermissions.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {selectedPermissions.length} assigned
+                      </Badge>
+                    )}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Select the permissions that this role should have. Permissions are organized by resource type.
+                    {loadingPermissions 
+                      ? 'Loading current permissions...' 
+                      : `Select the permissions that this role should have. Currently ${selectedPermissions.length} permission${selectedPermissions.length !== 1 ? 's' : ''} assigned. Permissions are organized by resource type.`
+                    }
                   </p>
                 </CardHeader>
                 <CardContent>
                   {loadingPermissions ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span className="ml-2 text-sm text-muted-foreground">Loading permissions...</span>
+                      <span className="ml-2 text-sm text-muted-foreground">Loading current permissions...</span>
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {Object.entries(groupedPermissions).map(([resource, resourcePermissions]) => (
-                      <div key={resource} className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium capitalize">{resource} Management</h4>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const allResourcePermissionIds = resourcePermissions.map(p => p.id);
-                                const allSelected = allResourcePermissionIds.every(id => selectedPermissions.includes(id));
-                                
-                                if (allSelected) {
-                                  // Deselect all
-                                  setSelectedPermissions(prev => 
-                                    prev.filter(id => !allResourcePermissionIds.includes(id))
-                                  );
-                                } else {
-                                  // Select all
-                                  setSelectedPermissions(prev => [
-                                    ...prev.filter(id => !allResourcePermissionIds.includes(id)),
-                                    ...allResourcePermissionIds
-                                  ]);
-                                }
-                              }}
-                            >
-                              {resourcePermissions.every(p => selectedPermissions.includes(p.id)) ? 'Deselect All' : 'Select All'}
-                            </Button>
+                      {Object.entries(groupedPermissions).map(([resource, resourcePermissions]) => {
+                        // Normalize all permission IDs to strings for consistent comparison
+                        const resourcePermissionIds = resourcePermissions.map(p => String(p.id));
+                        const selectedCount = resourcePermissionIds.filter(id => selectedPermissions.includes(id)).length;
+                        const totalCount = resourcePermissions.length;
+                        const allSelected = resourcePermissionIds.every(id => selectedPermissions.includes(id));
+                        
+                        return (
+                        <div key={resource} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium capitalize">{resource} Management</h4>
+                              {selectedCount > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  {selectedCount}/{totalCount} selected
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (allSelected) {
+                                    // Deselect all
+                                    setSelectedPermissions(prev => 
+                                      prev.filter(id => !resourcePermissionIds.includes(id))
+                                    );
+                                  } else {
+                                    // Select all
+                                    setSelectedPermissions(prev => [
+                                      ...prev.filter(id => !resourcePermissionIds.includes(id)),
+                                      ...resourcePermissionIds
+                                    ]);
+                                  }
+                                }}
+                              >
+                                {allSelected ? 'Deselect All' : 'Select All'}
+                              </Button>
+                            </div>
                           </div>
-                        </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {resourcePermissions.map((permission) => (
+                          {resourcePermissions.map((permission) => {
+                            // Normalize permission ID to string for consistent comparison
+                            const permissionId = String(permission.id);
+                            const isSelected = selectedPermissions.includes(permissionId);
+                            
+                            return (
                             <div 
                               key={permission.id} 
                               className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                                selectedPermissions.includes(permission.id) 
+                                isSelected
                                   ? 'border-blue-500 bg-blue-50' 
                                   : 'border-gray-200 hover:border-gray-300'
                               }`}
-                              onClick={() => togglePermission(permission.id)}
+                              onClick={() => togglePermission(permissionId)}
                             >
                               <div className="flex items-center">
                                 <input
                                   type="checkbox"
-                                  checked={selectedPermissions.includes(permission.id)}
-                                  onChange={() => togglePermission(permission.id)}
+                                  checked={isSelected}
+                                  onChange={() => togglePermission(permissionId)}
                                   className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                  onClick={(e) => e.stopPropagation()}
                                 />
                               </div>
                               <Badge variant={getPermissionBadgeVariant(permission.scope)} className="text-xs">
@@ -422,10 +525,12 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
                                 </div>
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                       
                       {selectedPermissions.length > 0 && (
                         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -435,7 +540,8 @@ export function EditRoleDialog({ open, onOpenChange, role, permissions, onSubmit
                           </div>
                           <div className="flex flex-wrap gap-1">
                             {selectedPermissions.map(permissionId => {
-                              const permission = permissions.find(p => p.id === permissionId);
+                              // Normalize both IDs to strings for comparison
+                              const permission = permissions.find(p => String(p.id) === String(permissionId));
                               return permission ? (
                                 <Badge key={permissionId} variant="secondary" className="text-xs">
                                   {permission.resource}:{permission.action}
