@@ -205,7 +205,10 @@ function AppWithNotifications() {
                           </Route>
                           <Route path="projects/:projectId/media" element={<Media />} />
                           {/* Project Forms - nested routing */}
-                          <Route path="projects/:projectId/forms/*" element={<ProjectPermissionRoute check={(pm, pid) => pm.canViewForms(pid)} />}>
+                          {/* <Route path="projects/:projectId/forms/*" element={<ProjectPermissionRoute check={(pm, pid) => pm.canViewForms(pid)} />}>
+                            <Route path="*" element={<FormRoutes />} />
+                          </Route> */}
+                          <Route path="projects/:projectId/forms/*" >
                             <Route path="*" element={<FormRoutes />} />
                           </Route>
                           {/* Admin-only routes */}
