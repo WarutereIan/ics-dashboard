@@ -156,8 +156,14 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           setError('This form requires authentication. Please log in to continue.');
         } else if (msg.includes('expired')) {
           setError('This form has expired and is no longer accepting responses');
-        } else if (msg.includes('not found') || msg.includes('not published')) {
+        } else if (msg.includes('archived')) {
+          setError('This form has been archived and is no longer accepting responses. The data collected previously remains available for viewing.');
+        } else if (msg.includes('disabled')) {
+          setError('This form has been disabled and is no longer accepting responses. The data collected previously remains available for viewing.');
+        } else if (msg.includes('not found')) {
           setError('Form not found or not available');
+        } else if (msg.includes('not published')) {
+          setError('This form is not currently available for responses');
         } else {
           setError('Failed to load form. Please try again later.');
         }
