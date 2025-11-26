@@ -10,6 +10,8 @@ interface ProjectsContextType {
   addProject: (project: Omit<Project, 'id'>) => Promise<Project>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<Project>;
   deleteProject: (id: string) => Promise<boolean>;
+  archiveProject: (id: string) => Promise<Project>;
+  restoreProject: (id: string) => Promise<Project>;
   getProjectById: (id: string) => Project | null;
   getProjectsByCountry: (country: string) => Project[];
   refreshProjects: () => Promise<void>;
@@ -19,7 +21,7 @@ interface ProjectsContextType {
   // Permission and access control functions
   canAccessProject: (projectId: string) => boolean;
   getAccessibleProjectIds: () => string[];
-  getAllProjectsForUser: () => { id: string; name: string }[];
+  getAllProjectsForUser: () => { id: string; name: string; status?: string; country?: string }[];
   
   // Project data functions (migrated from icsData.ts)
   getProjectOutcomes: (projectId: string) => Promise<Outcome[]>;
@@ -171,6 +173,62 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Archive a project
+  const archiveProject = async (id: string): Promise<Project> => {
+    try {
+      setError(null);
+      const archivedProject = await projectsApi.archiveProject(id);
+      
+      // Convert date strings back to Date objects
+      const projectWithDates = {
+        ...archivedProject,
+        startDate: new Date(archivedProject.startDate),
+        endDate: new Date(archivedProject.endDate),
+        createdAt: archivedProject.createdAt ? new Date(archivedProject.createdAt) : undefined,
+        updatedAt: archivedProject.updatedAt ? new Date(archivedProject.updatedAt) : undefined,
+      };
+      
+      setProjects(prev => prev.map(project => 
+        project.id === id ? projectWithDates : project
+      ));
+      
+      return projectWithDates;
+    } catch (err) {
+      console.error('Error archiving project:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to archive project';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+  };
+
+  // Restore a project
+  const restoreProject = async (id: string): Promise<Project> => {
+    try {
+      setError(null);
+      const restoredProject = await projectsApi.restoreProject(id);
+      
+      // Convert date strings back to Date objects
+      const projectWithDates = {
+        ...restoredProject,
+        startDate: new Date(restoredProject.startDate),
+        endDate: new Date(restoredProject.endDate),
+        createdAt: restoredProject.createdAt ? new Date(restoredProject.createdAt) : undefined,
+        updatedAt: restoredProject.updatedAt ? new Date(restoredProject.updatedAt) : undefined,
+      };
+      
+      setProjects(prev => prev.map(project => 
+        project.id === id ? projectWithDates : project
+      ));
+      
+      return projectWithDates;
+    } catch (err) {
+      console.error('Error restoring project:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to restore project';
+      setError(errorMessage);
+      throw new Error(errorMessage);
+    }
+  };
+
   // Get project by ID
   const getProjectById = (id: string): Project | null => {
     return projects.find(project => project.id === id) || null;
@@ -201,13 +259,15 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
     return permissionManager.getAccessibleProjectIds(allProjectIds);
   };
 
-  const getAllProjectsForUser = (): { id: string; name: string }[] => {
+  const getAllProjectsForUser = (): { id: string; name: string; status?: string; country?: string }[] => {
     const accessibleIds = getAccessibleProjectIds();
     return projects
       .filter(project => accessibleIds.includes(project.id))
       .map(project => ({
         id: project.id,
         name: project.name,
+        status: project.status,
+        country: project.country,
       }));
   };
 
@@ -302,6 +362,8 @@ export function ProjectsProvider({ children }: { children: React.ReactNode }) {
     addProject,
     updateProject,
     deleteProject,
+    archiveProject,
+    restoreProject,
     getProjectById,
     getProjectsByCountry,
     refreshProjects,

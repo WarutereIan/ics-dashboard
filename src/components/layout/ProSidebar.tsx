@@ -1,7 +1,7 @@
 import React from 'react';
 import { Sidebar, Menu, MenuItem, SubMenu } from 'react-pro-sidebar';
 import { Link, useLocation } from 'react-router-dom';
-import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText, Plus, ClipboardList, X, DollarSign, MessageSquare, Database, BookOpen, Edit3 } from 'lucide-react';
+import { Target, Activity, Users, Settings, Folder, Circle, CheckCircle2, Flag, FileText, Plus, ClipboardList, X, DollarSign, MessageSquare, Database, BookOpen, Edit3, Archive, RotateCcw } from 'lucide-react';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { useProjects } from '@/contexts/ProjectsContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +28,9 @@ export function ProSidebar() {
     projects, 
     isLoading,
     getAllProjectsForUser,
+    archiveProject,
+    restoreProject,
+    refreshProjects,
   } = projectsContext;
   
   // Early return if auth is loading
@@ -63,8 +66,51 @@ export function ProSidebar() {
     setSidebarOpen(false);
   };
 
+  const handleArchiveProject = async (projectId: string, projectName: string) => {
+    if (window.confirm(`Are you sure you want to archive "${projectName}"? The project will no longer be accessible, but all data will be preserved.`)) {
+      try {
+        console.log('🔄 [ProSidebar] Starting archive operation for project:', projectId);
+        const updatedProject = await archiveProject(projectId);
+        console.log('✅ [ProSidebar] Archive operation completed:', {
+          projectId: updatedProject.id,
+          newStatus: updatedProject.status
+        });
+        // No need to call refreshProjects() - archiveProject already updates the state
+        handleCloseSidebar();
+      } catch (error) {
+        console.error('❌ [ProSidebar] Error archiving project:', error);
+        alert('Failed to archive project. Please try again.');
+      }
+    }
+  };
+
+  const handleRestoreProject = async (projectId: string, projectName: string) => {
+    if (window.confirm(`Are you sure you want to restore "${projectName}"? The project will become active again.`)) {
+      try {
+        console.log('🔄 [ProSidebar] Starting restore operation for project:', projectId);
+        const updatedProject = await restoreProject(projectId);
+        console.log('✅ [ProSidebar] Restore operation completed:', {
+          projectId: updatedProject.id,
+          newStatus: updatedProject.status
+        });
+        // No need to call refreshProjects() - restoreProject already updates the state
+        handleCloseSidebar();
+      } catch (error) {
+        console.error('❌ [ProSidebar] Error restoring project:', error);
+        alert('Failed to restore project. Please try again.');
+      }
+    }
+  };
+
   // Get accessible projects for the current user
   const accessibleProjects = getAllProjectsForUser();
+  
+  // Debug: Log project statuses to verify they're being passed correctly
+  if (accessibleProjects.length > 0) {
+    console.log('📋 [ProSidebar] Accessible projects with statuses:', 
+      accessibleProjects.map(p => ({ id: p.id, name: p.name, status: p.status }))
+    );
+  }
 
   try {
     return (
@@ -185,8 +231,9 @@ export function ProSidebar() {
                   <MenuItem className="text-sm text-gray-500">
                     No projects available
                   </MenuItem>
-                ) : (
-                  (isRegionalCoordinator() 
+                ) : (() => {
+                  // Filter projects based on regional coordinator if needed
+                  const filteredProjects = isRegionalCoordinator() 
                     ? accessibleProjects.filter((project: any) => {
                         const country = ((project && (project as any).country) ? (project as any).country : '').toLowerCase();
                         const rcTz = (user?.roles || []).some(r => r.roleName === 'coordinator-tanzania');
@@ -195,8 +242,14 @@ export function ProSidebar() {
                         if (rcCi) return country.includes('côte') || country.includes('cote') || country.includes('ivoire');
                         return true;
                       })
-                    : accessibleProjects
-                  ).map(project => {
+                    : accessibleProjects;
+                  
+                  // Separate projects into active and archived
+                  const activeProjects = filteredProjects.filter((project: any) => project.status !== 'ARCHIVED');
+                  const archivedProjects = filteredProjects.filter((project: any) => project.status === 'ARCHIVED');
+                  
+                  // Helper function to render project menu
+                  const renderProjectMenu = (project: any) => {
                     // Safety check for project object
                     if (!project || !project.id || !project.name) {
                       console.warn('Invalid project object:', project);
@@ -334,10 +387,80 @@ export function ProSidebar() {
                             Edit Project
                           </MenuItem>
                         )}
+                        
+                        {/* Archive/Restore Project (admin only) */}
+                        {isAdmin() && (
+                          <MenuItem 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              console.log('🖱️ [ProSidebar] Archive/Restore clicked:', {
+                                projectId: project.id,
+                                projectName: project.name,
+                                currentStatus: project.status
+                              });
+                              if (project.status === 'ARCHIVED') {
+                                handleRestoreProject(project.id, project.name);
+                              } else {
+                                handleArchiveProject(project.id, project.name);
+                              }
+                            }}
+                            className="text-sm"
+                          >
+                            {(() => {
+                              const isArchived = project.status === 'ARCHIVED';
+                              console.log(`🔍 [ProSidebar] Rendering menu item for project ${project.id}:`, {
+                                status: project.status,
+                                isArchived,
+                                willShow: isArchived ? 'Restore' : 'Archive'
+                              });
+                              return isArchived ? (
+                                <>
+                                  <RotateCcw className="w-4 h-4 mr-2 inline" />
+                                  Restore Project
+                                </>
+                              ) : (
+                                <>
+                                  <Archive className="w-4 h-4 mr-2 inline" />
+                                  Archive Project
+                                </>
+                              );
+                            })()}
+                          </MenuItem>
+                        )}
                       </SubMenu>
                     );
-                  })
-                )}
+                  };
+                  
+                  return (
+                    <>
+                      {/* Active Projects Section */}
+                      {activeProjects.length > 0 && (
+                        <>
+                          <MenuItem 
+                            className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2 mt-2 mb-1 pointer-events-none"
+                            style={{ cursor: 'default' }}
+                          >
+                            Active Projects
+                          </MenuItem>
+                          {activeProjects.map(renderProjectMenu)}
+                        </>
+                      )}
+                      
+                      {/* Archived Projects Section */}
+                      {archivedProjects.length > 0 && (
+                        <>
+                          <MenuItem 
+                            className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2 mt-4 mb-1 pointer-events-none"
+                            style={{ cursor: 'default' }}
+                          >
+                            Archived Projects
+                          </MenuItem>
+                          {archivedProjects.map(renderProjectMenu)}
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
               </SubMenu>
               
               {/* Admin section - Check for user management permissions */}
