@@ -36,7 +36,7 @@ export interface Project {
   name: string;
   description: string;
   country: string;
-  status: 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD';
+  status: 'PLANNING' | 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'ARCHIVED';
   startDate: Date;
   endDate: Date;
   progress: number;

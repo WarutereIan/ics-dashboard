@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ChevronLeft, ChevronRight, Search, Download, RefreshCw } from 'lucide-react';
 import { useNotification } from '@/hooks/useNotification';
 import { KoboDataService, KoboTableData } from '@/services/koboDataService';
+import { useToast } from '@/hooks/use-toast';
 
 interface KoboTableViewerProps {
   projectId: string;
@@ -17,8 +18,10 @@ interface KoboTableViewerProps {
 
 export function KoboTableViewer({ projectId, tableId, tableName, displayName }: KoboTableViewerProps) {
   const { showError } = useNotification();
+  const { toast } = useToast();
   const [data, setData] = useState<KoboTableData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(50);
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,6 +71,91 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
     return String(value);
   };
 
+  const handleExportData = async () => {
+    if (!data) return;
+
+    try {
+      setExporting(true);
+
+      // Helper function to escape CSV values
+      const escapeCsvValue = (value: any): string => {
+        if (value === null || value === undefined) return '';
+        
+        const stringValue = String(value);
+        // If value contains comma, newline, or quote, wrap in quotes and escape quotes
+        if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      };
+
+      // Fetch all data pages
+      const allData: any[] = [];
+      const totalPages = data.pagination.totalPages;
+      
+      toast({
+        title: "Exporting Data",
+        description: `Fetching ${totalPages} page(s) of data...`,
+      });
+
+      // Fetch all pages
+      for (let currentPage = 1; currentPage <= totalPages; currentPage++) {
+        const response = await KoboDataService.getKoboTableData(projectId, tableId, currentPage, limit);
+        if (response.data?.data) {
+          allData.push(...response.data.data);
+        }
+      }
+
+      if (allData.length === 0) {
+        toast({
+          title: "Export Failed",
+          description: "No data available to export",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get column headers from the first row
+      const headers = Object.keys(allData[0]);
+
+      // Create CSV content
+      const csvContent = [
+        headers.map(escapeCsvValue).join(','),
+        ...allData.map(row => {
+          return headers.map(header => {
+            const value = row[header];
+            // Format the value for CSV
+            if (value === null || value === undefined) return '';
+            if (typeof value === 'object') return JSON.stringify(value);
+            if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+            return String(value);
+          }).map(escapeCsvValue).join(',');
+        })
+      ].join('\n');
+
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const sanitizedDisplayName = displayName.replace(/[^a-z0-9]/gi, '_');
+      a.download = `${sanitizedDisplayName}_${tableName}_export.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Complete",
+        description: `Exported ${allData.length} records to CSV`,
+      });
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      showError(`Failed to export data: ${errorMessage}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -99,10 +187,21 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
             {data.pagination.total} total records
           </Badge>
         </div>
-        <Button variant="outline" size="sm" onClick={loadData}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleExportData}
+            disabled={exporting || !data || data.pagination.total === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {exporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={loadData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Search */}

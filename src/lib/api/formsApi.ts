@@ -134,6 +134,30 @@ export const formsApi = {
     throw new Error(response.error || 'Failed to duplicate form');
   },
 
+  async archiveForm(projectId: string, formId: string): Promise<Form> {
+    const response = await apiClient.post(`/forms/projects/${projectId}/forms/${formId}/archive`);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to archive form');
+  },
+
+  async disableForm(projectId: string, formId: string): Promise<Form> {
+    const response = await apiClient.post(`/forms/projects/${projectId}/forms/${formId}/disable`);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to disable form');
+  },
+
+  async restoreForm(projectId: string, formId: string): Promise<Form> {
+    const response = await apiClient.post(`/forms/projects/${projectId}/forms/${formId}/restore`);
+    if (response.success && response.data) {
+      return response.data as Form;
+    }
+    throw new Error(response.error || 'Failed to restore form');
+  },
+
 
   // ========================================
   // FORM RESPONSES

@@ -69,4 +69,22 @@ export const projectsApi = {
     }
     throw new Error(response.error || 'Failed to delete project');
   },
+
+  // Archive project
+  async archiveProject(id: string): Promise<Project> {
+    const response = await apiClient.post<Project>(`/projects/${id}/archive`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to archive project');
+  },
+
+  // Restore project
+  async restoreProject(id: string): Promise<Project> {
+    const response = await apiClient.post<Project>(`/projects/${id}/restore`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    throw new Error(response.error || 'Failed to restore project');
+  },
 };

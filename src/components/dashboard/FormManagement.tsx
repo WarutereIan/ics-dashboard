@@ -25,7 +25,10 @@ import {
   ArrowLeft,
   FolderOpen,
   CheckCircle,
-  Upload
+  Upload,
+  Archive,
+  XCircle,
+  RotateCcw
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createEnhancedPermissionManager } from '@/lib/permissions';
@@ -33,6 +36,7 @@ import { useForm } from '@/contexts/FormContext';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { toast } from '@/hooks/use-toast';
 import { Form } from './form-creation-wizard/types';
+import { formsApi } from '@/lib/api/formsApi';
 import { FormImportModal } from './form-management/FormImportModal';
 import { FormExportModal } from './form-management/FormExportModal';
 import { 
@@ -327,6 +331,84 @@ export function FormManagement() {
         description: "Could not copy link to clipboard. Please try again.",
         variant: "destructive",
         duration: 4000,
+      });
+    }
+  };
+
+  const handleArchiveForm = async (form: Form) => {
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "Project ID is required to archive forms.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await formsApi.archiveForm(projectId, form.id);
+      await loadProjectForms(projectId);
+      toast({
+        title: "Form Archived",
+        description: `"${form.title}" has been archived. It is no longer accepting responses, but existing data is preserved.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Archive Failed",
+        description: "Could not archive the form. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDisableForm = async (form: Form) => {
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "Project ID is required to disable forms.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await formsApi.disableForm(projectId, form.id);
+      await loadProjectForms(projectId);
+      toast({
+        title: "Form Disabled",
+        description: `"${form.title}" has been disabled. It is no longer accepting responses, but existing data is preserved.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Disable Failed",
+        description: "Could not disable the form. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRestoreForm = async (form: Form) => {
+    if (!projectId) {
+      toast({
+        title: "Error",
+        description: "Project ID is required to restore forms.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await formsApi.restoreForm(projectId, form.id);
+      await loadProjectForms(projectId);
+      toast({
+        title: "Form Restored",
+        description: `"${form.title}" has been restored and is now accepting responses again.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Restore Failed",
+        description: "Could not restore the form. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -659,6 +741,25 @@ export function FormManagement() {
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
+                              {(form.status === 'PUBLISHED' || form.status === 'DRAFT') && canEditForms && (
+                                <>
+                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleArchiveForm(form); }}>
+                                    <Archive className="mr-2 h-4 w-4" />
+                                    Archive
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDisableForm(form); }}>
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Disable
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {(form.status === 'ARCHIVED' || form.status === 'CLOSED') && canEditForms && (
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRestoreForm(form); }}>
+                                  <RotateCcw className="mr-2 h-4 w-4" />
+                                  Restore
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
                               {canDeleteForms && (
                                 <DropdownMenuItem 
                                   onClick={(e) => { e.stopPropagation(); handleDeleteForm(form); }}
@@ -730,6 +831,25 @@ export function FormManagement() {
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDuplicateForm(form); }}>
                                 <Copy className="mr-2 h-4 w-4" />
                                 Duplicate
+                              </DropdownMenuItem>
+                            )}
+                              <DropdownMenuSeparator />
+                            {(form.status === 'PUBLISHED' || form.status === 'DRAFT') && canEditForms && (
+                              <>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleArchiveForm(form); }}>
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archive
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDisableForm(form); }}>
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  Disable
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {(form.status === 'ARCHIVED' || form.status === 'CLOSED') && canEditForms && (
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRestoreForm(form); }}>
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                Restore
                               </DropdownMenuItem>
                             )}
                               <DropdownMenuSeparator />
