@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText, Upload, Download, File, Eye, Trash2, Plus, FilePlus, Hash, MapPin, Building, FileText as FileTextIcon, RefreshCw } from 'lucide-react';
+import { FileText, Upload, Download, File, Eye, Trash2, Plus, FilePlus, Hash, MapPin, Building, FileText as FileTextIcon, RefreshCw, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { NamingConventionForm } from './NamingConventionForm';
 import { NamingConventionData, generateFileName, parseFileName, REPORT_TYPES } from '@/lib/namingConvention';
 import { PendingReviews } from './PendingReviews';
 import { ReportWorkflowDetail } from './ReportWorkflowDetail';
+import { ReviewerWorkloadDashboard } from './ReviewerWorkloadDashboard';
 import { reportWorkflowService } from '@/services/reportWorkflowService';
 import { useReport } from '@/contexts/ReportContext';
 import { reportService } from '@/services/reportService';
@@ -56,6 +57,8 @@ export function Reports() {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [openWorkflowId, setOpenWorkflowId] = useState<string | null>(null);
+  const [pendingReviewsRefreshTrigger, setPendingReviewsRefreshTrigger] = useState(0);
+  const [showWorkloadDashboard, setShowWorkloadDashboard] = useState(false);
 
   // Get project data for report creation
   const [activities, setActivities] = useState<any[]>([]);
@@ -118,7 +121,7 @@ export function Reports() {
   };
 
   const getStatusBadge = (status: string) => {
-    const key = (status || '').toLowerCase();
+    const key = (status || '').toLowerCase().replace(/_/g, ' ').trim();
     const variants: Record<string, string> = {
       // File status
       draft: 'bg-yellow-100 text-yellow-800',
@@ -128,10 +131,13 @@ export function Reports() {
       approved: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
       pending: 'bg-yellow-100 text-yellow-800',
-      in_review: 'bg-blue-100 text-blue-800',
-      'in review': 'bg-blue-100 text-blue-800'
+      'in review': 'bg-blue-100 text-blue-800',
+      'in_review': 'bg-blue-100 text-blue-800',
+      'changes requested': 'bg-orange-100 text-orange-800',
+      'changes_requested': 'bg-orange-100 text-orange-800',
+      cancelled: 'bg-gray-100 text-gray-800',
     };
-    return variants[key] || variants.draft;
+    return variants[key] || variants.pending;
   };
 
   // Helper function to get file type from extension
@@ -155,73 +161,138 @@ export function Reports() {
 
  
 
-  // Convert backend reports to display format
-  const displayReports = reports.map(report => {
-
-    console.log(report);
+  // Convert backend workflows to display format
+  // Backend now returns workflows, each potentially containing multiple files
+  const displayReports = reports.flatMap((workflow: any) => {
     // Helper function to format user name
     const formatUserName = (user: any) => {
       if (!user) return 'Unknown';
-      return `${user.firstName} ${user.lastName}`.trim() || user.email || 'Unknown';
+      if (typeof user === 'string') return user; // If it's just an ID
+      return `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Unknown';
     };
 
-    return {
-      id: report.id,
-      name: report.title,
-      type: getFileTypeFromExtension(report.title),
-      size: report.fileSize,
-      uploadDate: report.createdAt,
-      description: report.description,
-      category: report.category, // Default category
-      status: report.status.toLowerCase(),
-      uploadedBy: formatUserName(report.createdBy), // Use report.creator instead of report.createdBy
-      lastModified: report.updatedAt || report.createdAt,
-      lastModifiedBy: formatUserName(report.updater), // Use report.updater instead of report.updatedBy
+    // Get workflow status
+    const workflowStatus = (workflow.status || 'PENDING').toString().toUpperCase();
+    const category = (workflow.category || 'ADHOC').toString().toLowerCase();
+    
+    // Get current step info
+    const steps = Array.isArray(workflow.approvalSteps) ? workflow.approvalSteps : [];
+    const currentStepIndex = steps.findIndex((s: any) => !s.isCompleted);
+    const currentStep = currentStepIndex >= 0 ? currentStepIndex + 1 : steps.length;
+
+    // If workflow has files, create one display report per file
+    const files = Array.isArray(workflow.files) ? workflow.files : [];
+    
+    if (files.length === 0) {
+      // Workflow without files - show workflow as report
+      return [{
+        id: workflow.id,
+        name: workflow.name,
+        type: 'other' as const,
+        size: '0',
+        uploadDate: workflow.submittedAt || workflow.createdAt,
+        description: workflow.description || '',
+        category: category,
+        status: workflowStatus.toLowerCase(),
+        uploadedBy: formatUserName(workflow.submittedByUser || workflow.submittedBy),
+        lastModified: workflow.updatedAt || workflow.submittedAt || workflow.createdAt,
+        lastModifiedBy: formatUserName(workflow.submittedByUser || workflow.submittedBy),
+        projectId: projectId,
+        currentAuthLevel: 'branch-admin' as const,
+        approvalWorkflow: {
+          id: workflow.id,
+          reportId: workflow.id,
+          projectId: projectId,
+          createdAt: workflow.createdAt,
+          createdBy: formatUserName(workflow.submittedByUser || workflow.submittedBy),
+          currentStep: currentStep,
+          totalSteps: steps.length || 1,
+          steps: steps,
+          status: workflowStatus
+        },
+        isPendingReview: workflowStatus === 'PENDING' || workflowStatus === 'IN_REVIEW',
+        fileUrl: null,
+        workflowId: workflow.id,
+        auditInfo: {
+          createdBy: workflow.submittedByUser || workflow.submittedBy,
+          updatedBy: workflow.submittedByUser || workflow.submittedBy,
+          createdAt: workflow.createdAt,
+          updatedAt: workflow.updatedAt
+        }
+      } as Report & { fileUrl: string | null; workflowId: string; auditInfo: any }];
+    }
+
+    // Map each file to a display report
+    return files.map((file: any) => ({
+      id: file.id,
+      name: file.title,
+      type: getFileTypeFromExtension(file.title),
+      size: file.fileSize || '0',
+      uploadDate: file.createdAt || workflow.submittedAt || workflow.createdAt,
+      description: file.description || workflow.description || '',
+      category: category,
+      status: workflowStatus.toLowerCase(),
+      uploadedBy: formatUserName(file.creator || workflow.submittedByUser || workflow.submittedBy),
+      lastModified: file.updatedAt || workflow.updatedAt || workflow.submittedAt || workflow.createdAt,
+      lastModifiedBy: formatUserName(file.updater || workflow.submittedByUser || workflow.submittedBy),
       projectId: projectId,
       currentAuthLevel: 'branch-admin' as const,
       approvalWorkflow: {
-        id: report.id,
-        reportId: report.id,
+        id: workflow.id,
+        reportId: workflow.id,
         projectId: projectId,
-        createdAt: report.createdAt,
-        createdBy: formatUserName(report.creator), // Use report.creator instead of report.createdBy
-        currentStep: 1,
-        totalSteps: 4,
-        steps: [],
-        status: report.status
+        createdAt: workflow.createdAt,
+        createdBy: formatUserName(workflow.submittedByUser || workflow.submittedBy),
+        currentStep: currentStep,
+        totalSteps: steps.length || 1,
+        steps: steps,
+        status: workflowStatus
       },
-      isPendingReview: false,
-      fileUrl: report.fileUrl, // Link to backend file
-      // Audit information
+      isPendingReview: workflowStatus === 'PENDING' || workflowStatus === 'IN_REVIEW',
+      fileUrl: file.fileUrl,
+      workflowId: workflow.id,
       auditInfo: {
-        createdBy: report.creator, // Use the full user object
-        updatedBy: report.updater, // Use the full user object
-        createdAt: report.createdAt,
-        updatedAt: report.updatedAt
+        createdBy: file.creator || workflow.submittedByUser || workflow.submittedBy,
+        updatedBy: file.updater || workflow.submittedByUser || workflow.submittedBy,
+        createdAt: file.createdAt || workflow.createdAt,
+        updatedAt: file.updatedAt || workflow.updatedAt
       }
-    } as Report & { fileUrl: string; auditInfo: any };
+    } as Report & { fileUrl: string | null; workflowId: string; auditInfo: any }));
   });
 
 
-  // Simplified filtering logic - for now, just return all reports if filters are 'all'
+  // Filtering logic with proper case handling
   const filteredReports = displayReports.filter(report => {
-    // For now, let's be more permissive with filtering to debug the issue
-    const frequencyMatch = selectedFrequency === 'all' || report.category === selectedFrequency;
-    const categoryMatch = selectedCategory === 'all' || report.category === selectedCategory;
+    // Exclude reports that are pending review - they should only show in PendingReviews component
+    const workflowStatus = (report.approvalWorkflow?.status || report.status || '').toString().toUpperCase();
+    const isPendingReview = workflowStatus === 'PENDING' || workflowStatus === 'IN_REVIEW' || workflowStatus === 'CHANGES_REQUESTED';
+    if (isPendingReview) {
+      return false; // Filter out pending reviews from main list
+    }
+
+    // Normalize category for comparison (backend uses uppercase, frontend uses lowercase)
+    const reportCategory = (report.category || '').toLowerCase();
+    const selectedFreq = selectedFrequency.toLowerCase();
+    const selectedCat = selectedCategory.toLowerCase();
     
-    // Report type filter - be more flexible
+    // Frequency/Category filter - normalize case
+    const frequencyMatch = selectedFreq === 'all' || reportCategory === selectedFreq;
+    const categoryMatch = selectedCat === 'all' || reportCategory === selectedCat;
+    
+    // Report type filter - check naming convention or name
     let reportTypeMatch = true;
     if (selectedReportType !== 'all') {
-      // Check if the report name contains the selected report type
-      reportTypeMatch = !!(report.name && (
-        report.name.includes(`_${selectedReportType}_`) ||
-        report.name.toLowerCase().includes(selectedReportType.toLowerCase())
-      ));
+      const reportName = (report.name || '').toLowerCase();
+      const selectedType = selectedReportType.toLowerCase();
+      // Check if the report name contains the selected report type code
+      reportTypeMatch = reportName.includes(`_${selectedType}_`) || 
+                       reportName.includes(`-${selectedType}-`) ||
+                       reportName.includes(selectedType);
     }
     
     // Activity filter - only apply if we have activity data
     const activityMatch = selectedActivity === 'all' || 
-      !(report as any).activityId || // If no activityId, it's not an activity report
+      !(report as any).activityId ||
       (report as any).activityId === selectedActivity;
     
     // Time filter
@@ -268,12 +339,15 @@ export function Reports() {
     setGeneratedFileName(fileName);
   };
 
-  // Load reports from backend API
+  
+
+  // Load reports from backend API (now returns workflows with files)
   const loadReports = async () => {
     setIsLoadingFiles(true);
     try {
       const response = await reportService.getReports(projectId);
       if (response.success && response.data) {
+        // Backend now returns workflows, each with files array
         setReports(response.data);
       } else {
         setReports([]);
@@ -425,6 +499,15 @@ export function Reports() {
             <RefreshCw className={`h-4 w-4 ${isLoadingFiles ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowWorkloadDashboard(!showWorkloadDashboard)}
+            className="gap-2"
+          >
+            <Users className="h-4 w-4" />
+            {showWorkloadDashboard ? 'Hide' : 'Show'} Workload
+          </Button>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               {/* <Button variant="secondary" className="gap-2">
@@ -531,8 +614,13 @@ export function Reports() {
         </div>
       </div>
 
+      {/* Reviewer Workload Dashboard */}
+      {showWorkloadDashboard && (
+        <ReviewerWorkloadDashboard projectId={projectId} />
+      )}
+
       {/* Pending Reviews Section */}
-      <PendingReviews projectId={projectId} />
+      <PendingReviews projectId={projectId} refreshTrigger={pendingReviewsRefreshTrigger} />
 
       {/* Loading indicator */}
       {isLoadingFiles && (
@@ -666,7 +754,7 @@ export function Reports() {
               <tbody>
                 {filteredReports.map((report) => (
                   <tr key={report.id} className="border-b last:border-0">
-                    <td className="py-3 pr-4 max-w-[420px] cursor-pointer" onClick={() => handleOpenAudit(report.id)}>
+                    <td className="py-3 pr-4 max-w-[420px] cursor-pointer" onClick={() => setOpenWorkflowId((report as any).workflowId || report.id)}>
                       <div className="flex items-center gap-2">
                         {getFileIcon(report.type)}
                         <div className="min-w-0">
@@ -679,8 +767,8 @@ export function Reports() {
                       <Badge className={getCategoryBadge(report.category)}>{report.category}</Badge>
                     </td>
                     <td className="py-3 pr-4">
-                      <Badge className={getStatusBadge((report).approvalWorkflow.status)}>
-                        {((report).approvalWorkflow.status)}
+                      <Badge className={getStatusBadge((report).approvalWorkflow?.status || report.status)}>
+                        {((report).approvalWorkflow?.status || report.status || 'pending').toUpperCase().replace('_', ' ')}
                       </Badge>
                     </td>
                     <td className="py-3 pr-4 whitespace-nowrap">{new Date(report.uploadDate).toLocaleDateString()}</td>
