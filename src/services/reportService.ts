@@ -92,47 +92,56 @@ class ReportService {
   }
 
   async downloadReportFile(projectId: string, reportId: string): Promise<void> {
-    // Get the auth token for the download request
-    const token = apiClient.getAuthToken();
-    const headers: Record<string, string> = {};
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    // Get presigned URL from backend
+    const response = await apiClient.get<{ presignedUrl: string; fileName: string; mimeType: string }>(
+      `${this.baseUrl}/${projectId}/reports/preview/${reportId}`
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to get download URL');
     }
 
-    // Make the download request directly with fetch to handle blob response
-    const response = await fetch(`${apiClient.getBaseUrl()}${this.baseUrl}/${projectId}/reports/download/${reportId}`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        // Handle auth error
-        localStorage.removeItem('ics-auth-token');
-        localStorage.removeItem('ics-refresh-token');
-        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
-        throw new Error('Authentication required');
-      }
-      throw new Error(`Failed to download file: ${response.statusText}`);
-    }
-
-    // Get the filename from the Content-Disposition header
-    const contentDisposition = response.headers.get('Content-Disposition');
-    let fileName = `report-${reportId}`;
+    // Fetch the file from the presigned URL
+    const fileResponse = await fetch(response.data.presignedUrl);
     
-    if (contentDisposition) {
-      const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
-      if (fileNameMatch) {
-        fileName = fileNameMatch[1];
-      }
+    if (!fileResponse.ok) {
+      throw new Error(`Failed to download file: ${fileResponse.statusText}`);
     }
 
     // Get the blob from the response
-    const blob = await response.blob();
+    const blob = await fileResponse.blob();
     
     // Use file-saver to download the file with proper filename
-    saveAs(blob, fileName);
+    saveAs(blob, response.data.fileName || `report-${reportId}`);
+  }
+
+  async getPreviewUrl(projectId: string, reportId: string): Promise<string> {
+    const response = await apiClient.get<{ presignedUrl: string; fileName: string; mimeType: string }>(
+      `${this.baseUrl}/${projectId}/reports/preview/${reportId}`
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to get preview URL');
+    }
+
+    return response.data.presignedUrl;
+  }
+
+  async updateReport(
+    projectId: string,
+    reportId: string,
+    updateData: { title?: string; description?: string; category?: string }
+  ): Promise<ReportFile> {
+    const response = await apiClient.put<ReportFile>(
+      `${this.baseUrl}/${projectId}/reports/${reportId}`,
+      updateData
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to update report');
+    }
+
+    return response.data;
   }
 
   async deleteReportFile(projectId: string, reportId: string): Promise<void> {
