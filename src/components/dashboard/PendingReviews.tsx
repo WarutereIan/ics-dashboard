@@ -20,7 +20,7 @@ import { ReportWorkflowDetail } from './ReportWorkflowDetail';
 import { BulkReviewActions } from './BulkReviewActions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { apiClient } from '@/lib/api/client';
+import { userManagementService } from '@/services/userManagementService';
 
 interface PendingReviewsProps {
   projectId?: string;
@@ -74,15 +74,48 @@ export function PendingReviews({ projectId, refreshTrigger }: PendingReviewsProp
     loadPendingReviews();
     
     // Load available users for bulk operations
-    if (projectId) {
-      apiClient.get(`/projects/${projectId}/users?limit=100`)
-        .then((response) => {
-          if (response.success && response.data?.users) {
-            setAvailableUsers(response.data.users);
+    const loadUsers = async () => {
+      if (projectId) {
+        try {
+          const usersResponse = await userManagementService.getProjectUsers(projectId, { 
+            limit: 100,
+            isActive: true 
+          });
+          if (usersResponse?.users) {
+            setAvailableUsers(usersResponse.users);
           }
-        })
-        .catch((e) => console.warn('Failed to load users:', e));
-    }
+        } catch (e) {
+          console.warn('Failed to load project users:', e);
+          // Fallback: try to get all users if project users fails
+          try {
+            const allUsersResponse = await userManagementService.getUsers({ 
+              limit: 100,
+              isActive: true 
+            });
+            if (allUsersResponse?.users) {
+              setAvailableUsers(allUsersResponse.users);
+            }
+          } catch (fallbackError) {
+            console.warn('Failed to load users (fallback):', fallbackError);
+          }
+        }
+      } else {
+        // If no projectId, try to get all users
+        try {
+          const allUsersResponse = await userManagementService.getUsers({ 
+            limit: 100,
+            isActive: true 
+          });
+          if (allUsersResponse?.users) {
+            setAvailableUsers(allUsersResponse.users);
+          }
+        } catch (e) {
+          console.warn('Failed to load users:', e);
+        }
+      }
+    };
+    
+    loadUsers();
   }, [projectId, refreshTrigger, loadPendingReviews]);
 
   const toggleReportSelection = (reportId: string) => {
