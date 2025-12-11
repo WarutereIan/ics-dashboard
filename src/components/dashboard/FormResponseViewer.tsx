@@ -65,41 +65,97 @@ const transformQuestionData = (question: any) => {
 };
 
 // Helper function to get all questions (main + conditional) in the correct order
-const getAllQuestionsInOrder = (form: Form): Array<{
+// For repeatable sections, includes instance columns
+const getAllQuestionsInOrder = (
+  form: Form,
+  maxInstances?: number
+): Array<{
   question: FormQuestion;
   isConditional: boolean;
   parentQuestion?: FormQuestion;
   parentOption?: any;
+  isRepeatable?: boolean;
+  sectionId?: string;
+  instanceIndex?: number;
+  instanceKey?: string; // For repeatable: questionId_instance_N
 }> => {
   const allQuestions: Array<{
     question: FormQuestion;
     isConditional: boolean;
     parentQuestion?: FormQuestion;
     parentOption?: any;
+    isRepeatable?: boolean;
+    sectionId?: string;
+    instanceIndex?: number;
+    instanceKey?: string;
   }> = [];
 
-  form.sections.forEach(section => {
-    section.questions.forEach(question => {
-      // Add main question
-      allQuestions.push({
-        question,
-        isConditional: false
-      });
+  // Get repeatable sections
+  const repeatableSections = getRepeatableSections(form);
+  const repeatableSectionIds = new Set(repeatableSections.map(s => s.id));
 
-      // Add conditional questions
-      if ((question as any).options && Array.isArray((question as any).options)) {
-        (question as any).options.forEach((option: any) => {
-          if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
-            option.conditionalQuestions.forEach((condQuestion: any) => {
-              allQuestions.push({
-                question: condQuestion as FormQuestion,
-                isConditional: true,
-                parentQuestion: question,
-                parentOption: option
-              });
+  form.sections.forEach(section => {
+    const isRepeatable = repeatableSectionIds.has(section.id);
+    
+    section.questions.forEach(question => {
+      if (isRepeatable && maxInstances) {
+        // For repeatable sections, create columns for each instance
+        for (let instanceIndex = 0; instanceIndex < maxInstances; instanceIndex++) {
+          allQuestions.push({
+            question,
+            isConditional: false,
+            isRepeatable: true,
+            sectionId: section.id,
+            instanceIndex,
+            instanceKey: `${question.id}_instance_${instanceIndex}`
+          });
+
+          // Add conditional questions for each instance
+          if ((question as any).options && Array.isArray((question as any).options)) {
+            (question as any).options.forEach((option: any) => {
+              if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
+                option.conditionalQuestions.forEach((condQuestion: any) => {
+                  allQuestions.push({
+                    question: condQuestion as FormQuestion,
+                    isConditional: true,
+                    parentQuestion: question,
+                    parentOption: option,
+                    isRepeatable: true,
+                    sectionId: section.id,
+                    instanceIndex,
+                    instanceKey: `${condQuestion.id}_instance_${instanceIndex}`
+                  });
+                });
+              }
             });
           }
+        }
+      } else {
+        // Non-repeatable section - add question once
+        allQuestions.push({
+          question,
+          isConditional: false,
+          isRepeatable: false,
+          sectionId: section.id
         });
+
+        // Add conditional questions
+        if ((question as any).options && Array.isArray((question as any).options)) {
+          (question as any).options.forEach((option: any) => {
+            if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
+              option.conditionalQuestions.forEach((condQuestion: any) => {
+                allQuestions.push({
+                  question: condQuestion as FormQuestion,
+                  isConditional: true,
+                  parentQuestion: question,
+                  parentOption: option,
+                  isRepeatable: false,
+                  sectionId: section.id
+                });
+              });
+            }
+          });
+        }
       }
     });
   });
@@ -117,6 +173,189 @@ const transformFormData = (form: any): Form => {
       ...section,
       questions: section.questions?.map(transformQuestionData) || []
     })) || []
+  };
+};
+
+// Helper function to parse repeatable section metadata from source field
+const parseRepeatableMetadata = (source: string | null | undefined): {
+  isRepeatable: boolean;
+  repeatableSectionId?: string;
+  instanceIndex?: number;
+  originalSource?: string;
+} => {
+  if (!source || !source.startsWith('{')) {
+    return { isRepeatable: false };
+  }
+  
+  try {
+    const parsed = JSON.parse(source);
+    if (parsed.type === 'repeatable') {
+      return {
+        isRepeatable: true,
+        repeatableSectionId: parsed.repeatableSectionId,
+        instanceIndex: parsed.instanceIndex,
+        originalSource: parsed.originalSource
+      };
+    }
+  } catch (e) {
+    // Not JSON, treat as regular source
+  }
+  
+  return { isRepeatable: false };
+};
+
+// Helper function to group responses by submission (for repeatable sections)
+// Responses from the same submission are grouped together
+const groupResponsesBySubmission = (responses: FormResponse[]): Map<string, FormResponse[]> => {
+  const groups = new Map<string, FormResponse[]>();
+  
+  responses.forEach(response => {
+    const metadata = parseRepeatableMetadata(response.source);
+    
+    if (metadata.isRepeatable && metadata.originalSource) {
+      // Group by originalSource + respondentEmail + startedAt (rounded to nearest second)
+      // This identifies responses from the same submission
+      const startedAtRounded = response.startedAt 
+        ? new Date(response.startedAt).setMilliseconds(0) 
+        : 0;
+      const groupKey = `${metadata.originalSource}_${response.respondentEmail || 'anonymous'}_${startedAtRounded}`;
+      
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(response);
+    } else {
+      // Non-repeatable response - each is its own group
+      const groupKey = `single_${response.id}`;
+      groups.set(groupKey, [response]);
+    }
+  });
+  
+  // Sort responses within each group by instanceIndex
+  groups.forEach((groupResponses, key) => {
+    if (key.startsWith('single_')) return; // Don't sort single responses
+    
+    groupResponses.sort((a, b) => {
+      const metaA = parseRepeatableMetadata(a.source);
+      const metaB = parseRepeatableMetadata(b.source);
+      return (metaA.instanceIndex || 0) - (metaB.instanceIndex || 0);
+    });
+  });
+  
+  return groups;
+};
+
+// Helper function to get repeatable sections from form
+const getRepeatableSections = (form: Form): Array<{ id: string; title: string; questions: FormQuestion[] }> => {
+  return form.sections
+    .filter(section => (section as any).conditional?.repeatable)
+    .map(section => ({
+      id: section.id,
+      title: section.title,
+      questions: section.questions
+    }));
+};
+
+// Helper function to flatten grouped responses for display/export
+// Transforms multiple rows (one per instance) into one row with instance columns
+interface FlattenedResponse {
+  id: string;
+  respondentEmail?: string;
+  isComplete: boolean;
+  submittedAt: Date | null;
+  startedAt: Date | null;
+  data: Record<string, any>; // Flattened data with instance columns
+  attachments: MediaAttachment[];
+  originalResponses: FormResponse[]; // Keep reference to original responses
+}
+
+const flattenGroupedResponses = (
+  groupedResponses: FormResponse[],
+  form: Form
+): FlattenedResponse | null => {
+  if (groupedResponses.length === 0) return null;
+  
+  const firstResponse = groupedResponses[0];
+  const metadata = parseRepeatableMetadata(firstResponse.source);
+  
+  // If not a repeatable section group, return as-is
+  if (!metadata.isRepeatable || groupedResponses.length === 1) {
+    return {
+      id: firstResponse.id,
+      respondentEmail: firstResponse.respondentEmail,
+      isComplete: firstResponse.isComplete,
+      submittedAt: firstResponse.submittedAt || null,
+      startedAt: firstResponse.startedAt || null,
+      data: firstResponse.data,
+      attachments: firstResponse.attachments || [],
+      originalResponses: [firstResponse]
+    };
+  }
+  
+  // Get repeatable sections
+  const repeatableSections = getRepeatableSections(form);
+  const repeatableSection = repeatableSections.find(s => s.id === metadata.repeatableSectionId);
+  
+  if (!repeatableSection) {
+    // Fallback: if we can't find the section, return first response
+    return {
+      id: firstResponse.id,
+      respondentEmail: firstResponse.respondentEmail,
+      isComplete: firstResponse.isComplete,
+      submittedAt: firstResponse.submittedAt || null,
+      startedAt: firstResponse.startedAt || null,
+      data: firstResponse.data,
+      attachments: firstResponse.attachments || [],
+      originalResponses: groupedResponses
+    };
+  }
+  
+  // Merge data from all instances
+  const flattenedData: Record<string, any> = {};
+  const allAttachments: MediaAttachment[] = [];
+  
+  // First, get non-repeatable section data (should be same across all instances)
+  const nonRepeatableSections = form.sections.filter(
+    section => !(section as any).conditional?.repeatable
+  );
+  
+  nonRepeatableSections.forEach(section => {
+    section.questions.forEach(question => {
+      // Use data from first response (should be same across all)
+      if (firstResponse.data[question.id] !== undefined) {
+        flattenedData[question.id] = firstResponse.data[question.id];
+      }
+    });
+  });
+  
+  // Then, add repeatable section data with instance suffixes
+  groupedResponses.forEach((response, index) => {
+    const instanceNum = index + 1;
+    const responseMetadata = parseRepeatableMetadata(response.source);
+    const instanceIndex = responseMetadata.instanceIndex ?? index;
+    
+    repeatableSection.questions.forEach(question => {
+      const instanceKey = `${question.id}_instance_${instanceIndex}`;
+      if (response.data[question.id] !== undefined) {
+        flattenedData[instanceKey] = response.data[question.id];
+      }
+    });
+    
+    // Collect attachments
+    if (response.attachments) {
+      allAttachments.push(...response.attachments);
+    }
+  });
+  
+  return {
+    id: firstResponse.id, // Use first response ID as primary
+    respondentEmail: firstResponse.respondentEmail,
+    isComplete: groupedResponses.every(r => r.isComplete), // All must be complete
+    submittedAt: firstResponse.submittedAt || null, // Use first submission time
+    startedAt: firstResponse.startedAt || null, // Use first start time
+    data: flattenedData,
+    attachments: allAttachments,
+    originalResponses: groupedResponses
   };
 };
 
@@ -628,13 +867,53 @@ export function FormResponseViewer() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalResponses);
   const paginatedResponses = responses; // Already paginated from server
+  
+  // Flatten responses for repeatable sections (group and flatten)
+  const responseGroups = groupResponsesBySubmission(paginatedResponses);
+  const repeatableSections = form ? getRepeatableSections(form) : [];
+  const maxInstancesBySection = new Map<string, number>();
+  
+  repeatableSections.forEach(section => {
+    let maxInstances = 0;
+    responseGroups.forEach((groupResponses) => {
+      const firstResponse = groupResponses[0];
+      const metadata = parseRepeatableMetadata(firstResponse.source);
+      if (metadata.isRepeatable && metadata.repeatableSectionId === section.id) {
+        maxInstances = Math.max(maxInstances, groupResponses.length);
+      }
+    });
+    maxInstancesBySection.set(section.id, maxInstances || 1);
+  });
+  
+  const overallMaxInstances = form ? Math.max(...Array.from(maxInstancesBySection.values()), 1) : 1;
+  const flattenedResponsesForView: FlattenedResponse[] = [];
+  
+  if (form) {
+    responseGroups.forEach((groupResponses) => {
+      const flattened = flattenGroupedResponses(groupResponses, form);
+      if (flattened) {
+        flattenedResponsesForView.push(flattened);
+      }
+    });
+  }
 
   // Handler functions
   const handleEditResponse = (rowData: any) => {
     if (rowData.isExisting && rowData.responseId) {
-      const originalResponse = responses.find(r => r.id === rowData.responseId);
-      if (originalResponse) {
-        setSelectedResponse(originalResponse);
+      // For flattened responses, use the first original response for editing
+      // (or find the response by ID if it's not a grouped response)
+      let responseToEdit: FormResponse | null = null;
+      
+      if (rowData.originalResponses && rowData.originalResponses.length > 0) {
+        // Use first original response from the group
+        responseToEdit = rowData.originalResponses[0];
+      } else {
+        // Fallback: find by ID
+        responseToEdit = responses.find(r => r.id === rowData.responseId) || null;
+      }
+      
+      if (responseToEdit) {
+        setSelectedResponse(responseToEdit);
         setEditModalOpen(true);
       }
     }
@@ -659,25 +938,26 @@ export function FormResponseViewer() {
   const generateTableRows = () => {
     const rows = [];
     
-    // Add existing responses
-    paginatedResponses.forEach((response, index) => {
+    // Add existing flattened responses
+    flattenedResponsesForView.forEach((flattenedResponse, index) => {
       rows.push({
         rowIndex: startIndex + index,
-        responseId: response.id,
+        responseId: flattenedResponse.id,
         isExisting: true,
-        data: response.data,
-        attachments: response.attachments || [],
-        respondentEmail: response.respondentEmail,
-        isComplete: response.isComplete,
-        submittedAt: response.submittedAt,
-        startedAt: response.startedAt
+        data: flattenedResponse.data, // Use flattened data with instance keys
+        attachments: flattenedResponse.attachments || [],
+        respondentEmail: flattenedResponse.respondentEmail,
+        isComplete: flattenedResponse.isComplete,
+        submittedAt: flattenedResponse.submittedAt,
+        startedAt: flattenedResponse.startedAt,
+        originalResponses: flattenedResponse.originalResponses // Keep reference for editing
       });
     });
     
     // Add blank rows for manual entry
-    const blankRowsNeeded = itemsPerPage - paginatedResponses.length;
+    const blankRowsNeeded = itemsPerPage - flattenedResponsesForView.length;
     for (let i = 0; i < blankRowsNeeded; i++) {
-      const rowIndex = startIndex + paginatedResponses.length + i;
+      const rowIndex = startIndex + flattenedResponsesForView.length + i;
       rows.push({
         rowIndex,
         responseId: null,
@@ -687,7 +967,8 @@ export function FormResponseViewer() {
         respondentEmail: null,
         isComplete: false,
         submittedAt: null,
-        startedAt: null
+        startedAt: null,
+        originalResponses: []
       });
     }
     
@@ -789,6 +1070,37 @@ export function FormResponseViewer() {
       console.log(`✅ Fetched ${exportResult.total} responses for export`);
 
       const allResponses = exportResult.responses;
+      
+      // Group responses by submission (for repeatable sections)
+      const responseGroups = groupResponsesBySubmission(allResponses);
+      
+      // Calculate max instances for each repeatable section
+      const repeatableSections = getRepeatableSections(form);
+      const maxInstancesBySection = new Map<string, number>();
+      
+      repeatableSections.forEach(section => {
+        let maxInstances = 0;
+        responseGroups.forEach((groupResponses) => {
+          const firstResponse = groupResponses[0];
+          const metadata = parseRepeatableMetadata(firstResponse.source);
+          if (metadata.isRepeatable && metadata.repeatableSectionId === section.id) {
+            maxInstances = Math.max(maxInstances, groupResponses.length);
+          }
+        });
+        maxInstancesBySection.set(section.id, maxInstances || 1);
+      });
+      
+      // Get overall max instances (for column generation)
+      const overallMaxInstances = Math.max(...Array.from(maxInstancesBySection.values()), 1);
+      
+      // Flatten grouped responses
+      const flattenedResponses: FlattenedResponse[] = [];
+      responseGroups.forEach((groupResponses) => {
+        const flattened = flattenGroupedResponses(groupResponses, form);
+        if (flattened) {
+          flattenedResponses.push(flattened);
+        }
+      });
     
       // Helper function to escape CSV values
       const escapeCsvValue = (value: any): string => {
@@ -814,41 +1126,35 @@ export function FormResponseViewer() {
         
         return `${month}-${day}-${year}`;
       };
-
-      // Helper function to get all questions including conditional ones
-      const getAllQuestions = () => {
-        const allQuestions: Array<{question: any, sectionTitle: string, isConditional?: boolean, parentQuestionId?: string, parentQuestionTitle?: string, parentOption?: string}> = [];
+      
+      // Helper function to format question value for CSV
+      const formatQuestionValue = (value: any, question: any): string => {
+        if (value === undefined || value === null) return '';
         
-        form.sections.forEach(section => {
-          // Add main questions
-          section.questions.forEach(question => {
-            allQuestions.push({
-              question,
-              sectionTitle: section.title,
-              isConditional: false
-            });
-            
-            // Add conditional questions from choice options
-            if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
-              question.options.forEach((option: any) => {
-                if (option.conditionalQuestions && option.conditionalQuestions.length > 0) {
-                  option.conditionalQuestions.forEach((conditionalQuestion: any) => {
-                    allQuestions.push({
-                      question: conditionalQuestion,
-                      sectionTitle: section.title,
-                      isConditional: true,
-                      parentQuestionId: question.id,
-                      parentQuestionTitle: question.title,
-                      parentOption: option.label
-                    });
-                  });
-                }
-              });
-            }
+        if (Array.isArray(value)) {
+          return value.join('; ');
+        } else if (question.type === 'SINGLE_CHOICE' && question.options) {
+          const option = question.options.find((opt: any) => opt.value === value);
+          return option ? option.label : String(value);
+        } else if (question.type === 'MULTIPLE_CHOICE' && question.options) {
+          const selectedOptions = Array.isArray(value) ? value : [value];
+          const optionLabels = selectedOptions.map((val: any) => {
+            const option = question.options.find((opt: any) => opt.value === val);
+            return option ? option.label : val;
           });
-        });
+          return optionLabels.join('; ');
+        } else if (question.type === 'DATE' || question.type === 'DATETIME') {
+          return formatDate(value);
+        } else if (question.type === 'LOCATION') {
+          if (typeof value === 'object' && value !== null) {
+            const lat = value.latitude ?? value.lat ?? '';
+            const lng = value.longitude ?? value.lng ?? '';
+            return `${lat}, ${lng}`;
+          }
+          return String(value);
+        }
         
-        return allQuestions;
+        return String(value);
       };
 
       // Create CSV content
@@ -860,13 +1166,20 @@ export function FormResponseViewer() {
         'Completion Time (minutes)'
       ];
       
-      // Add question headers (flatten LOCATION questions)
-      const allQuestions = getAllQuestions();
-      allQuestions.forEach(({question, isConditional, parentQuestionTitle, parentOption}) => {
+      // Add question headers with instance columns for repeatable sections
+      const allQuestions = getAllQuestionsInOrder(form, overallMaxInstances);
+      allQuestions.forEach(({question, isConditional, parentQuestion, parentOption, isRepeatable, instanceIndex, instanceKey}) => {
         let headerTitle = question.title;
-        if (isConditional) {
-          headerTitle = `${question.title} (Conditional: ${parentQuestionTitle} → ${parentOption})`;
+        
+        // Add instance suffix for repeatable sections
+        if (isRepeatable && instanceIndex !== undefined) {
+          headerTitle = `${question.title} (Instance ${instanceIndex + 1})`;
         }
+        
+        if (isConditional) {
+          headerTitle = `${question.title} (Conditional: ${parentQuestion?.title || 'Unknown'} → ${parentOption?.label || parentOption})${isRepeatable && instanceIndex !== undefined ? ` - Instance ${instanceIndex + 1}` : ''}`;
+        }
+        
         if (question.type === 'LOCATION') {
           headers.push(`${headerTitle} - Latitude`);
           headers.push(`${headerTitle} - Longitude`);
@@ -879,42 +1192,63 @@ export function FormResponseViewer() {
 
       const csvContent = [
         headers.map(escapeCsvValue).join(','),
-        ...allResponses.map(response => {
-          const completionTime = response.submittedAt && response.startedAt
-            ? Math.round(((new Date(response.submittedAt)).getTime() - (new Date(response.startedAt)).getTime()) / (1000 * 60))
+        ...flattenedResponses.map(flattenedResponse => {
+          const completionTime = flattenedResponse.submittedAt && flattenedResponse.startedAt
+            ? Math.round(((new Date(flattenedResponse.submittedAt)).getTime() - (new Date(flattenedResponse.startedAt)).getTime()) / (1000 * 60))
             : '';
 
           const row = [
-            response.id,
-            response.respondentEmail || 'Anonymous',
-            response.isComplete ? 'Complete' : 'Incomplete',
-            response.submittedAt ? formatDate(response.submittedAt) : 'Not submitted',
+            flattenedResponse.id,
+            flattenedResponse.respondentEmail || 'Anonymous',
+            flattenedResponse.isComplete ? 'Complete' : 'Incomplete',
+            flattenedResponse.submittedAt ? formatDate(flattenedResponse.submittedAt) : 'Not submitted',
             completionTime
           ];
           
-          // Add question responses
-          allQuestions.forEach(({question, isConditional, parentQuestionId}) => {
+          // Add question responses using flattened data
+          allQuestions.forEach(({question, isConditional, parentQuestion, instanceKey}) => {
             let value;
-            let attachments = response.attachments?.filter(att => att.questionId === question.id) || [];
+            let attachments: MediaAttachment[] = [];
+            
+            // Determine the key to use for lookup
+            const dataKey = instanceKey || question.id;
+            const parentQuestionId = parentQuestion?.id;
             
             if (isConditional && parentQuestionId) {
-              // For conditional questions, extract from nested parent response
-              const parentResponseValue = response.data[parentQuestionId];
-              if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
-                value = parentResponseValue[question.id];
+              // For conditional questions in repeatable sections
+              if (instanceKey) {
+                // Repeatable conditional question
+                const parentInstanceKey = `${parentQuestionId}_instance_${instanceKey.split('_instance_')[1]}`;
+                const parentResponseValue = flattenedResponse.data[parentInstanceKey];
+                if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                  value = parentResponseValue[question.id];
+                } else {
+                  value = null;
+                }
               } else {
-                value = null;
+                // Non-repeatable conditional question
+                const parentResponseValue = flattenedResponse.data[parentQuestionId];
+                if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                  value = parentResponseValue[question.id];
+                } else {
+                  value = null;
+                }
               }
             } else {
-              // For main questions, use direct response data
-              value = response.data[question.id];
+              // For main questions, use flattened data with instance key if applicable
+              value = flattenedResponse.data[dataKey];
               
               // Handle nested structure for parent questions that have conditional children
               if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
-                // This is a parent question with conditional children, use the parent value for display
                 value = value._parentValue;
               }
             }
+            
+            // Get attachments for this question (check all original responses)
+            flattenedResponse.originalResponses.forEach(originalResponse => {
+              const questionAttachments = originalResponse.attachments?.filter(att => att.questionId === question.id) || [];
+              attachments.push(...questionAttachments);
+            });
             
             if (question.type === 'LOCATION') {
               // Flatten location into 4 columns
@@ -927,28 +1261,7 @@ export function FormResponseViewer() {
               row.push(String(acc));
               row.push(String(addr));
             } else {
-              let displayValue = '';
-              if (value !== undefined && value !== null) {
-                if (Array.isArray(value)) {
-                  displayValue = value.join('; ');
-                } else if (question.type === 'SINGLE_CHOICE' && question.options) {
-                  const option = question.options.find((opt: any) => opt.value === value);
-                  displayValue = option ? option.label : String(value);
-                } else if (question.type === 'MULTIPLE_CHOICE' && question.options) {
-                  // For multiple choice, value should be an array of selected values
-                  const selectedOptions = Array.isArray(value) ? value : [value];
-                  const optionLabels = selectedOptions.map((val: any) => {
-                    const option = question.options.find((opt: any) => opt.value === val);
-                    return option ? option.label : val;
-                  });
-                  displayValue = optionLabels.join('; ');
-                } else if (question.type === 'DATE' || question.type === 'DATETIME') {
-                  // Format dates as mm-dd-yyyy
-                  displayValue = formatDate(value);
-                } else {
-                  displayValue = String(value);
-                }
-              }
+              let displayValue = formatQuestionValue(value, question);
               
               // Add attachment info for media uploads
               if (attachments.length > 0) {
@@ -975,7 +1288,7 @@ export function FormResponseViewer() {
 
       toast({
         title: "Export Complete",
-        description: `Successfully exported ${allResponses.length} responses to CSV.`,
+        description: `Successfully exported ${flattenedResponses.length} submission${flattenedResponses.length !== 1 ? 's' : ''} to CSV${flattenedResponses.length !== allResponses.length ? ` (${allResponses.length} individual responses grouped)` : ''}.`,
       });
     } catch (error) {
       console.error('❌ Export failed:', error);
@@ -1242,15 +1555,20 @@ export function FormResponseViewer() {
                           Row ID
                         </TableHead>
                         
-                        {/* Question columns - including conditional questions */}
-                        {form && getAllQuestionsInOrder(form).map(({ question, isConditional, parentQuestion, parentOption }) => {
+                        {/* Question columns - including conditional questions and instance columns for repeatable sections */}
+                        {form && getAllQuestionsInOrder(form, overallMaxInstances).map(({ question, isConditional, parentQuestion, parentOption, isRepeatable, instanceIndex, instanceKey }) => {
+                          const columnKey = instanceKey || question.id;
+                          
                           if (isConditional) {
                             // Conditional question column
                             return (
-                              <TableHead key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900 bg-blue-50">
+                              <TableHead key={columnKey} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900 bg-blue-50">
                                 <div>
                                   <div className="font-medium text-blue-800">
                                     {question.title}
+                                    {isRepeatable && instanceIndex !== undefined && (
+                                      <span className="text-blue-600 ml-1">(Instance {instanceIndex + 1})</span>
+                                    )}
                                     <span className="text-blue-600 ml-1">*</span>
                                   </div>
                                   <div className="text-blue-600 text-xs">
@@ -1265,13 +1583,19 @@ export function FormResponseViewer() {
                           } else {
                             // Main question column
                             return (
-                              <TableHead key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
+                              <TableHead key={columnKey} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
                                 <div>
                                   <div className={`${question.isRequired ? 'font-bold' : 'font-medium'}`}>
                                     {question.title}
+                                    {isRepeatable && instanceIndex !== undefined && (
+                                      <span className="text-purple-600 ml-1 text-xs">(Instance {instanceIndex + 1})</span>
+                                    )}
                                     {question.isRequired && <span className="text-red-500 ml-1">*</span>}
                                   </div>
-                                  <div className="text-gray-500">{question.type.replace('_', ' ')}</div>
+                                  <div className="text-gray-500">
+                                    {question.type.replace('_', ' ')}
+                                    {isRepeatable && <span className="text-purple-500 ml-1">(repeatable)</span>}
+                                  </div>
                                 </div>
                               </TableHead>
                             );
@@ -1309,16 +1633,31 @@ export function FormResponseViewer() {
                           </TableCell>
                             
                             {/* Question response cells - matching the header structure exactly */}
-                            {form && getAllQuestionsInOrder(form).map(({ question, isConditional, parentQuestion }) => {
+                            {form && getAllQuestionsInOrder(form, overallMaxInstances).map(({ question, isConditional, parentQuestion, instanceKey }) => {
+                              const cellKey = instanceKey || question.id;
+                              
                               if (isConditional) {
                                 // For conditional questions, extract response from parent question's nested data
-                                const parentResponseValue = row.data[parentQuestion?.id || ''];
-                                const conditionalResponse = (typeof parentResponseValue === 'object' && parentResponseValue !== null) 
-                                  ? parentResponseValue[question.id] 
-                                  : null;
+                                // Handle both repeatable and non-repeatable conditional questions
+                                let conditionalResponse = null;
+                                
+                                if (instanceKey) {
+                                  // Repeatable conditional question - use instance key for parent
+                                  const parentInstanceKey = `${parentQuestion?.id}_instance_${instanceKey.split('_instance_')[1]}`;
+                                  const parentResponseValue = row.data[parentInstanceKey];
+                                  if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                                    conditionalResponse = parentResponseValue[question.id];
+                                  }
+                                } else {
+                                  // Non-repeatable conditional question
+                                  const parentResponseValue = row.data[parentQuestion?.id || ''];
+                                  if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                                    conditionalResponse = parentResponseValue[question.id];
+                                  }
+                                }
                                 
                                 return (
-                                  <TableCell key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 bg-blue-50">
+                                  <TableCell key={cellKey} className="min-w-[150px] border border-gray-300 px-2 py-2 bg-blue-50">
                                     <div className="text-xs">
                                       {conditionalResponse !== null && conditionalResponse !== undefined ? (
                                         <div className="text-blue-800">
@@ -1334,9 +1673,20 @@ export function FormResponseViewer() {
                                   </TableCell>
                                 );
                               } else {
-                                // For main questions, use the standard ResponseCell
-                                const responseValue = row.data[question.id];
-                                const attachments = row.attachments?.filter((att: any) => att.questionId === question.id) || [];
+                                // For main questions, use flattened data with instance key if applicable
+                                const dataKey = instanceKey || question.id;
+                                const responseValue = row.data[dataKey];
+                                
+                                // Get attachments for this question (from original responses if available)
+                                let attachments: MediaAttachment[] = [];
+                                if (row.originalResponses && row.originalResponses.length > 0) {
+                                  row.originalResponses.forEach((originalResponse: FormResponse) => {
+                                    const questionAttachments = originalResponse.attachments?.filter((att: any) => att.questionId === question.id) || [];
+                                    attachments.push(...questionAttachments);
+                                  });
+                                } else {
+                                  attachments = row.attachments?.filter((att: any) => att.questionId === question.id) || [];
+                                }
                                 
                                 // Extract the actual parent response value (handle nested structure)
                                 let actualResponseValue = responseValue;
@@ -1345,13 +1695,13 @@ export function FormResponseViewer() {
                                 }
                                 
                                 return (
-                                  <TableCell key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2">
+                                  <TableCell key={cellKey} className="min-w-[150px] border border-gray-300 px-2 py-2">
                                     <ResponseCell 
                                       question={question}
                                       value={actualResponseValue}
                                       attachments={attachments}
                                       isEditable={!row.isExisting}
-                                      onValueChange={(value) => handleManualDataChange(row.rowIndex, question.id, value)}
+                                      onValueChange={(value) => handleManualDataChange(row.rowIndex, dataKey, value)}
                                       responseData={row.data}
                                     />
                                   </TableCell>

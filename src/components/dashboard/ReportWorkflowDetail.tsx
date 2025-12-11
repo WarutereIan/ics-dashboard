@@ -66,7 +66,7 @@ export function ReportWorkflowDetail({ reportId, onClose, onChanged }: ReportWor
         // Load available users for delegation/escalation if projectId is available
         if (projectId) {
           try {
-            const usersResponse = await apiClient.get(`/projects/${projectId}/users?limit=100`);
+            const usersResponse = await apiClient.get<{ users: any[] }>(`/projects/${projectId}/users?limit=100`);
             if (usersResponse.success && usersResponse.data?.users) {
               setAvailableUsers(usersResponse.data.users);
             }

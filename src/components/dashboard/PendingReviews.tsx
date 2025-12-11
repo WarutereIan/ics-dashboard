@@ -75,7 +75,7 @@ export function PendingReviews({ projectId, refreshTrigger }: PendingReviewsProp
     
     // Load available users for bulk operations
     if (projectId) {
-      apiClient.get(`/projects/${projectId}/users?limit=100`)
+      apiClient.get<{ users: any[] }>(`/projects/${projectId}/users?limit=100`)
         .then((response) => {
           if (response.success && response.data?.users) {
             setAvailableUsers(response.data.users);

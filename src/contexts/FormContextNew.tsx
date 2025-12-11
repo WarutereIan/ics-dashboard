@@ -370,8 +370,9 @@ export function FormProvider({ children }: FormProviderProps) {
     setError(null);
     
     try {
-      const responses = await formsApi.getFormResponses(projectId, formId);
-      return responses;
+      const responsesResult = await formsApi.getFormResponses(projectId, formId);
+      // Extract responses array from the paginated result
+      return responsesResult.responses || [];
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load form responses';
       setError(errorMessage);

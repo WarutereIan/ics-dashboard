@@ -94,10 +94,11 @@ export function ProjectMapVisualization({ project, mapData }: ProjectMapVisualiz
         // Process each form in the project
         for (const form of forms) {
           try {
-            const responses = await getFormResponses(projectId, form.id);
+            const responsesResult = await getFormResponses(projectId, form.id);
+            const responses = responsesResult.responses || [];
             console.log(`🗺️ Processing ${responses.length} responses for form:`, form.title);
             
-              responses.forEach(response => {
+              responses.forEach((response: FormResponse) => {
                 // Look for location questions in the response data
                 Object.entries(response.data).forEach(([questionId, value]) => {
                   // Check if this is a location response
