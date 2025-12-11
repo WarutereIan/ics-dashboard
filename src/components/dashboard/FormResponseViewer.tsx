@@ -528,7 +528,11 @@ export function FormResponseViewer() {
   
   const [form, setForm] = useState<Form | null>(null);
   const [responses, setResponses] = useState<FormResponse[]>([]);
+  const [totalResponses, setTotalResponses] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(1);
+  const [responseStats, setResponseStats] = useState({ totalAll: 0, totalComplete: 0, totalIncomplete: 0 });
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -539,31 +543,28 @@ export function FormResponseViewer() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedResponse, setSelectedResponse] = useState<FormResponse | null>(null);
 
-  // Load form and responses
+  // Debounce search term for API calls
   useEffect(() => {
-    const loadData = async () => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Load form data (once on mount)
+  useEffect(() => {
+    const loadFormData = async () => {
       if (formId && projectId) {
-        setIsLoading(true);
-        console.log('🔄 FormResponseViewer: Loading fresh data for form:', formId);
-        
         try {
-          // Load complete form data (with all question details) for editing
-          console.log('🔄 FormResponseViewer: Loading complete form data for:', formId);
+          console.log('🔄 FormResponseViewer: Loading form data for:', formId);
           const completeForm = await formsApi.getForm(projectId, formId);
           if (completeForm) {
-            // Transform the form data to extract options from config
             const transformedForm = transformFormData(completeForm);
             setForm(transformedForm);
-            console.log('📋 FormResponseViewer: Loaded complete form with', transformedForm.sections?.length || 0, 'sections');
-            console.log('🔍 FormResponseViewer: Raw form data:', JSON.stringify(completeForm, null, 2));
-            console.log('🔍 FormResponseViewer: Transformed form data:', JSON.stringify(transformedForm, null, 2));
-            // Check first question structure for debugging
-            if (transformedForm.sections?.[0]?.questions?.[0]) {
-              console.log('🔍 First question structure:', transformedForm.sections[0].questions[0]);
-            }
+            console.log('📋 FormResponseViewer: Loaded form with', transformedForm.sections?.length || 0, 'sections');
           } else {
             console.log('⚠️ FormResponseViewer: Complete form not found, trying project forms list');
-            // Fallback to project forms list if direct form fetch fails
             const projectForms = await loadProjectForms(projectId);
             const foundForm = projectForms.find((f: Form) => f.id === formId);
             if (foundForm) {
@@ -572,17 +573,43 @@ export function FormResponseViewer() {
               console.log('📦 FormResponseViewer: Found form in project list:', foundForm.title);
             }
           }
-
-          // Always load fresh responses from API
-          console.log('🔄 FormResponseViewer: Loading fresh responses for form:', formId);
-          const formResponses = await getFormResponses(projectId, formId);
-          setResponses(formResponses);
-          console.log('✅ FormResponseViewer: Loaded', formResponses.length, 'fresh responses');
         } catch (error) {
           console.error('❌ FormResponseViewer: Error loading form data:', error);
           toast({
             title: "Error",
             description: "Failed to load form data",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    loadFormData();
+  }, [formId, projectId]);
+
+  // Load responses with server-side pagination
+  useEffect(() => {
+    const loadResponses = async () => {
+      if (formId && projectId) {
+        setIsLoading(true);
+        try {
+          console.log('🔄 FormResponseViewer: Loading responses page', currentPage, 'with', itemsPerPage, 'items');
+          const result = await getFormResponses(projectId, formId, {
+            page: currentPage,
+            limit: itemsPerPage,
+            search: debouncedSearchTerm || undefined,
+            status: statusFilter as 'all' | 'complete' | 'incomplete'
+          });
+          setResponses(result.responses);
+          setTotalResponses(result.total);
+          setServerTotalPages(result.totalPages);
+          setResponseStats(result.stats);
+          console.log('✅ FormResponseViewer: Loaded', result.responses.length, 'responses (total:', result.total, ', stats:', result.stats, ')');
+        } catch (error) {
+          console.error('❌ FormResponseViewer: Error loading responses:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load form responses",
             variant: "destructive",
           });
         } finally {
@@ -591,32 +618,16 @@ export function FormResponseViewer() {
       }
     };
 
-    loadData();
-  }, [formId, projectId]); // Only depend on stable values, not functions
+    loadResponses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formId, projectId, currentPage, itemsPerPage, debouncedSearchTerm, statusFilter]);
 
-  // Filter responses
-  const filteredResponses = responses.filter((response) => {
-    const matchesSearch = searchTerm === '' || 
-      response.respondentEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      Object.values(response.data).some(value => 
-        String(value).toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'complete' && response.isComplete) ||
-      (statusFilter === 'incomplete' && !response.isComplete);
-    
-    // Date filter logic would go here
-    const matchesDate = true; // Simplified for now
-    
-    return matchesSearch && matchesStatus && matchesDate;
-  });
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredResponses.length / itemsPerPage);
+  // Server-side pagination - responses are already filtered and paginated
+  const filteredResponses = responses;
+  const totalPages = serverTotalPages;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedResponses = filteredResponses.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + itemsPerPage, totalResponses);
+  const paginatedResponses = responses; // Already paginated from server
 
   // Handler functions
   const handleEditResponse = (rowData: any) => {
@@ -685,25 +696,25 @@ export function FormResponseViewer() {
 
   const tableRows = generateTableRows();
 
-  // Reset to first page when filters change
+  // Reset to first page when status filter or date filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, dateFilter]);
+  }, [statusFilter, dateFilter]);
 
-  // Calculate analytics
+  // Calculate analytics using server-side stats for totals
   const analytics = {
-    totalResponses: responses.length,
-    completeResponses: responses.filter(r => r.isComplete).length,
-    incompleteResponses: responses.filter(r => !r.isComplete).length,
+    totalResponses: responseStats.totalAll,
+    completeResponses: responseStats.totalComplete,
+    incompleteResponses: responseStats.totalIncomplete,
+    // Average completion time is calculated from current page responses (approximation)
     averageCompletionTime: responses
       .filter(r => r.isComplete && r.submittedAt && r.startedAt)
       .reduce((acc, r) => {
-        // Convert string dates to Date objects if necessary
         const submittedAt = r.submittedAt instanceof Date ? r.submittedAt : new Date(r.submittedAt!);
         const startedAt = r.startedAt instanceof Date ? r.startedAt : new Date(r.startedAt);
         const timeMs = submittedAt.getTime() - startedAt.getTime();
-        return acc + timeMs / (1000 * 60); // Convert to minutes
-      }, 0) / responses.filter(r => r.isComplete).length || 0,
+        return acc + timeMs / (1000 * 60);
+      }, 0) / Math.max(responses.filter(r => r.isComplete).length, 1),
   };
 
   const handleManualDataChange = (rowIndex: number, questionId: string, value: any) => {
@@ -760,229 +771,220 @@ export function FormResponseViewer() {
     });
   };
 
-  const handleExportData = () => {
-    if (!form) return;
+  const handleExportData = async () => {
+    if (!form || !projectId || !formId) return;
     
-    // Helper function to escape CSV values
-    const escapeCsvValue = (value: any): string => {
-      if (value === null || value === undefined) return '';
-      
-      const stringValue = String(value);
-      // If value contains comma, newline, or quote, wrap in quotes and escape quotes
-      if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    };
+    // Show loading toast
+    toast({
+      title: "Exporting...",
+      description: "Fetching all responses for export. This may take a moment for large datasets.",
+    });
 
-    // Helper function to format dates as mm-dd-yyyy
-    const formatDate = (date: Date | string | null | undefined): string => {
-      if (!date) return '';
-      const dateObj = date instanceof Date ? date : new Date(date);
-      if (isNaN(dateObj.getTime())) return '';
-      
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      const year = dateObj.getFullYear();
-      
-      return `${month}-${day}-${year}`;
-    };
+    try {
+      // Fetch ALL responses using the optimized export endpoint
+      console.log('📤 Starting export - fetching all responses...');
+      const exportResult = await formsApi.getFormResponsesForExport(projectId, formId, {
+        status: statusFilter as 'all' | 'complete' | 'incomplete'
+      });
+      console.log(`✅ Fetched ${exportResult.total} responses for export`);
 
-    // Helper function to format GPS coordinates
-    const formatGpsCoordinates = (gpsData: any): string => {
-      if (!gpsData) return '';
-      
-      if (typeof gpsData === 'object') {
-        // Try different possible property names for coordinates
-        if (gpsData.latitude !== undefined && gpsData.longitude !== undefined) {
-          return `${gpsData.latitude}, ${gpsData.longitude}`;
-        }
-        if (gpsData.lat !== undefined && gpsData.lng !== undefined) {
-          return `${gpsData.lat}, ${gpsData.lng}`;
-        }
-        if (gpsData.coordinates) {
-          const coords = gpsData.coordinates;
-          if (coords.lat !== undefined && coords.lng !== undefined) {
-            return `${coords.lat}, ${coords.lng}`;
-          }
-          if (coords.latitude !== undefined && coords.longitude !== undefined) {
-            return `${coords.latitude}, ${coords.longitude}`;
-          }
-        }
+      const allResponses = exportResult.responses;
+    
+      // Helper function to escape CSV values
+      const escapeCsvValue = (value: any): string => {
+        if (value === null || value === undefined) return '';
         
-        // If it's an object but we can't extract coordinates, log it for debugging
-        console.log('🔍 GPS data structure:', gpsData);
-        return `[GPS Object: ${JSON.stringify(gpsData)}]`;
-      }
-      
-      return String(gpsData);
-    };
+        const stringValue = String(value);
+        // If value contains comma, newline, or quote, wrap in quotes and escape quotes
+        if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      };
 
-    // Helper function to get all questions including conditional ones
-    const getAllQuestions = () => {
-      const allQuestions: Array<{question: any, sectionTitle: string, isConditional?: boolean, parentQuestionId?: string, parentQuestionTitle?: string, parentOption?: string}> = [];
+      // Helper function to format dates as mm-dd-yyyy
+      const formatDate = (date: Date | string | null | undefined): string => {
+        if (!date) return '';
+        const dateObj = date instanceof Date ? date : new Date(date);
+        if (isNaN(dateObj.getTime())) return '';
+        
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        
+        return `${month}-${day}-${year}`;
+      };
+
+      // Helper function to get all questions including conditional ones
+      const getAllQuestions = () => {
+        const allQuestions: Array<{question: any, sectionTitle: string, isConditional?: boolean, parentQuestionId?: string, parentQuestionTitle?: string, parentOption?: string}> = [];
+        
+        form.sections.forEach(section => {
+          // Add main questions
+          section.questions.forEach(question => {
+            allQuestions.push({
+              question,
+              sectionTitle: section.title,
+              isConditional: false
+            });
+            
+            // Add conditional questions from choice options
+            if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
+              question.options.forEach((option: any) => {
+                if (option.conditionalQuestions && option.conditionalQuestions.length > 0) {
+                  option.conditionalQuestions.forEach((conditionalQuestion: any) => {
+                    allQuestions.push({
+                      question: conditionalQuestion,
+                      sectionTitle: section.title,
+                      isConditional: true,
+                      parentQuestionId: question.id,
+                      parentQuestionTitle: question.title,
+                      parentOption: option.label
+                    });
+                  });
+                }
+              });
+            }
+          });
+        });
+        
+        return allQuestions;
+      };
+
+      // Create CSV content
+      const headers = [
+        'Response ID',
+        'Email', 
+        'Status', 
+        'Submitted At', 
+        'Completion Time (minutes)'
+      ];
       
-      form.sections.forEach(section => {
-        // Add main questions
-        section.questions.forEach(question => {
-          allQuestions.push({
-            question,
-            sectionTitle: section.title,
-            isConditional: false
+      // Add question headers (flatten LOCATION questions)
+      const allQuestions = getAllQuestions();
+      allQuestions.forEach(({question, isConditional, parentQuestionTitle, parentOption}) => {
+        let headerTitle = question.title;
+        if (isConditional) {
+          headerTitle = `${question.title} (Conditional: ${parentQuestionTitle} → ${parentOption})`;
+        }
+        if (question.type === 'LOCATION') {
+          headers.push(`${headerTitle} - Latitude`);
+          headers.push(`${headerTitle} - Longitude`);
+          headers.push(`${headerTitle} - Accuracy`);
+          headers.push(`${headerTitle} - Address`);
+        } else {
+          headers.push(headerTitle);
+        }
+      });
+
+      const csvContent = [
+        headers.map(escapeCsvValue).join(','),
+        ...allResponses.map(response => {
+          const completionTime = response.submittedAt && response.startedAt
+            ? Math.round(((new Date(response.submittedAt)).getTime() - (new Date(response.startedAt)).getTime()) / (1000 * 60))
+            : '';
+
+          const row = [
+            response.id,
+            response.respondentEmail || 'Anonymous',
+            response.isComplete ? 'Complete' : 'Incomplete',
+            response.submittedAt ? formatDate(response.submittedAt) : 'Not submitted',
+            completionTime
+          ];
+          
+          // Add question responses
+          allQuestions.forEach(({question, isConditional, parentQuestionId}) => {
+            let value;
+            let attachments = response.attachments?.filter(att => att.questionId === question.id) || [];
+            
+            if (isConditional && parentQuestionId) {
+              // For conditional questions, extract from nested parent response
+              const parentResponseValue = response.data[parentQuestionId];
+              if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                value = parentResponseValue[question.id];
+              } else {
+                value = null;
+              }
+            } else {
+              // For main questions, use direct response data
+              value = response.data[question.id];
+              
+              // Handle nested structure for parent questions that have conditional children
+              if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
+                // This is a parent question with conditional children, use the parent value for display
+                value = value._parentValue;
+              }
+            }
+            
+            if (question.type === 'LOCATION') {
+              // Flatten location into 4 columns
+              const lat = value && typeof value === 'object' ? (value.latitude ?? value.lat ?? '') : '';
+              const lng = value && typeof value === 'object' ? (value.longitude ?? value.lng ?? '') : '';
+              const acc = value && typeof value === 'object' ? (value.accuracy ?? '') : '';
+              const addr = value && typeof value === 'object' ? (value.address ?? '') : '';
+              row.push(String(lat));
+              row.push(String(lng));
+              row.push(String(acc));
+              row.push(String(addr));
+            } else {
+              let displayValue = '';
+              if (value !== undefined && value !== null) {
+                if (Array.isArray(value)) {
+                  displayValue = value.join('; ');
+                } else if (question.type === 'SINGLE_CHOICE' && question.options) {
+                  const option = question.options.find((opt: any) => opt.value === value);
+                  displayValue = option ? option.label : String(value);
+                } else if (question.type === 'MULTIPLE_CHOICE' && question.options) {
+                  // For multiple choice, value should be an array of selected values
+                  const selectedOptions = Array.isArray(value) ? value : [value];
+                  const optionLabels = selectedOptions.map((val: any) => {
+                    const option = question.options.find((opt: any) => opt.value === val);
+                    return option ? option.label : val;
+                  });
+                  displayValue = optionLabels.join('; ');
+                } else if (question.type === 'DATE' || question.type === 'DATETIME') {
+                  // Format dates as mm-dd-yyyy
+                  displayValue = formatDate(value);
+                } else {
+                  displayValue = String(value);
+                }
+              }
+              
+              // Add attachment info for media uploads
+              if (attachments.length > 0) {
+                const attachmentInfo = attachments.map(att => `${att.fileName} (${formatFileSize(att.fileSize)})`).join('; ');
+                displayValue = displayValue ? `${displayValue} | Files: ${attachmentInfo}` : `Files: ${attachmentInfo}`;
+              }
+              
+              row.push(displayValue);
+            }
           });
           
-          // Add conditional questions from choice options
-          if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
-            question.options.forEach((option: any) => {
-              if (option.conditionalQuestions && option.conditionalQuestions.length > 0) {
-                option.conditionalQuestions.forEach((conditionalQuestion: any) => {
-                  allQuestions.push({
-                    question: conditionalQuestion,
-                    sectionTitle: section.title,
-                    isConditional: true,
-                    parentQuestionId: question.id,
-                    parentQuestionTitle: question.title,
-                    parentOption: option.label
-                  });
-                });
-              }
-            });
-          }
-        });
+          return row.map(escapeCsvValue).join(',');
+        })
+      ].join('\n');
+
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${form.title.replace(/[^a-z0-9]/gi, '_')}_responses.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Complete",
+        description: `Successfully exported ${allResponses.length} responses to CSV.`,
       });
-      
-      return allQuestions;
-    };
-
-    // Create CSV content
-    const headers = [
-      'Response ID',
-      'Email', 
-      'Status', 
-      'Submitted At', 
-      'Completion Time (minutes)'
-    ];
-    
-    // Add question headers (flatten LOCATION questions)
-    const allQuestions = getAllQuestions();
-    allQuestions.forEach(({question, sectionTitle, isConditional, parentQuestionTitle, parentOption}) => {
-      let headerTitle = question.title;
-      if (isConditional) {
-        headerTitle = `${question.title} (Conditional: ${parentQuestionTitle} → ${parentOption})`;
-      }
-      if (question.type === 'LOCATION') {
-        headers.push(`${headerTitle} - Latitude`);
-        headers.push(`${headerTitle} - Longitude`);
-        headers.push(`${headerTitle} - Accuracy`);
-        headers.push(`${headerTitle} - Address`);
-      } else {
-        headers.push(headerTitle);
-      }
-    });
-
-    // Reverse the order to export oldest to newest
-    const reversedResponses = [...filteredResponses].reverse();
-
-    const csvContent = [
-      headers.map(escapeCsvValue).join(','),
-      ...reversedResponses.map(response => {
-        const completionTime = response.submittedAt && response.startedAt
-          ? Math.round(((new Date(response.submittedAt)).getTime() - (new Date(response.startedAt)).getTime()) / (1000 * 60))
-          : '';
-
-        const row = [
-          response.id,
-          response.respondentEmail || 'Anonymous',
-          response.isComplete ? 'Complete' : 'Incomplete',
-          response.submittedAt ? formatDate(response.submittedAt) : 'Not submitted',
-          completionTime
-        ];
-        
-        // Add question responses
-        allQuestions.forEach(({question, isConditional, parentQuestionId}) => {
-          let value;
-          let attachments = response.attachments?.filter(att => att.questionId === question.id) || [];
-          
-          if (isConditional && parentQuestionId) {
-            // For conditional questions, extract from nested parent response
-            const parentResponseValue = response.data[parentQuestionId];
-            if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
-              value = parentResponseValue[question.id];
-            } else {
-              value = null;
-            }
-          } else {
-            // For main questions, use direct response data
-            value = response.data[question.id];
-            
-            // Handle nested structure for parent questions that have conditional children
-            if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
-              // This is a parent question with conditional children, use the parent value for display
-              value = value._parentValue;
-            }
-          }
-          
-          if (question.type === 'LOCATION') {
-            // Flatten location into 4 columns
-            const lat = value && typeof value === 'object' ? (value.latitude ?? value.lat ?? '') : '';
-            const lng = value && typeof value === 'object' ? (value.longitude ?? value.lng ?? '') : '';
-            const acc = value && typeof value === 'object' ? (value.accuracy ?? '') : '';
-            const addr = value && typeof value === 'object' ? (value.address ?? '') : '';
-            row.push(String(lat));
-            row.push(String(lng));
-            row.push(String(acc));
-            row.push(String(addr));
-          } else {
-            let displayValue = '';
-            if (value !== undefined && value !== null) {
-              if (Array.isArray(value)) {
-                displayValue = value.join('; ');
-              } else if (question.type === 'SINGLE_CHOICE' && question.options) {
-                const option = question.options.find((opt: any) => opt.value === value);
-                displayValue = option ? option.label : String(value);
-              } else if (question.type === 'MULTIPLE_CHOICE' && question.options) {
-                // For multiple choice, value should be an array of selected values
-                const selectedOptions = Array.isArray(value) ? value : [value];
-                const optionLabels = selectedOptions.map((val: any) => {
-                  const option = question.options.find((opt: any) => opt.value === val);
-                  return option ? option.label : val;
-                });
-                displayValue = optionLabels.join('; ');
-              } else if (question.type === 'DATE' || question.type === 'DATETIME') {
-                // Format dates as mm-dd-yyyy
-                displayValue = formatDate(value);
-              } else {
-                displayValue = String(value);
-              }
-            }
-            
-            // Add attachment info for media uploads
-            if (attachments.length > 0) {
-              const attachmentInfo = attachments.map(att => `${att.fileName} (${formatFileSize(att.fileSize)})`).join('; ');
-              displayValue = displayValue ? `${displayValue} | Files: ${attachmentInfo}` : `Files: ${attachmentInfo}`;
-            }
-            
-            row.push(displayValue);
-          }
-        });
-        
-        return row.map(escapeCsvValue).join(',');
-      })
-    ].join('\n');
-
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${form.title.replace(/[^a-z0-9]/gi, '_')}_responses.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-
-    toast({
-      title: "Export Complete",
-      description: "Response data has been exported to CSV with improved formatting.",
-    });
+    } catch (error) {
+      console.error('❌ Export failed:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export responses. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const QuestionAnalytics = ({ questionId }: { questionId: string }) => {
@@ -1169,7 +1171,7 @@ export function FormResponseViewer() {
       {/* Individual Responses Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Individual Responses ({filteredResponses.length})</CardTitle>
+          <CardTitle>Individual Responses ({totalResponses})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
@@ -1426,11 +1428,11 @@ export function FormResponseViewer() {
               )}
               
               {/* Pagination Controls */}
-              {filteredResponses.length > 0 && (
+              {totalResponses > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center gap-4">
                     <div className="text-sm text-gray-600">
-                      Showing {startIndex + 1} to {Math.min(endIndex, filteredResponses.length)} of {filteredResponses.length} responses
+                      Showing {startIndex + 1} to {Math.min(endIndex, totalResponses)} of {totalResponses} responses
                     </div>
                     <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
                       <SelectTrigger className="w-[100px]">
