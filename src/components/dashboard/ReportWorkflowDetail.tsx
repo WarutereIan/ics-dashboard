@@ -19,7 +19,6 @@ import { useParams } from 'react-router-dom';
 import { apiClient } from '@/lib/api/client';
 import { ReportWorkflowProgress } from './ReportWorkflowProgress';
 import { useAuth } from '@/contexts/AuthContext';
-import { userManagementService } from '@/services/userManagementService';
 
 interface ReportWorkflowDetailProps {
   reportId: string;
@@ -67,37 +66,9 @@ export function ReportWorkflowDetail({ reportId, onClose, onChanged }: ReportWor
         // Load available users for delegation/escalation if projectId is available
         if (projectId) {
           try {
-            const usersResponse = await userManagementService.getProjectUsers(projectId, { 
-              limit: 100,
-              isActive: true 
-            });
-            if (usersResponse?.users) {
-              setAvailableUsers(usersResponse.users);
-            }
-          } catch (e) {
-            console.warn('Failed to load users:', e);
-            // Fallback: try to get all users if project users fails
-            try {
-              const allUsersResponse = await userManagementService.getUsers({ 
-                limit: 100,
-                isActive: true 
-              });
-              if (allUsersResponse?.users) {
-                setAvailableUsers(allUsersResponse.users);
-              }
-            } catch (fallbackError) {
-              console.warn('Failed to load users (fallback):', fallbackError);
-            }
-          }
-        } else {
-          // If no projectId, try to get all users
-          try {
-            const allUsersResponse = await userManagementService.getUsers({ 
-              limit: 100,
-              isActive: true 
-            });
-            if (allUsersResponse?.users) {
-              setAvailableUsers(allUsersResponse.users);
+            const usersResponse = await apiClient.get<{ users: any[] }>(`/projects/${projectId}/users?limit=100`);
+            if (usersResponse.success && usersResponse.data?.users) {
+              setAvailableUsers(usersResponse.data.users);
             }
           } catch (e) {
             console.warn('Failed to load users:', e);

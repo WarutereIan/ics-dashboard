@@ -94,7 +94,19 @@ interface FormContextType {
   loadProjectForms: (projectId: string) => Promise<Form[]>;
   
   // Form response management
-  getFormResponses: (projectId: string, formId: string) => Promise<FormResponse[]>;
+  getFormResponses: (projectId: string, formId: string, options?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'all' | 'complete' | 'incomplete';
+  }) => Promise<{ 
+    responses: FormResponse[]; 
+    total: number; 
+    page: number; 
+    limit: number; 
+    totalPages: number;
+    stats: { totalAll: number; totalComplete: number; totalIncomplete: number }
+  }>;
   addFormResponseToStorage: (response: FormResponse) => Promise<FormResponse | null>;
   updateFormResponse: (projectId: string, formId: string, responseId: string, updates: UpdateFormResponseDto) => Promise<FormResponse | null>;
   deleteFormResponse: (projectId: string, formId: string, responseId: string) => Promise<void>;
@@ -706,19 +718,47 @@ export function FormProvider({ children }: FormProviderProps) {
   }, [projectForms, loadProjectForms]);
 
   // Form Response Management
-  const getFormResponses = useCallback(async (projectId: string, formId: string): Promise<FormResponse[]> => {
+  const getFormResponses = useCallback(async (
+    projectId: string, 
+    formId: string,
+    options?: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: 'all' | 'complete' | 'incomplete';
+    }
+  ): Promise<{ 
+    responses: FormResponse[]; 
+    total: number; 
+    page: number; 
+    limit: number; 
+    totalPages: number;
+    stats: { totalAll: number; totalComplete: number; totalIncomplete: number }
+  }> => {
     try {
-      const responses = await formsApi.getFormResponses(projectId, formId);
+      const result = await formsApi.getFormResponses(projectId, formId, options);
       
-      // Update local cache
-      setAllFormResponses(prev => ({ ...prev, [formId]: responses }));
+      // Update local cache with responses (for other components that might need them)
+      setAllFormResponses(prev => ({ ...prev, [formId]: result.responses }));
       
-      return responses;
+      return result;
     } catch (err) {
       console.error('Failed to load form responses:', err);
-      return allFormResponses[formId] || [];
+      // Return empty result on error - don't rely on cache to avoid dependency issues
+      return {
+        responses: [],
+        total: 0,
+        page: options?.page || 1,
+        limit: options?.limit || 100,
+        totalPages: 0,
+        stats: {
+          totalAll: 0,
+          totalComplete: 0,
+          totalIncomplete: 0
+        }
+      };
     }
-  }, [allFormResponses]);
+  }, []); // No dependencies - function is stable and doesn't cause re-renders
 
   const addFormResponseToStorage = useCallback(async (response: FormResponse): Promise<FormResponse | null> => {
     try {

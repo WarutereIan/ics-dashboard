@@ -171,10 +171,42 @@ export const formsApi = {
     throw new Error(response.error || 'Failed to submit response');
   },
 
-  async getFormResponses(projectId: string, formId: string): Promise<FormResponse[]> {
-    const response = await apiClient.get(`/forms/projects/${projectId}/forms/${formId}/responses`);
+  async getFormResponses(
+    projectId: string, 
+    formId: string,
+    options?: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: 'all' | 'complete' | 'incomplete';
+    }
+  ): Promise<{ 
+    responses: FormResponse[]; 
+    total: number; 
+    page: number; 
+    limit: number; 
+    totalPages: number;
+    stats: { totalAll: number; totalComplete: number; totalIncomplete: number }
+  }> {
+    const params = new URLSearchParams();
+    if (options?.page) params.append('page', String(options.page));
+    if (options?.limit) params.append('limit', String(options.limit));
+    if (options?.search) params.append('search', options.search);
+    if (options?.status && options.status !== 'all') params.append('status', options.status);
+    
+    const queryString = params.toString();
+    const url = `/forms/projects/${projectId}/forms/${formId}/responses${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiClient.get(url);
     if (response.success && response.data) {
-      return response.data as FormResponse[];
+      return response.data as { 
+        responses: FormResponse[]; 
+        total: number; 
+        page: number; 
+        limit: number; 
+        totalPages: number;
+        stats: { totalAll: number; totalComplete: number; totalIncomplete: number }
+      };
     }
     throw new Error(response.error || 'Failed to fetch form responses');
   },
@@ -185,6 +217,27 @@ export const formsApi = {
       return response.data as FormResponse;
     }
     throw new Error(response.error || 'Failed to fetch form response');
+  },
+
+  // Optimized endpoint for exporting ALL responses (no pagination limit)
+  async getFormResponsesForExport(
+    projectId: string, 
+    formId: string,
+    options?: {
+      status?: 'all' | 'complete' | 'incomplete';
+    }
+  ): Promise<{ responses: FormResponse[]; total: number }> {
+    const params = new URLSearchParams();
+    if (options?.status && options.status !== 'all') params.append('status', options.status);
+    
+    const queryString = params.toString();
+    const url = `/forms/projects/${projectId}/forms/${formId}/responses/export${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await apiClient.get(url);
+    if (response.success && response.data) {
+      return response.data as { responses: FormResponse[]; total: number };
+    }
+    throw new Error(response.error || 'Failed to fetch form responses for export');
   },
 
   async updateFormResponse(projectId: string, formId: string, responseId: string, updates: UpdateFormResponseDto): Promise<FormResponse> {

@@ -65,41 +65,97 @@ const transformQuestionData = (question: any) => {
 };
 
 // Helper function to get all questions (main + conditional) in the correct order
-const getAllQuestionsInOrder = (form: Form): Array<{
+// For repeatable sections, includes instance columns
+const getAllQuestionsInOrder = (
+  form: Form,
+  maxInstances?: number
+): Array<{
   question: FormQuestion;
   isConditional: boolean;
   parentQuestion?: FormQuestion;
   parentOption?: any;
+  isRepeatable?: boolean;
+  sectionId?: string;
+  instanceIndex?: number;
+  instanceKey?: string; // For repeatable: questionId_instance_N
 }> => {
   const allQuestions: Array<{
     question: FormQuestion;
     isConditional: boolean;
     parentQuestion?: FormQuestion;
     parentOption?: any;
+    isRepeatable?: boolean;
+    sectionId?: string;
+    instanceIndex?: number;
+    instanceKey?: string;
   }> = [];
 
-  form.sections.forEach(section => {
-    section.questions.forEach(question => {
-      // Add main question
-      allQuestions.push({
-        question,
-        isConditional: false
-      });
+  // Get repeatable sections
+  const repeatableSections = getRepeatableSections(form);
+  const repeatableSectionIds = new Set(repeatableSections.map(s => s.id));
 
-      // Add conditional questions
-      if ((question as any).options && Array.isArray((question as any).options)) {
-        (question as any).options.forEach((option: any) => {
-          if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
-            option.conditionalQuestions.forEach((condQuestion: any) => {
-              allQuestions.push({
-                question: condQuestion as FormQuestion,
-                isConditional: true,
-                parentQuestion: question,
-                parentOption: option
-              });
+  form.sections.forEach(section => {
+    const isRepeatable = repeatableSectionIds.has(section.id);
+    
+    section.questions.forEach(question => {
+      if (isRepeatable && maxInstances) {
+        // For repeatable sections, create columns for each instance
+        for (let instanceIndex = 0; instanceIndex < maxInstances; instanceIndex++) {
+          allQuestions.push({
+            question,
+            isConditional: false,
+            isRepeatable: true,
+            sectionId: section.id,
+            instanceIndex,
+            instanceKey: `${question.id}_instance_${instanceIndex}`
+          });
+
+          // Add conditional questions for each instance
+          if ((question as any).options && Array.isArray((question as any).options)) {
+            (question as any).options.forEach((option: any) => {
+              if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
+                option.conditionalQuestions.forEach((condQuestion: any) => {
+                  allQuestions.push({
+                    question: condQuestion as FormQuestion,
+                    isConditional: true,
+                    parentQuestion: question,
+                    parentOption: option,
+                    isRepeatable: true,
+                    sectionId: section.id,
+                    instanceIndex,
+                    instanceKey: `${condQuestion.id}_instance_${instanceIndex}`
+                  });
+                });
+              }
             });
           }
+        }
+      } else {
+        // Non-repeatable section - add question once
+        allQuestions.push({
+          question,
+          isConditional: false,
+          isRepeatable: false,
+          sectionId: section.id
         });
+
+        // Add conditional questions
+        if ((question as any).options && Array.isArray((question as any).options)) {
+          (question as any).options.forEach((option: any) => {
+            if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
+              option.conditionalQuestions.forEach((condQuestion: any) => {
+                allQuestions.push({
+                  question: condQuestion as FormQuestion,
+                  isConditional: true,
+                  parentQuestion: question,
+                  parentOption: option,
+                  isRepeatable: false,
+                  sectionId: section.id
+                });
+              });
+            }
+          });
+        }
       }
     });
   });
@@ -117,6 +173,189 @@ const transformFormData = (form: any): Form => {
       ...section,
       questions: section.questions?.map(transformQuestionData) || []
     })) || []
+  };
+};
+
+// Helper function to parse repeatable section metadata from source field
+const parseRepeatableMetadata = (source: string | null | undefined): {
+  isRepeatable: boolean;
+  repeatableSectionId?: string;
+  instanceIndex?: number;
+  originalSource?: string;
+} => {
+  if (!source || !source.startsWith('{')) {
+    return { isRepeatable: false };
+  }
+  
+  try {
+    const parsed = JSON.parse(source);
+    if (parsed.type === 'repeatable') {
+      return {
+        isRepeatable: true,
+        repeatableSectionId: parsed.repeatableSectionId,
+        instanceIndex: parsed.instanceIndex,
+        originalSource: parsed.originalSource
+      };
+    }
+  } catch (e) {
+    // Not JSON, treat as regular source
+  }
+  
+  return { isRepeatable: false };
+};
+
+// Helper function to group responses by submission (for repeatable sections)
+// Responses from the same submission are grouped together
+const groupResponsesBySubmission = (responses: FormResponse[]): Map<string, FormResponse[]> => {
+  const groups = new Map<string, FormResponse[]>();
+  
+  responses.forEach(response => {
+    const metadata = parseRepeatableMetadata(response.source);
+    
+    if (metadata.isRepeatable && metadata.originalSource) {
+      // Group by originalSource + respondentEmail + startedAt (rounded to nearest second)
+      // This identifies responses from the same submission
+      const startedAtRounded = response.startedAt 
+        ? new Date(response.startedAt).setMilliseconds(0) 
+        : 0;
+      const groupKey = `${metadata.originalSource}_${response.respondentEmail || 'anonymous'}_${startedAtRounded}`;
+      
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(response);
+    } else {
+      // Non-repeatable response - each is its own group
+      const groupKey = `single_${response.id}`;
+      groups.set(groupKey, [response]);
+    }
+  });
+  
+  // Sort responses within each group by instanceIndex
+  groups.forEach((groupResponses, key) => {
+    if (key.startsWith('single_')) return; // Don't sort single responses
+    
+    groupResponses.sort((a, b) => {
+      const metaA = parseRepeatableMetadata(a.source);
+      const metaB = parseRepeatableMetadata(b.source);
+      return (metaA.instanceIndex || 0) - (metaB.instanceIndex || 0);
+    });
+  });
+  
+  return groups;
+};
+
+// Helper function to get repeatable sections from form
+const getRepeatableSections = (form: Form): Array<{ id: string; title: string; questions: FormQuestion[] }> => {
+  return form.sections
+    .filter(section => (section as any).conditional?.repeatable)
+    .map(section => ({
+      id: section.id,
+      title: section.title,
+      questions: section.questions
+    }));
+};
+
+// Helper function to flatten grouped responses for display/export
+// Transforms multiple rows (one per instance) into one row with instance columns
+interface FlattenedResponse {
+  id: string;
+  respondentEmail?: string;
+  isComplete: boolean;
+  submittedAt: Date | null;
+  startedAt: Date | null;
+  data: Record<string, any>; // Flattened data with instance columns
+  attachments: MediaAttachment[];
+  originalResponses: FormResponse[]; // Keep reference to original responses
+}
+
+const flattenGroupedResponses = (
+  groupedResponses: FormResponse[],
+  form: Form
+): FlattenedResponse | null => {
+  if (groupedResponses.length === 0) return null;
+  
+  const firstResponse = groupedResponses[0];
+  const metadata = parseRepeatableMetadata(firstResponse.source);
+  
+  // If not a repeatable section group, return as-is
+  if (!metadata.isRepeatable || groupedResponses.length === 1) {
+    return {
+      id: firstResponse.id,
+      respondentEmail: firstResponse.respondentEmail,
+      isComplete: firstResponse.isComplete,
+      submittedAt: firstResponse.submittedAt || null,
+      startedAt: firstResponse.startedAt || null,
+      data: firstResponse.data,
+      attachments: firstResponse.attachments || [],
+      originalResponses: [firstResponse]
+    };
+  }
+  
+  // Get repeatable sections
+  const repeatableSections = getRepeatableSections(form);
+  const repeatableSection = repeatableSections.find(s => s.id === metadata.repeatableSectionId);
+  
+  if (!repeatableSection) {
+    // Fallback: if we can't find the section, return first response
+    return {
+      id: firstResponse.id,
+      respondentEmail: firstResponse.respondentEmail,
+      isComplete: firstResponse.isComplete,
+      submittedAt: firstResponse.submittedAt || null,
+      startedAt: firstResponse.startedAt || null,
+      data: firstResponse.data,
+      attachments: firstResponse.attachments || [],
+      originalResponses: groupedResponses
+    };
+  }
+  
+  // Merge data from all instances
+  const flattenedData: Record<string, any> = {};
+  const allAttachments: MediaAttachment[] = [];
+  
+  // First, get non-repeatable section data (should be same across all instances)
+  const nonRepeatableSections = form.sections.filter(
+    section => !(section as any).conditional?.repeatable
+  );
+  
+  nonRepeatableSections.forEach(section => {
+    section.questions.forEach(question => {
+      // Use data from first response (should be same across all)
+      if (firstResponse.data[question.id] !== undefined) {
+        flattenedData[question.id] = firstResponse.data[question.id];
+      }
+    });
+  });
+  
+  // Then, add repeatable section data with instance suffixes
+  groupedResponses.forEach((response, index) => {
+    const instanceNum = index + 1;
+    const responseMetadata = parseRepeatableMetadata(response.source);
+    const instanceIndex = responseMetadata.instanceIndex ?? index;
+    
+    repeatableSection.questions.forEach(question => {
+      const instanceKey = `${question.id}_instance_${instanceIndex}`;
+      if (response.data[question.id] !== undefined) {
+        flattenedData[instanceKey] = response.data[question.id];
+      }
+    });
+    
+    // Collect attachments
+    if (response.attachments) {
+      allAttachments.push(...response.attachments);
+    }
+  });
+  
+  return {
+    id: firstResponse.id, // Use first response ID as primary
+    respondentEmail: firstResponse.respondentEmail,
+    isComplete: groupedResponses.every(r => r.isComplete), // All must be complete
+    submittedAt: firstResponse.submittedAt || null, // Use first submission time
+    startedAt: firstResponse.startedAt || null, // Use first start time
+    data: flattenedData,
+    attachments: allAttachments,
+    originalResponses: groupedResponses
   };
 };
 
@@ -528,7 +767,11 @@ export function FormResponseViewer() {
   
   const [form, setForm] = useState<Form | null>(null);
   const [responses, setResponses] = useState<FormResponse[]>([]);
+  const [totalResponses, setTotalResponses] = useState(0);
+  const [serverTotalPages, setServerTotalPages] = useState(1);
+  const [responseStats, setResponseStats] = useState({ totalAll: 0, totalComplete: 0, totalIncomplete: 0 });
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -539,31 +782,28 @@ export function FormResponseViewer() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedResponse, setSelectedResponse] = useState<FormResponse | null>(null);
 
-  // Load form and responses
+  // Debounce search term for API calls
   useEffect(() => {
-    const loadData = async () => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Load form data (once on mount)
+  useEffect(() => {
+    const loadFormData = async () => {
       if (formId && projectId) {
-        setIsLoading(true);
-        console.log('🔄 FormResponseViewer: Loading fresh data for form:', formId);
-        
         try {
-          // Load complete form data (with all question details) for editing
-          console.log('🔄 FormResponseViewer: Loading complete form data for:', formId);
+          console.log('🔄 FormResponseViewer: Loading form data for:', formId);
           const completeForm = await formsApi.getForm(projectId, formId);
           if (completeForm) {
-            // Transform the form data to extract options from config
             const transformedForm = transformFormData(completeForm);
             setForm(transformedForm);
-            console.log('📋 FormResponseViewer: Loaded complete form with', transformedForm.sections?.length || 0, 'sections');
-            console.log('🔍 FormResponseViewer: Raw form data:', JSON.stringify(completeForm, null, 2));
-            console.log('🔍 FormResponseViewer: Transformed form data:', JSON.stringify(transformedForm, null, 2));
-            // Check first question structure for debugging
-            if (transformedForm.sections?.[0]?.questions?.[0]) {
-              console.log('🔍 First question structure:', transformedForm.sections[0].questions[0]);
-            }
+            console.log('📋 FormResponseViewer: Loaded form with', transformedForm.sections?.length || 0, 'sections');
           } else {
             console.log('⚠️ FormResponseViewer: Complete form not found, trying project forms list');
-            // Fallback to project forms list if direct form fetch fails
             const projectForms = await loadProjectForms(projectId);
             const foundForm = projectForms.find((f: Form) => f.id === formId);
             if (foundForm) {
@@ -572,17 +812,43 @@ export function FormResponseViewer() {
               console.log('📦 FormResponseViewer: Found form in project list:', foundForm.title);
             }
           }
-
-          // Always load fresh responses from API
-          console.log('🔄 FormResponseViewer: Loading fresh responses for form:', formId);
-          const formResponses = await getFormResponses(projectId, formId);
-          setResponses(formResponses);
-          console.log('✅ FormResponseViewer: Loaded', formResponses.length, 'fresh responses');
         } catch (error) {
           console.error('❌ FormResponseViewer: Error loading form data:', error);
           toast({
             title: "Error",
             description: "Failed to load form data",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    loadFormData();
+  }, [formId, projectId]);
+
+  // Load responses with server-side pagination
+  useEffect(() => {
+    const loadResponses = async () => {
+      if (formId && projectId) {
+        setIsLoading(true);
+        try {
+          console.log('🔄 FormResponseViewer: Loading responses page', currentPage, 'with', itemsPerPage, 'items');
+          const result = await getFormResponses(projectId, formId, {
+            page: currentPage,
+            limit: itemsPerPage,
+            search: debouncedSearchTerm || undefined,
+            status: statusFilter as 'all' | 'complete' | 'incomplete'
+          });
+          setResponses(result.responses);
+          setTotalResponses(result.total);
+          setServerTotalPages(result.totalPages);
+          setResponseStats(result.stats);
+          console.log('✅ FormResponseViewer: Loaded', result.responses.length, 'responses (total:', result.total, ', stats:', result.stats, ')');
+        } catch (error) {
+          console.error('❌ FormResponseViewer: Error loading responses:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load form responses",
             variant: "destructive",
           });
         } finally {
@@ -591,39 +857,63 @@ export function FormResponseViewer() {
       }
     };
 
-    loadData();
-  }, [formId, projectId]); // Only depend on stable values, not functions
+    loadResponses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formId, projectId, currentPage, itemsPerPage, debouncedSearchTerm, statusFilter]);
 
-  // Filter responses
-  const filteredResponses = responses.filter((response) => {
-    const matchesSearch = searchTerm === '' || 
-      response.respondentEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      Object.values(response.data).some(value => 
-        String(value).toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'complete' && response.isComplete) ||
-      (statusFilter === 'incomplete' && !response.isComplete);
-    
-    // Date filter logic would go here
-    const matchesDate = true; // Simplified for now
-    
-    return matchesSearch && matchesStatus && matchesDate;
-  });
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredResponses.length / itemsPerPage);
+  // Server-side pagination - responses are already filtered and paginated
+  const filteredResponses = responses;
+  const totalPages = serverTotalPages;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedResponses = filteredResponses.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + itemsPerPage, totalResponses);
+  const paginatedResponses = responses; // Already paginated from server
+  
+  // Flatten responses for repeatable sections (group and flatten)
+  const responseGroups = groupResponsesBySubmission(paginatedResponses);
+  const repeatableSections = form ? getRepeatableSections(form) : [];
+  const maxInstancesBySection = new Map<string, number>();
+  
+  repeatableSections.forEach(section => {
+    let maxInstances = 0;
+    responseGroups.forEach((groupResponses) => {
+      const firstResponse = groupResponses[0];
+      const metadata = parseRepeatableMetadata(firstResponse.source);
+      if (metadata.isRepeatable && metadata.repeatableSectionId === section.id) {
+        maxInstances = Math.max(maxInstances, groupResponses.length);
+      }
+    });
+    maxInstancesBySection.set(section.id, maxInstances || 1);
+  });
+  
+  const overallMaxInstances = form ? Math.max(...Array.from(maxInstancesBySection.values()), 1) : 1;
+  const flattenedResponsesForView: FlattenedResponse[] = [];
+  
+  if (form) {
+    responseGroups.forEach((groupResponses) => {
+      const flattened = flattenGroupedResponses(groupResponses, form);
+      if (flattened) {
+        flattenedResponsesForView.push(flattened);
+      }
+    });
+  }
 
   // Handler functions
   const handleEditResponse = (rowData: any) => {
     if (rowData.isExisting && rowData.responseId) {
-      const originalResponse = responses.find(r => r.id === rowData.responseId);
-      if (originalResponse) {
-        setSelectedResponse(originalResponse);
+      // For flattened responses, use the first original response for editing
+      // (or find the response by ID if it's not a grouped response)
+      let responseToEdit: FormResponse | null = null;
+      
+      if (rowData.originalResponses && rowData.originalResponses.length > 0) {
+        // Use first original response from the group
+        responseToEdit = rowData.originalResponses[0];
+      } else {
+        // Fallback: find by ID
+        responseToEdit = responses.find(r => r.id === rowData.responseId) || null;
+      }
+      
+      if (responseToEdit) {
+        setSelectedResponse(responseToEdit);
         setEditModalOpen(true);
       }
     }
@@ -648,25 +938,26 @@ export function FormResponseViewer() {
   const generateTableRows = () => {
     const rows = [];
     
-    // Add existing responses
-    paginatedResponses.forEach((response, index) => {
+    // Add existing flattened responses
+    flattenedResponsesForView.forEach((flattenedResponse, index) => {
       rows.push({
         rowIndex: startIndex + index,
-        responseId: response.id,
+        responseId: flattenedResponse.id,
         isExisting: true,
-        data: response.data,
-        attachments: response.attachments || [],
-        respondentEmail: response.respondentEmail,
-        isComplete: response.isComplete,
-        submittedAt: response.submittedAt,
-        startedAt: response.startedAt
+        data: flattenedResponse.data, // Use flattened data with instance keys
+        attachments: flattenedResponse.attachments || [],
+        respondentEmail: flattenedResponse.respondentEmail,
+        isComplete: flattenedResponse.isComplete,
+        submittedAt: flattenedResponse.submittedAt,
+        startedAt: flattenedResponse.startedAt,
+        originalResponses: flattenedResponse.originalResponses // Keep reference for editing
       });
     });
     
     // Add blank rows for manual entry
-    const blankRowsNeeded = itemsPerPage - paginatedResponses.length;
+    const blankRowsNeeded = itemsPerPage - flattenedResponsesForView.length;
     for (let i = 0; i < blankRowsNeeded; i++) {
-      const rowIndex = startIndex + paginatedResponses.length + i;
+      const rowIndex = startIndex + flattenedResponsesForView.length + i;
       rows.push({
         rowIndex,
         responseId: null,
@@ -676,7 +967,8 @@ export function FormResponseViewer() {
         respondentEmail: null,
         isComplete: false,
         submittedAt: null,
-        startedAt: null
+        startedAt: null,
+        originalResponses: []
       });
     }
     
@@ -685,25 +977,25 @@ export function FormResponseViewer() {
 
   const tableRows = generateTableRows();
 
-  // Reset to first page when filters change
+  // Reset to first page when status filter or date filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, dateFilter]);
+  }, [statusFilter, dateFilter]);
 
-  // Calculate analytics
+  // Calculate analytics using server-side stats for totals
   const analytics = {
-    totalResponses: responses.length,
-    completeResponses: responses.filter(r => r.isComplete).length,
-    incompleteResponses: responses.filter(r => !r.isComplete).length,
+    totalResponses: responseStats.totalAll,
+    completeResponses: responseStats.totalComplete,
+    incompleteResponses: responseStats.totalIncomplete,
+    // Average completion time is calculated from current page responses (approximation)
     averageCompletionTime: responses
       .filter(r => r.isComplete && r.submittedAt && r.startedAt)
       .reduce((acc, r) => {
-        // Convert string dates to Date objects if necessary
         const submittedAt = r.submittedAt instanceof Date ? r.submittedAt : new Date(r.submittedAt!);
         const startedAt = r.startedAt instanceof Date ? r.startedAt : new Date(r.startedAt);
         const timeMs = submittedAt.getTime() - startedAt.getTime();
-        return acc + timeMs / (1000 * 60); // Convert to minutes
-      }, 0) / responses.filter(r => r.isComplete).length || 0,
+        return acc + timeMs / (1000 * 60);
+      }, 0) / Math.max(responses.filter(r => r.isComplete).length, 1),
   };
 
   const handleManualDataChange = (rowIndex: number, questionId: string, value: any) => {
@@ -760,229 +1052,252 @@ export function FormResponseViewer() {
     });
   };
 
-  const handleExportData = () => {
-    if (!form) return;
+  const handleExportData = async () => {
+    if (!form || !projectId || !formId) return;
     
-    // Helper function to escape CSV values
-    const escapeCsvValue = (value: any): string => {
-      if (value === null || value === undefined) return '';
-      
-      const stringValue = String(value);
-      // If value contains comma, newline, or quote, wrap in quotes and escape quotes
-      if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    };
+    // Show loading toast
+    toast({
+      title: "Exporting...",
+      description: "Fetching all responses for export. This may take a moment for large datasets.",
+    });
 
-    // Helper function to format dates as mm-dd-yyyy
-    const formatDate = (date: Date | string | null | undefined): string => {
-      if (!date) return '';
-      const dateObj = date instanceof Date ? date : new Date(date);
-      if (isNaN(dateObj.getTime())) return '';
-      
-      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      const year = dateObj.getFullYear();
-      
-      return `${month}-${day}-${year}`;
-    };
+    try {
+      // Fetch ALL responses using the optimized export endpoint
+      console.log('📤 Starting export - fetching all responses...');
+      const exportResult = await formsApi.getFormResponsesForExport(projectId, formId, {
+        status: statusFilter as 'all' | 'complete' | 'incomplete'
+      });
+      console.log(`✅ Fetched ${exportResult.total} responses for export`);
 
-    // Helper function to format GPS coordinates
-    const formatGpsCoordinates = (gpsData: any): string => {
-      if (!gpsData) return '';
+      const allResponses = exportResult.responses;
       
-      if (typeof gpsData === 'object') {
-        // Try different possible property names for coordinates
-        if (gpsData.latitude !== undefined && gpsData.longitude !== undefined) {
-          return `${gpsData.latitude}, ${gpsData.longitude}`;
-        }
-        if (gpsData.lat !== undefined && gpsData.lng !== undefined) {
-          return `${gpsData.lat}, ${gpsData.lng}`;
-        }
-        if (gpsData.coordinates) {
-          const coords = gpsData.coordinates;
-          if (coords.lat !== undefined && coords.lng !== undefined) {
-            return `${coords.lat}, ${coords.lng}`;
-          }
-          if (coords.latitude !== undefined && coords.longitude !== undefined) {
-            return `${coords.latitude}, ${coords.longitude}`;
-          }
-        }
-        
-        // If it's an object but we can't extract coordinates, log it for debugging
-        console.log('🔍 GPS data structure:', gpsData);
-        return `[GPS Object: ${JSON.stringify(gpsData)}]`;
-      }
+      // Group responses by submission (for repeatable sections)
+      const responseGroups = groupResponsesBySubmission(allResponses);
       
-      return String(gpsData);
-    };
-
-    // Helper function to get all questions including conditional ones
-    const getAllQuestions = () => {
-      const allQuestions: Array<{question: any, sectionTitle: string, isConditional?: boolean, parentQuestionId?: string, parentQuestionTitle?: string, parentOption?: string}> = [];
+      // Calculate max instances for each repeatable section
+      const repeatableSections = getRepeatableSections(form);
+      const maxInstancesBySection = new Map<string, number>();
       
-      form.sections.forEach(section => {
-        // Add main questions
-        section.questions.forEach(question => {
-          allQuestions.push({
-            question,
-            sectionTitle: section.title,
-            isConditional: false
-          });
-          
-          // Add conditional questions from choice options
-          if ((question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE') && question.options) {
-            question.options.forEach((option: any) => {
-              if (option.conditionalQuestions && option.conditionalQuestions.length > 0) {
-                option.conditionalQuestions.forEach((conditionalQuestion: any) => {
-                  allQuestions.push({
-                    question: conditionalQuestion,
-                    sectionTitle: section.title,
-                    isConditional: true,
-                    parentQuestionId: question.id,
-                    parentQuestionTitle: question.title,
-                    parentOption: option.label
-                  });
-                });
-              }
-            });
+      repeatableSections.forEach(section => {
+        let maxInstances = 0;
+        responseGroups.forEach((groupResponses) => {
+          const firstResponse = groupResponses[0];
+          const metadata = parseRepeatableMetadata(firstResponse.source);
+          if (metadata.isRepeatable && metadata.repeatableSectionId === section.id) {
+            maxInstances = Math.max(maxInstances, groupResponses.length);
           }
         });
+        maxInstancesBySection.set(section.id, maxInstances || 1);
       });
       
-      return allQuestions;
-    };
-
-    // Create CSV content
-    const headers = [
-      'Response ID',
-      'Email', 
-      'Status', 
-      'Submitted At', 
-      'Completion Time (minutes)'
-    ];
+      // Get overall max instances (for column generation)
+      const overallMaxInstances = Math.max(...Array.from(maxInstancesBySection.values()), 1);
+      
+      // Flatten grouped responses
+      const flattenedResponses: FlattenedResponse[] = [];
+      responseGroups.forEach((groupResponses) => {
+        const flattened = flattenGroupedResponses(groupResponses, form);
+        if (flattened) {
+          flattenedResponses.push(flattened);
+        }
+      });
     
-    // Add question headers (flatten LOCATION questions)
-    const allQuestions = getAllQuestions();
-    allQuestions.forEach(({question, sectionTitle, isConditional, parentQuestionTitle, parentOption}) => {
-      let headerTitle = question.title;
-      if (isConditional) {
-        headerTitle = `${question.title} (Conditional: ${parentQuestionTitle} → ${parentOption})`;
-      }
-      if (question.type === 'LOCATION') {
-        headers.push(`${headerTitle} - Latitude`);
-        headers.push(`${headerTitle} - Longitude`);
-        headers.push(`${headerTitle} - Accuracy`);
-        headers.push(`${headerTitle} - Address`);
-      } else {
-        headers.push(headerTitle);
-      }
-    });
-
-    // Reverse the order to export oldest to newest
-    const reversedResponses = [...filteredResponses].reverse();
-
-    const csvContent = [
-      headers.map(escapeCsvValue).join(','),
-      ...reversedResponses.map(response => {
-        const completionTime = response.submittedAt && response.startedAt
-          ? Math.round(((new Date(response.submittedAt)).getTime() - (new Date(response.startedAt)).getTime()) / (1000 * 60))
-          : '';
-
-        const row = [
-          response.id,
-          response.respondentEmail || 'Anonymous',
-          response.isComplete ? 'Complete' : 'Incomplete',
-          response.submittedAt ? formatDate(response.submittedAt) : 'Not submitted',
-          completionTime
-        ];
+      // Helper function to escape CSV values
+      const escapeCsvValue = (value: any): string => {
+        if (value === null || value === undefined) return '';
         
-        // Add question responses
-        allQuestions.forEach(({question, isConditional, parentQuestionId}) => {
-          let value;
-          let attachments = response.attachments?.filter(att => att.questionId === question.id) || [];
-          
-          if (isConditional && parentQuestionId) {
-            // For conditional questions, extract from nested parent response
-            const parentResponseValue = response.data[parentQuestionId];
-            if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
-              value = parentResponseValue[question.id];
-            } else {
-              value = null;
-            }
-          } else {
-            // For main questions, use direct response data
-            value = response.data[question.id];
-            
-            // Handle nested structure for parent questions that have conditional children
-            if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
-              // This is a parent question with conditional children, use the parent value for display
-              value = value._parentValue;
-            }
+        const stringValue = String(value);
+        // If value contains comma, newline, or quote, wrap in quotes and escape quotes
+        if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      };
+
+      // Helper function to format dates as mm-dd-yyyy
+      const formatDate = (date: Date | string | null | undefined): string => {
+        if (!date) return '';
+        const dateObj = date instanceof Date ? date : new Date(date);
+        if (isNaN(dateObj.getTime())) return '';
+        
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        
+        return `${month}-${day}-${year}`;
+      };
+      
+      // Helper function to format question value for CSV
+      const formatQuestionValue = (value: any, question: any): string => {
+        if (value === undefined || value === null) return '';
+        
+        if (Array.isArray(value)) {
+          return value.join('; ');
+        } else if (question.type === 'SINGLE_CHOICE' && question.options) {
+          const option = question.options.find((opt: any) => opt.value === value);
+          return option ? option.label : String(value);
+        } else if (question.type === 'MULTIPLE_CHOICE' && question.options) {
+          const selectedOptions = Array.isArray(value) ? value : [value];
+          const optionLabels = selectedOptions.map((val: any) => {
+            const option = question.options.find((opt: any) => opt.value === val);
+            return option ? option.label : val;
+          });
+          return optionLabels.join('; ');
+        } else if (question.type === 'DATE' || question.type === 'DATETIME') {
+          return formatDate(value);
+        } else if (question.type === 'LOCATION') {
+          if (typeof value === 'object' && value !== null) {
+            const lat = value.latitude ?? value.lat ?? '';
+            const lng = value.longitude ?? value.lng ?? '';
+            return `${lat}, ${lng}`;
           }
+          return String(value);
+        }
+        
+        return String(value);
+      };
+
+      // Create CSV content
+      const headers = [
+        'Response ID',
+        'Email', 
+        'Status', 
+        'Submitted At', 
+        'Completion Time (minutes)'
+      ];
+      
+      // Add question headers with instance columns for repeatable sections
+      const allQuestions = getAllQuestionsInOrder(form, overallMaxInstances);
+      allQuestions.forEach(({question, isConditional, parentQuestion, parentOption, isRepeatable, instanceIndex, instanceKey}) => {
+        let headerTitle = question.title;
+        
+        // Add instance suffix for repeatable sections
+        if (isRepeatable && instanceIndex !== undefined) {
+          headerTitle = `${question.title} (Instance ${instanceIndex + 1})`;
+        }
+        
+        if (isConditional) {
+          headerTitle = `${question.title} (Conditional: ${parentQuestion?.title || 'Unknown'} → ${parentOption?.label || parentOption})${isRepeatable && instanceIndex !== undefined ? ` - Instance ${instanceIndex + 1}` : ''}`;
+        }
+        
+        if (question.type === 'LOCATION') {
+          headers.push(`${headerTitle} - Latitude`);
+          headers.push(`${headerTitle} - Longitude`);
+          headers.push(`${headerTitle} - Accuracy`);
+          headers.push(`${headerTitle} - Address`);
+        } else {
+          headers.push(headerTitle);
+        }
+      });
+
+      const csvContent = [
+        headers.map(escapeCsvValue).join(','),
+        ...flattenedResponses.map(flattenedResponse => {
+          const completionTime = flattenedResponse.submittedAt && flattenedResponse.startedAt
+            ? Math.round(((new Date(flattenedResponse.submittedAt)).getTime() - (new Date(flattenedResponse.startedAt)).getTime()) / (1000 * 60))
+            : '';
+
+          const row = [
+            flattenedResponse.id,
+            flattenedResponse.respondentEmail || 'Anonymous',
+            flattenedResponse.isComplete ? 'Complete' : 'Incomplete',
+            flattenedResponse.submittedAt ? formatDate(flattenedResponse.submittedAt) : 'Not submitted',
+            completionTime
+          ];
           
-          if (question.type === 'LOCATION') {
-            // Flatten location into 4 columns
-            const lat = value && typeof value === 'object' ? (value.latitude ?? value.lat ?? '') : '';
-            const lng = value && typeof value === 'object' ? (value.longitude ?? value.lng ?? '') : '';
-            const acc = value && typeof value === 'object' ? (value.accuracy ?? '') : '';
-            const addr = value && typeof value === 'object' ? (value.address ?? '') : '';
-            row.push(String(lat));
-            row.push(String(lng));
-            row.push(String(acc));
-            row.push(String(addr));
-          } else {
-            let displayValue = '';
-            if (value !== undefined && value !== null) {
-              if (Array.isArray(value)) {
-                displayValue = value.join('; ');
-              } else if (question.type === 'SINGLE_CHOICE' && question.options) {
-                const option = question.options.find((opt: any) => opt.value === value);
-                displayValue = option ? option.label : String(value);
-              } else if (question.type === 'MULTIPLE_CHOICE' && question.options) {
-                // For multiple choice, value should be an array of selected values
-                const selectedOptions = Array.isArray(value) ? value : [value];
-                const optionLabels = selectedOptions.map((val: any) => {
-                  const option = question.options.find((opt: any) => opt.value === val);
-                  return option ? option.label : val;
-                });
-                displayValue = optionLabels.join('; ');
-              } else if (question.type === 'DATE' || question.type === 'DATETIME') {
-                // Format dates as mm-dd-yyyy
-                displayValue = formatDate(value);
+          // Add question responses using flattened data
+          allQuestions.forEach(({question, isConditional, parentQuestion, instanceKey}) => {
+            let value;
+            let attachments: MediaAttachment[] = [];
+            
+            // Determine the key to use for lookup
+            const dataKey = instanceKey || question.id;
+            const parentQuestionId = parentQuestion?.id;
+            
+            if (isConditional && parentQuestionId) {
+              // For conditional questions in repeatable sections
+              if (instanceKey) {
+                // Repeatable conditional question
+                const parentInstanceKey = `${parentQuestionId}_instance_${instanceKey.split('_instance_')[1]}`;
+                const parentResponseValue = flattenedResponse.data[parentInstanceKey];
+                if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                  value = parentResponseValue[question.id];
+                } else {
+                  value = null;
+                }
               } else {
-                displayValue = String(value);
+                // Non-repeatable conditional question
+                const parentResponseValue = flattenedResponse.data[parentQuestionId];
+                if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                  value = parentResponseValue[question.id];
+                } else {
+                  value = null;
+                }
+              }
+            } else {
+              // For main questions, use flattened data with instance key if applicable
+              value = flattenedResponse.data[dataKey];
+              
+              // Handle nested structure for parent questions that have conditional children
+              if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
+                value = value._parentValue;
               }
             }
             
-            // Add attachment info for media uploads
-            if (attachments.length > 0) {
-              const attachmentInfo = attachments.map(att => `${att.fileName} (${formatFileSize(att.fileSize)})`).join('; ');
-              displayValue = displayValue ? `${displayValue} | Files: ${attachmentInfo}` : `Files: ${attachmentInfo}`;
-            }
+            // Get attachments for this question (check all original responses)
+            flattenedResponse.originalResponses.forEach(originalResponse => {
+              const questionAttachments = originalResponse.attachments?.filter(att => att.questionId === question.id) || [];
+              attachments.push(...questionAttachments);
+            });
             
-            row.push(displayValue);
-          }
-        });
-        
-        return row.map(escapeCsvValue).join(',');
-      })
-    ].join('\n');
+            if (question.type === 'LOCATION') {
+              // Flatten location into 4 columns
+              const lat = value && typeof value === 'object' ? (value.latitude ?? value.lat ?? '') : '';
+              const lng = value && typeof value === 'object' ? (value.longitude ?? value.lng ?? '') : '';
+              const acc = value && typeof value === 'object' ? (value.accuracy ?? '') : '';
+              const addr = value && typeof value === 'object' ? (value.address ?? '') : '';
+              row.push(String(lat));
+              row.push(String(lng));
+              row.push(String(acc));
+              row.push(String(addr));
+            } else {
+              let displayValue = formatQuestionValue(value, question);
+              
+              // Add attachment info for media uploads
+              if (attachments.length > 0) {
+                const attachmentInfo = attachments.map(att => `${att.fileName} (${formatFileSize(att.fileSize)})`).join('; ');
+                displayValue = displayValue ? `${displayValue} | Files: ${attachmentInfo}` : `Files: ${attachmentInfo}`;
+              }
+              
+              row.push(displayValue);
+            }
+          });
+          
+          return row.map(escapeCsvValue).join(',');
+        })
+      ].join('\n');
 
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${form.title.replace(/[^a-z0-9]/gi, '_')}_responses.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${form.title.replace(/[^a-z0-9]/gi, '_')}_responses.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
 
-    toast({
-      title: "Export Complete",
-      description: "Response data has been exported to CSV with improved formatting.",
-    });
+      toast({
+        title: "Export Complete",
+        description: `Successfully exported ${flattenedResponses.length} submission${flattenedResponses.length !== 1 ? 's' : ''} to CSV${flattenedResponses.length !== allResponses.length ? ` (${allResponses.length} individual responses grouped)` : ''}.`,
+      });
+    } catch (error) {
+      console.error('❌ Export failed:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export responses. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const QuestionAnalytics = ({ questionId }: { questionId: string }) => {
@@ -1169,7 +1484,7 @@ export function FormResponseViewer() {
       {/* Individual Responses Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Individual Responses ({filteredResponses.length})</CardTitle>
+          <CardTitle>Individual Responses ({totalResponses})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
@@ -1240,15 +1555,20 @@ export function FormResponseViewer() {
                           Row ID
                         </TableHead>
                         
-                        {/* Question columns - including conditional questions */}
-                        {form && getAllQuestionsInOrder(form).map(({ question, isConditional, parentQuestion, parentOption }) => {
+                        {/* Question columns - including conditional questions and instance columns for repeatable sections */}
+                        {form && getAllQuestionsInOrder(form, overallMaxInstances).map(({ question, isConditional, parentQuestion, parentOption, isRepeatable, instanceIndex, instanceKey }) => {
+                          const columnKey = instanceKey || question.id;
+                          
                           if (isConditional) {
                             // Conditional question column
                             return (
-                              <TableHead key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900 bg-blue-50">
+                              <TableHead key={columnKey} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900 bg-blue-50">
                                 <div>
                                   <div className="font-medium text-blue-800">
                                     {question.title}
+                                    {isRepeatable && instanceIndex !== undefined && (
+                                      <span className="text-blue-600 ml-1">(Instance {instanceIndex + 1})</span>
+                                    )}
                                     <span className="text-blue-600 ml-1">*</span>
                                   </div>
                                   <div className="text-blue-600 text-xs">
@@ -1263,13 +1583,19 @@ export function FormResponseViewer() {
                           } else {
                             // Main question column
                             return (
-                              <TableHead key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
+                              <TableHead key={columnKey} className="min-w-[150px] border border-gray-300 px-2 py-2 text-xs font-medium text-gray-900">
                                 <div>
                                   <div className={`${question.isRequired ? 'font-bold' : 'font-medium'}`}>
                                     {question.title}
+                                    {isRepeatable && instanceIndex !== undefined && (
+                                      <span className="text-purple-600 ml-1 text-xs">(Instance {instanceIndex + 1})</span>
+                                    )}
                                     {question.isRequired && <span className="text-red-500 ml-1">*</span>}
                                   </div>
-                                  <div className="text-gray-500">{question.type.replace('_', ' ')}</div>
+                                  <div className="text-gray-500">
+                                    {question.type.replace('_', ' ')}
+                                    {isRepeatable && <span className="text-purple-500 ml-1">(repeatable)</span>}
+                                  </div>
                                 </div>
                               </TableHead>
                             );
@@ -1307,16 +1633,31 @@ export function FormResponseViewer() {
                           </TableCell>
                             
                             {/* Question response cells - matching the header structure exactly */}
-                            {form && getAllQuestionsInOrder(form).map(({ question, isConditional, parentQuestion }) => {
+                            {form && getAllQuestionsInOrder(form, overallMaxInstances).map(({ question, isConditional, parentQuestion, instanceKey }) => {
+                              const cellKey = instanceKey || question.id;
+                              
                               if (isConditional) {
                                 // For conditional questions, extract response from parent question's nested data
-                                const parentResponseValue = row.data[parentQuestion?.id || ''];
-                                const conditionalResponse = (typeof parentResponseValue === 'object' && parentResponseValue !== null) 
-                                  ? parentResponseValue[question.id] 
-                                  : null;
+                                // Handle both repeatable and non-repeatable conditional questions
+                                let conditionalResponse = null;
+                                
+                                if (instanceKey) {
+                                  // Repeatable conditional question - use instance key for parent
+                                  const parentInstanceKey = `${parentQuestion?.id}_instance_${instanceKey.split('_instance_')[1]}`;
+                                  const parentResponseValue = row.data[parentInstanceKey];
+                                  if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                                    conditionalResponse = parentResponseValue[question.id];
+                                  }
+                                } else {
+                                  // Non-repeatable conditional question
+                                  const parentResponseValue = row.data[parentQuestion?.id || ''];
+                                  if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                                    conditionalResponse = parentResponseValue[question.id];
+                                  }
+                                }
                                 
                                 return (
-                                  <TableCell key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2 bg-blue-50">
+                                  <TableCell key={cellKey} className="min-w-[150px] border border-gray-300 px-2 py-2 bg-blue-50">
                                     <div className="text-xs">
                                       {conditionalResponse !== null && conditionalResponse !== undefined ? (
                                         <div className="text-blue-800">
@@ -1332,9 +1673,20 @@ export function FormResponseViewer() {
                                   </TableCell>
                                 );
                               } else {
-                                // For main questions, use the standard ResponseCell
-                                const responseValue = row.data[question.id];
-                                const attachments = row.attachments?.filter((att: any) => att.questionId === question.id) || [];
+                                // For main questions, use flattened data with instance key if applicable
+                                const dataKey = instanceKey || question.id;
+                                const responseValue = row.data[dataKey];
+                                
+                                // Get attachments for this question (from original responses if available)
+                                let attachments: MediaAttachment[] = [];
+                                if (row.originalResponses && row.originalResponses.length > 0) {
+                                  row.originalResponses.forEach((originalResponse: FormResponse) => {
+                                    const questionAttachments = originalResponse.attachments?.filter((att: any) => att.questionId === question.id) || [];
+                                    attachments.push(...questionAttachments);
+                                  });
+                                } else {
+                                  attachments = row.attachments?.filter((att: any) => att.questionId === question.id) || [];
+                                }
                                 
                                 // Extract the actual parent response value (handle nested structure)
                                 let actualResponseValue = responseValue;
@@ -1343,13 +1695,13 @@ export function FormResponseViewer() {
                                 }
                                 
                                 return (
-                                  <TableCell key={question.id} className="min-w-[150px] border border-gray-300 px-2 py-2">
+                                  <TableCell key={cellKey} className="min-w-[150px] border border-gray-300 px-2 py-2">
                                     <ResponseCell 
                                       question={question}
                                       value={actualResponseValue}
                                       attachments={attachments}
                                       isEditable={!row.isExisting}
-                                      onValueChange={(value) => handleManualDataChange(row.rowIndex, question.id, value)}
+                                      onValueChange={(value) => handleManualDataChange(row.rowIndex, dataKey, value)}
                                       responseData={row.data}
                                     />
                                   </TableCell>
@@ -1426,11 +1778,11 @@ export function FormResponseViewer() {
               )}
               
               {/* Pagination Controls */}
-              {filteredResponses.length > 0 && (
+              {totalResponses > 0 && (
                 <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center gap-4">
                     <div className="text-sm text-gray-600">
-                      Showing {startIndex + 1} to {Math.min(endIndex, filteredResponses.length)} of {filteredResponses.length} responses
+                      Showing {startIndex + 1} to {Math.min(endIndex, totalResponses)} of {totalResponses} responses
                     </div>
                     <Select value={String(itemsPerPage)} onValueChange={(value) => setItemsPerPage(Number(value))}>
                       <SelectTrigger className="w-[100px]">
