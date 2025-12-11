@@ -2,6 +2,8 @@ import React from 'react';
 import { FormQuestion } from '../form-creation-wizard/types';
 import {
   ShortTextQuestionRenderer,
+  EmailQuestionRenderer,
+  PhoneQuestionRenderer,
   NumberQuestionRenderer,
   SingleChoiceQuestionRenderer,
   MultipleChoiceQuestionRenderer,
@@ -36,6 +38,28 @@ export function QuestionRenderer({
     case 'SHORT_TEXT':
       return (
         <ShortTextQuestionRenderer
+          question={question}
+          value={value}
+          onChange={onChange}
+          error={error}
+          isPreviewMode={isPreviewMode}
+        />
+      );
+
+    case 'EMAIL':
+      return (
+        <EmailQuestionRenderer
+          question={question}
+          value={value}
+          onChange={onChange}
+          error={error}
+          isPreviewMode={isPreviewMode}
+        />
+      );
+
+    case 'PHONE':
+      return (
+        <PhoneQuestionRenderer
           question={question}
           value={value}
           onChange={onChange}

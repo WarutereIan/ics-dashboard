@@ -1,5 +1,5 @@
 import React from 'react';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { BaseQuestionRenderer, BaseQuestionRendererProps } from './BaseQuestionRenderer';
 import { ShortTextQuestion } from '../../form-creation-wizard/types';
 
@@ -18,12 +18,12 @@ export function ShortTextQuestionRenderer({
 }: ShortTextQuestionRendererProps) {
   return (
     <BaseQuestionRenderer question={question} error={error} isPreviewMode={isPreviewMode}>
-      <Textarea
+      <Input
+        type="text"
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={question.placeholder || 'Enter your response...'}
-        className={`min-h-[100px] ${isPreviewMode ? 'bg-blue-50 border-blue-200' : ''}`}
-        rows={4}
+        className={isPreviewMode ? 'bg-blue-50 border-blue-200' : ''}
       />
     </BaseQuestionRenderer>
   );

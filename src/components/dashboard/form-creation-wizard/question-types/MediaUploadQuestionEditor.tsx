@@ -91,7 +91,7 @@ export function MediaUploadQuestionEditor(props: MediaUploadQuestionEditorProps)
     <BaseQuestionEditor {...props}>
       <div className="space-y-6">
         {/* Media Upload Configuration */}
-       
+        {/* Note: Links are now always enabled for all media upload questions */}
 
         {/* Current Settings Summary */}
        {/*  <Card>

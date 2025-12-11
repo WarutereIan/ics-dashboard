@@ -1,5 +1,7 @@
 export { BaseQuestionRenderer } from './BaseQuestionRenderer';
 export { ShortTextQuestionRenderer } from './ShortTextQuestionRenderer';
+export { EmailQuestionRenderer } from './EmailQuestionRenderer';
+export { PhoneQuestionRenderer } from './PhoneQuestionRenderer';
 export { NumberQuestionRenderer } from './NumberQuestionRenderer';
 export { SingleChoiceQuestionRenderer } from './SingleChoiceQuestionRenderer';
 export { MultipleChoiceQuestionRenderer } from './MultipleChoiceQuestionRenderer';

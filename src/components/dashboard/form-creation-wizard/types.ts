@@ -207,6 +207,7 @@ export interface ImageUploadQuestion extends BaseQuestion {
   allowMultiple?: boolean;
   previewSize?: 'small' | 'medium' | 'large';
   compressionQuality?: number; // 0-100
+  allowLinks?: boolean; // Allow users to provide links to media files instead of uploading
 }
 
 export interface VideoUploadQuestion extends BaseQuestion {
@@ -219,6 +220,7 @@ export interface VideoUploadQuestion extends BaseQuestion {
   allowMultiple?: boolean;
   quality?: 'low' | 'medium' | 'high';
   autoCompress?: boolean;
+  allowLinks?: boolean; // Allow users to provide links to media files instead of uploading
 }
 
 export interface FileUploadQuestion extends BaseQuestion {
@@ -229,6 +231,7 @@ export interface FileUploadQuestion extends BaseQuestion {
   allowMultiple?: boolean;
   showPreview?: boolean;
   maxFileNameLength?: number;
+  allowLinks?: boolean; // Allow users to provide links to media files instead of uploading
 }
 
 export interface LocationQuestion extends BaseQuestion {
@@ -251,6 +254,7 @@ export interface AudioUploadQuestion extends BaseQuestion {
   allowMultiple?: boolean;
   quality?: 'low' | 'medium' | 'high';
   autoCompress?: boolean;
+  allowLinks?: boolean; // Allow users to provide links to media files instead of uploading
 }
 
 // Union type for all question types

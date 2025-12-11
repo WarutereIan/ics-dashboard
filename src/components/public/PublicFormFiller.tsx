@@ -669,6 +669,10 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
 
       console.log('📤 Total responses to submit:', responsesToSubmit.length);
       
+      // Use consistent timestamps for all responses from the same submission
+      const submissionStartedAt = new Date();
+      const submissionSubmittedAt = new Date();
+      
       // Submit each response individually
       const submissionPromises = responsesToSubmit.map(async (responseData, index) => {
         // Add conditional responses to this specific response
@@ -725,8 +729,8 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           id: `response-${Date.now()}-${index}`,
           formId: form.id,
           formVersion: form.version || 1,
-          startedAt: new Date(),
-          submittedAt: new Date(),
+          startedAt: submissionStartedAt, // Use consistent timestamp
+          submittedAt: submissionSubmittedAt, // Use consistent timestamp
           isComplete: true,
           data: mergedResponses,
           ipAddress: 'Unknown',
