@@ -36,6 +36,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const tokenRef = useRef<string | null>(token);
   tokenRef.current = token;
 
+  // Inactivity timer ref - stores the timeout ID
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Logout ref - will be set after logout function is defined
+  const logoutRef = useRef<((preserveCurrentUrl?: boolean) => void) | null>(null);
+
   const isAuthenticated = !!user && !!token;
 
   // Debug logging for state changes
@@ -107,6 +112,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token]);
 
+  // Inactivity detection - auto logout after 1 hour of inactivity
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Clear any existing timer if user is not authenticated
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Inactivity timeout: 1 hour (3600000 milliseconds)
+    const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hour
+
+    // Function to reset the inactivity timer
+    const resetInactivityTimer = () => {
+      // Clear existing timer
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+
+      // Set new timer
+      inactivityTimerRef.current = setTimeout(() => {
+        console.log('AuthContext - Inactivity timeout reached, logging out user');
+        if (logoutRef.current) {
+          logoutRef.current(true); // Preserve current URL for redirect
+        }
+      }, INACTIVITY_TIMEOUT);
+    };
+
+    // Initial timer setup
+    resetInactivityTimer();
+
+    // Events that indicate user activity
+    const activityEvents = [
+      'mousedown',
+      'mousemove',
+      'keypress',
+      'scroll',
+      'touchstart',
+      'click',
+      'keydown'
+    ];
+
+    // Add event listeners for user activity
+    activityEvents.forEach(event => {
+      window.addEventListener(event, resetInactivityTimer, { passive: true });
+    });
+
+    // Cleanup function
+    return () => {
+      // Clear timer
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+
+      // Remove event listeners
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, resetInactivityTimer);
+      });
+    };
+  }, [isAuthenticated]); // Only run when authentication state changes
+
   const initializeAuth = async () => {
     console.log('AuthContext - initializeAuth called');
     const storedToken = localStorage.getItem(TOKEN_KEY);
@@ -164,6 +233,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = (preserveCurrentUrl = false) => {
+    // Clear inactivity timer
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+
     clearAuthData();
     
     // Optional: Call logout endpoint to invalidate token on server
@@ -185,6 +260,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.location.href = '/login';
     }
   };
+
+  // Update logout ref after logout function is defined
+  logoutRef.current = logout;
 
   const refreshToken = async (): Promise<boolean> => {
     const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);

@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload, X, File, Image, Video, Music, Camera, Mic } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Upload, X, File, Image, Video, Music, Camera, Mic, Link as LinkIcon, Plus } from 'lucide-react';
 import { FormQuestion } from '../../form-creation-wizard/types';
 import { BaseQuestionRenderer } from './BaseQuestionRenderer';
 import { useForm } from '@/contexts/FormContext';
@@ -51,6 +52,7 @@ export function MediaUploadQuestionRenderer({
   const [isCapturing, setIsCapturing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [linkInput, setLinkInput] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -596,6 +598,48 @@ export function MediaUploadQuestionRenderer({
     onChange(newFiles);
   };
 
+  // Validate URL
+  const isValidUrl = (urlString: string): boolean => {
+    try {
+      const url = new URL(urlString);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  // Handle adding a link
+  const handleAddLink = () => {
+    if (!onChange || !linkInput.trim()) return;
+
+    const trimmedLink = linkInput.trim();
+
+    // Validate URL
+    if (!isValidUrl(trimmedLink)) {
+      alert('Please enter a valid URL (must start with http:// or https://)');
+      return;
+    }
+
+    // Check file count
+    if (value.length + 1 > config.maxFiles) {
+      alert(`Maximum ${config.maxFiles} files/links allowed`);
+      return;
+    }
+
+    // Create link object
+    const linkData = {
+      type: 'link',
+      url: trimmedLink,
+      label: trimmedLink, // Default label is the URL
+      mediaType: getMediaTypeFromExtension(trimmedLink) || 'file',
+      addedAt: new Date().toISOString()
+    };
+
+    const newFiles = [...value, linkData];
+    onChange(newFiles);
+    setLinkInput(''); // Clear input after adding, but keep the field visible
+  };
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -821,7 +865,7 @@ export function MediaUploadQuestionRenderer({
               </p>
               
               <div className="space-y-2 text-xs text-gray-500">
-                <p>Maximum {config.maxFiles} file{config.maxFiles !== 1 ? 's' : ''}</p>
+                <p>Maximum {config.maxFiles} file{config.maxFiles !== 1 ? 's' : ''} or link{config.maxFiles !== 1 ? 's' : ''}</p>
                 <p>Maximum size: {formatFileSize(config.maxSize)} per file</p>
                 {config.formats.length > 0 && (
                   <p>Accepted formats: {config.formats.join(', ')}</p>
@@ -858,13 +902,95 @@ export function MediaUploadQuestionRenderer({
           </CardContent>
         </Card>
 
-        {/* File List */}
+        {/* Link Input Section - Always available for media upload questions */}
+        <Card className="border border-gray-200">
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <LinkIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                <h4 className="text-sm font-medium text-gray-900">Add Media Link</h4>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  type="url"
+                  placeholder="https://example.com/media/file.jpg"
+                  value={linkInput}
+                  onChange={(e) => setLinkInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddLink();
+                    }
+                  }}
+                  disabled={disabled}
+                  className="flex-1 w-full sm:w-auto"
+                />
+                <Button
+                  type="button"
+                  onClick={handleAddLink}
+                  disabled={disabled || !linkInput.trim()}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">
+                Enter a URL to a media file (must start with http:// or https://)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* File and Link List */}
         {value && value.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-gray-900">
-              Selected Files ({value.length}/{config.maxFiles})
+              Selected Files & Links ({value.length}/{config.maxFiles})
             </h4>
             {value.map((fileData: any, index: number) => {
+              // Check if this is a link
+              const isLink = fileData.type === 'link';
+              
+              if (isLink) {
+                // Render link item
+                const linkUrl = fileData.url || '';
+                const linkLabel = fileData.label || linkUrl;
+                
+                return (
+                  <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-start sm:items-center space-x-3 flex-1 min-w-0">
+                      <LinkIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 break-words">{linkLabel}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-1 text-xs text-gray-500">
+                          <a 
+                            href={linkUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline break-all sm:break-words"
+                            title={linkUrl}
+                          >
+                            {linkUrl}
+                          </a>
+                          <Badge variant="outline" className="text-xs w-fit">Link</Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(index)}
+                      disabled={disabled}
+                      className="flex-shrink-0 self-end sm:self-center"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                );
+              }
+              
               // Handle both File objects (legacy) and file data objects (new)
               const fileName = fileData.name || fileData.fileName || 'Unknown file';
               const fileSize = fileData.size || fileData.fileSize || 0;
