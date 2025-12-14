@@ -1176,8 +1176,11 @@ export function FormResponseViewer() {
         // Use first original response from the group
         responseToEdit = rowData.originalResponses[0];
       } else {
-        // Fallback: find by ID
-        responseToEdit = responses.find(r => r.id === rowData.responseId) || null;
+        // Fallback: find flattened response and extract first original response
+        const flattenedResponse = responses.find(r => r.id === rowData.responseId);
+        if (flattenedResponse && flattenedResponse.originalResponses && flattenedResponse.originalResponses.length > 0) {
+          responseToEdit = flattenedResponse.originalResponses[0];
+        }
       }
       
       if (responseToEdit) {
