@@ -101,8 +101,8 @@ const getAllQuestionsInOrder = (
       if (isRepeatable && maxInstances) {
         // For repeatable sections, create columns for each instance
         for (let instanceIndex = 0; instanceIndex < maxInstances; instanceIndex++) {
-          allQuestions.push({
-            question,
+      allQuestions.push({
+        question,
             isConditional: false,
             isRepeatable: true,
             sectionId: section.id,
@@ -137,24 +137,24 @@ const getAllQuestionsInOrder = (
           isConditional: false,
           isRepeatable: false,
           sectionId: section.id
-        });
+      });
 
-        // Add conditional questions
-        if ((question as any).options && Array.isArray((question as any).options)) {
-          (question as any).options.forEach((option: any) => {
-            if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
-              option.conditionalQuestions.forEach((condQuestion: any) => {
-                allQuestions.push({
-                  question: condQuestion as FormQuestion,
-                  isConditional: true,
-                  parentQuestion: question,
+      // Add conditional questions
+      if ((question as any).options && Array.isArray((question as any).options)) {
+        (question as any).options.forEach((option: any) => {
+          if (option.conditionalQuestions && Array.isArray(option.conditionalQuestions)) {
+            option.conditionalQuestions.forEach((condQuestion: any) => {
+              allQuestions.push({
+                question: condQuestion as FormQuestion,
+                isConditional: true,
+                parentQuestion: question,
                   parentOption: option,
                   isRepeatable: false,
                   sectionId: section.id
-                });
               });
-            }
-          });
+            });
+          }
+        });
         }
       }
     });
@@ -1134,7 +1134,7 @@ export function FormResponseViewer() {
           }
         });
         maxInstancesBySectionMap.set(section.id, maxInstances || 1);
-      });
+  });
     }
     
     const overallMax = form ? Math.max(...Array.from(maxInstancesBySectionMap.values()), 1) : 1;
@@ -1437,31 +1437,31 @@ export function FormResponseViewer() {
         flattenedResponseCount: flattenedResponses.length
       });
     
-      // Helper function to escape CSV values
-      const escapeCsvValue = (value: any): string => {
-        if (value === null || value === undefined) return '';
-        
-        const stringValue = String(value);
-        // If value contains comma, newline, or quote, wrap in quotes and escape quotes
-        if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      };
-
-      // Helper function to format dates as mm-dd-yyyy
-      const formatDate = (date: Date | string | null | undefined): string => {
-        if (!date) return '';
-        const dateObj = date instanceof Date ? date : new Date(date);
-        if (isNaN(dateObj.getTime())) return '';
-        
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const year = dateObj.getFullYear();
-        
-        return `${month}-${day}-${year}`;
-      };
+    // Helper function to escape CSV values
+    const escapeCsvValue = (value: any): string => {
+      if (value === null || value === undefined) return '';
       
+      const stringValue = String(value);
+      // If value contains comma, newline, or quote, wrap in quotes and escape quotes
+      if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    // Helper function to format dates as mm-dd-yyyy
+    const formatDate = (date: Date | string | null | undefined): string => {
+      if (!date) return '';
+      const dateObj = date instanceof Date ? date : new Date(date);
+      if (isNaN(dateObj.getTime())) return '';
+      
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const year = dateObj.getFullYear();
+      
+      return `${month}-${day}-${year}`;
+    };
+
       // Helper function to format question value for CSV
       const formatQuestionValue = (value: any, question: any): string => {
         if (value === undefined || value === null) return '';
@@ -1488,79 +1488,79 @@ export function FormResponseViewer() {
           }
           return String(value);
         }
-        
-        return String(value);
-      };
-
-      // Create CSV content
-      const headers = [
-        'Response ID',
-        'Email', 
-        'Status', 
-        'Submitted At', 
-        'Completion Time (minutes)'
-      ];
       
+        return String(value);
+    };
+
+    // Create CSV content
+    const headers = [
+      'Response ID',
+      'Email', 
+      'Status', 
+      'Submitted At', 
+      'Completion Time (minutes)'
+    ];
+    
       // Add question headers with instance columns for repeatable sections
       const allQuestions = getAllQuestionsInOrder(form, overallMaxInstances);
       allQuestions.forEach(({question, isConditional, parentQuestion, parentOption, isRepeatable, instanceIndex, instanceKey}) => {
-        let headerTitle = question.title;
+      let headerTitle = question.title;
         
         // Add instance suffix for repeatable sections
         if (isRepeatable && instanceIndex !== undefined) {
           headerTitle = `${question.title} (Instance ${instanceIndex + 1})`;
         }
         
-        if (isConditional) {
+      if (isConditional) {
           headerTitle = `${question.title} (Conditional: ${parentQuestion?.title || 'Unknown'} → ${parentOption?.label || parentOption})${isRepeatable && instanceIndex !== undefined ? ` - Instance ${instanceIndex + 1}` : ''}`;
-        }
+      }
         
-        if (question.type === 'LOCATION') {
-          headers.push(`${headerTitle} - Latitude`);
-          headers.push(`${headerTitle} - Longitude`);
-          headers.push(`${headerTitle} - Accuracy`);
-          headers.push(`${headerTitle} - Address`);
-        } else {
-          headers.push(headerTitle);
-        }
-      });
+      if (question.type === 'LOCATION') {
+        headers.push(`${headerTitle} - Latitude`);
+        headers.push(`${headerTitle} - Longitude`);
+        headers.push(`${headerTitle} - Accuracy`);
+        headers.push(`${headerTitle} - Address`);
+      } else {
+        headers.push(headerTitle);
+      }
+    });
 
-      const csvContent = [
-        headers.map(escapeCsvValue).join(','),
+    const csvContent = [
+      headers.map(escapeCsvValue).join(','),
         ...flattenedResponses.map(flattenedResponse => {
           const completionTime = flattenedResponse.submittedAt && flattenedResponse.startedAt
             ? Math.round(((new Date(flattenedResponse.submittedAt)).getTime() - (new Date(flattenedResponse.startedAt)).getTime()) / (1000 * 60))
-            : '';
+          : '';
 
-          const row = [
+        const row = [
             flattenedResponse.id,
             flattenedResponse.respondentEmail || 'Anonymous',
             flattenedResponse.isComplete ? 'Complete' : 'Incomplete',
             flattenedResponse.submittedAt ? formatDate(flattenedResponse.submittedAt) : 'Not submitted',
-            completionTime
-          ];
-          
+          completionTime
+        ];
+        
           // Add question responses using flattened data
           allQuestions.forEach(({question, isConditional, parentQuestion, instanceKey}) => {
-            let value;
+          let value;
             let attachments: MediaAttachment[] = [];
             
             // Determine the key to use for lookup
             const dataKey = instanceKey || question.id;
             const parentQuestionId = parentQuestion?.id;
-            
-            if (isConditional && parentQuestionId) {
+          
+          if (isConditional && parentQuestionId) {
               // For conditional questions in repeatable sections
               if (instanceKey) {
                 // Repeatable conditional question
                 const parentInstanceKey = `${parentQuestionId}_instance_${instanceKey.split('_instance_')[1]}`;
                 const parentResponseValue = flattenedResponse.data[parentInstanceKey];
-                if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
-                  value = parentResponseValue[question.id];
-                } else {
-                  value = null;
-                }
-              } else {
+            if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+              value = parentResponseValue[question.id];
+            } else {
+              value = null;
+            }
+          } else {
                 // Non-repeatable conditional question
                 const parentResponseValue = flattenedResponse.data[parentQuestionId];
                 if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
@@ -1572,13 +1572,13 @@ export function FormResponseViewer() {
             } else {
               // For main questions, use flattened data with instance key if applicable
               value = flattenedResponse.data[dataKey];
-              
-              // Handle nested structure for parent questions that have conditional children
-              if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
-                value = value._parentValue;
-              }
-            }
             
+            // Handle nested structure for parent questions that have conditional children
+            if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
+              value = value._parentValue;
+            }
+          }
+          
             // Get attachments for this question (check all original responses)
             flattenedResponse.originalResponses.forEach(originalResponse => {
               const questionAttachments = originalResponse.attachments?.filter(att => att.questionId === question.id) || [];
@@ -1609,43 +1609,43 @@ export function FormResponseViewer() {
               const combinedInfo = [fileInfo, linkInfo].filter(Boolean).join(' | ');
               row.push(combinedInfo || '');
             } else if (question.type === 'LOCATION') {
-              // Flatten location into 4 columns
-              const lat = value && typeof value === 'object' ? (value.latitude ?? value.lat ?? '') : '';
-              const lng = value && typeof value === 'object' ? (value.longitude ?? value.lng ?? '') : '';
-              const acc = value && typeof value === 'object' ? (value.accuracy ?? '') : '';
-              const addr = value && typeof value === 'object' ? (value.address ?? '') : '';
-              row.push(String(lat));
-              row.push(String(lng));
-              row.push(String(acc));
-              row.push(String(addr));
-            } else {
+            // Flatten location into 4 columns
+            const lat = value && typeof value === 'object' ? (value.latitude ?? value.lat ?? '') : '';
+            const lng = value && typeof value === 'object' ? (value.longitude ?? value.lng ?? '') : '';
+            const acc = value && typeof value === 'object' ? (value.accuracy ?? '') : '';
+            const addr = value && typeof value === 'object' ? (value.address ?? '') : '';
+            row.push(String(lat));
+            row.push(String(lng));
+            row.push(String(acc));
+            row.push(String(addr));
+          } else {
               let displayValue = formatQuestionValue(value, question);
-              
-              // Add attachment info for media uploads
-              if (attachments.length > 0) {
-                const attachmentInfo = attachments.map(att => `${att.fileName} (${formatFileSize(att.fileSize)})`).join('; ');
-                displayValue = displayValue ? `${displayValue} | Files: ${attachmentInfo}` : `Files: ${attachmentInfo}`;
-              }
-              
-              row.push(displayValue);
+            
+            // Add attachment info for media uploads
+            if (attachments.length > 0) {
+              const attachmentInfo = attachments.map(att => `${att.fileName} (${formatFileSize(att.fileSize)})`).join('; ');
+              displayValue = displayValue ? `${displayValue} | Files: ${attachmentInfo}` : `Files: ${attachmentInfo}`;
             }
-          });
-          
-          return row.map(escapeCsvValue).join(',');
-        })
-      ].join('\n');
+            
+            row.push(displayValue);
+          }
+        });
+        
+        return row.map(escapeCsvValue).join(',');
+      })
+    ].join('\n');
 
-      // Download CSV
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${form.title.replace(/[^a-z0-9]/gi, '_')}_responses.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${form.title.replace(/[^a-z0-9]/gi, '_')}_responses.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
 
-      toast({
-        title: "Export Complete",
+    toast({
+      title: "Export Complete",
         description: `Successfully exported ${flattenedResponses.length} submission${flattenedResponses.length !== 1 ? 's' : ''} to CSV${flattenedResponses.length !== allResponses.length ? ` (${allResponses.length} individual responses grouped)` : ''}.`,
       });
     } catch (error) {
@@ -2000,9 +2000,15 @@ export function FormResponseViewer() {
                                 let conditionalResponse = null;
                                 
                                 if (instanceKey) {
-                                  // Repeatable conditional question - use instance key for parent
-                                  const parentInstanceKey = `${parentQuestion?.id}_instance_${instanceKey.split('_instance_')[1]}`;
-                                  const parentResponseValue = row.data[parentInstanceKey];
+                                  // Repeatable conditional - parent may be row.data[parentId_instance_N] or row.data[parentId]["N"]
+                                  const instanceIndexStr = instanceKey.split('_instance_')[1];
+                                  let parentResponseValue = row.data[`${parentQuestion?.id}_instance_${instanceIndexStr}`];
+                                  if (parentResponseValue === undefined && instanceIndexStr != null) {
+                                    const byParent = row.data[parentQuestion?.id || ''];
+                                    if (typeof byParent === 'object' && byParent !== null && !Array.isArray(byParent)) {
+                                      parentResponseValue = byParent[instanceIndexStr] ?? byParent[Number(instanceIndexStr)];
+                                    }
+                                  }
                                   if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
                                     conditionalResponse = parentResponseValue[question.id];
                                   }
@@ -2033,7 +2039,15 @@ export function FormResponseViewer() {
                               } else {
                                 // For main questions, use flattened data with instance key if applicable
                                 const dataKey = instanceKey || question.id;
-                                const responseValue = row.data[dataKey];
+                                let responseValue = row.data[dataKey];
+                                // Single response with repeatable data stored as object { "0": v0, "1": v1 }
+                                if (responseValue === undefined && instanceKey) {
+                                  const instanceIndexFromKey = instanceKey.split('_instance_')[1];
+                                  const byQuestion = row.data[question.id];
+                                  if (instanceIndexFromKey != null && typeof byQuestion === 'object' && byQuestion !== null && !Array.isArray(byQuestion)) {
+                                    responseValue = byQuestion[instanceIndexFromKey] ?? byQuestion[Number(instanceIndexFromKey)];
+                                  }
+                                }
                                 
                                 // Get attachments for this question (from original responses if available)
                                 let attachments: MediaAttachment[] = [];
