@@ -587,204 +587,139 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     
     try {
       console.log('📤 Submitting form response for form:', form.id);
-      
-      // Create the response object and submit via addFormResponseToStorage 
-      // (which handles online/offline scenarios and API submission)
-      // Process repeatable sections to create multiple responses
-      const responsesToSubmit: Array<{ data: Record<string, any>; repeatableSectionId?: string; instanceIndex?: number }> = [];
 
-      console.log('🔄 Form submission - Processing repeatable sections:', {
-        formId: form.id,
-        sectionInstanceCounts,
-        rawResponses: Object.keys(responses).length
-      });
+      // Build a single response with all data so repeatable sections appear as extra columns in one row
+      const singleMergedData: Record<string, any> = {};
 
       if (form) {
-        // Find repeatable sections and their instance counts
-        const repeatableSections = form.sections.filter(section => 
+        const repeatableSections = form.sections.filter(section =>
           (section as any).conditional?.repeatable
         );
 
-        if (repeatableSections.length === 0) {
-          // No repeatable sections - create single response with all data
-          const singleResponse: Record<string, any> = {};
-          form.sections.forEach(section => {
-            section.questions.forEach((question: FormQuestion) => {
-              singleResponse[question.id] = responses[question.id];
-            });
-          });
-          responsesToSubmit.push({ data: singleResponse });
-        } else {
-          // Create separate responses for each instance of repeatable sections
-          const maxInstances = Math.max(...repeatableSections.map(section => 
-            getSectionInstanceCount(section.id)
-          ));
+        form.sections.forEach(section => {
+          const isRepeatable = (section as any).conditional?.repeatable;
+          const instanceCount = getSectionInstanceCount(section.id);
 
-          console.log('📊 Creating multiple responses:', {
-            repeatableSections: repeatableSections.length,
-            maxInstances,
-            repeatableSectionIds: repeatableSections.map(s => s.id)
-          });
-
-          for (let instanceIndex = 0; instanceIndex < maxInstances; instanceIndex++) {
-            const responseData: Record<string, any> = {};
-            
-            form.sections.forEach(section => {
-              const isRepeatable = (section as any).conditional?.repeatable;
-              const instanceCount = getSectionInstanceCount(section.id);
-              
-              section.questions.forEach((question: FormQuestion) => {
-                if (isRepeatable) {
-                  // For repeatable sections, use instance-scoped values
-                  const scopedId = getInstanceScopedQuestionId(question.id, instanceIndex);
-                  responseData[question.id] = responses[scopedId];
-                } else {
-                  // For non-repeatable sections, use the same value in all responses
-                  responseData[question.id] = responses[question.id];
-                }
-              });
-            });
-
-            // Only create response if there's actual data for this instance
-            const hasData = Object.values(responseData).some(value => 
-              value !== undefined && value !== null && value !== ''
-            );
-
-            if (hasData) {
-              responsesToSubmit.push({ 
-                data: responseData, 
-                repeatableSectionId: repeatableSections[0].id, // Primary repeatable section
-                instanceIndex 
-              });
-              
-              console.log(`📝 Response ${instanceIndex + 1} data:`, {
-                instanceIndex,
-                dataKeys: Object.keys(responseData),
-                hasData: true
-              });
+          section.questions.forEach((question: FormQuestion) => {
+            if (isRepeatable) {
+              // Store repeatable question as object { "0": v0, "1": v1 } for one response row
+              const instanceValues: Record<string, any> = {};
+              for (let i = 0; i < instanceCount; i++) {
+                const scopedId = getInstanceScopedQuestionId(question.id, i);
+                instanceValues[String(i)] = responses[scopedId];
+              }
+              singleMergedData[question.id] = instanceValues;
+            } else {
+              singleMergedData[question.id] = responses[question.id];
             }
-          }
-        }
-      }
+          });
+        });
 
-      console.log('📤 Total responses to submit:', responsesToSubmit.length);
-      
-      // Use consistent timestamps for all responses from the same submission
-      const submissionStartedAt = new Date();
-      const submissionSubmittedAt = new Date();
-      
-      // Submit each response individually
-      const submissionPromises = responsesToSubmit.map(async (responseData, index) => {
-        // Add conditional responses to this specific response
-        const mergedResponses = { ...responseData.data };
-        
+        // Merge conditional responses into parent question values (non-repeatable)
         Object.entries(conditionalResponses).forEach(([conditionalQuestionId, value]) => {
-          // Find the parent question that contains this conditional question
           const parentQuestion = form.sections
             .flatMap(section => section.questions)
             .find(question => {
               if ((question as any).options && Array.isArray((question as any).options)) {
-                return (question as any).options.some((option: any) => 
-                  option.conditionalQuestions && 
+                return (question as any).options.some((option: any) =>
+                  option.conditionalQuestions &&
                   option.conditionalQuestions.some((condQ: any) => condQ.id === conditionalQuestionId)
                 );
               }
               return false;
             });
-          
+
           if (parentQuestion) {
-            // Store conditional response as part of parent question's response
-            const parentResponse = mergedResponses[parentQuestion.id];
-            
-            if (parentResponse === undefined || parentResponse === null) {
-              // Parent question has no response yet, create object with conditional response
-              mergedResponses[parentQuestion.id] = {
-                [conditionalQuestionId]: value
-              };
-            } else if (typeof parentResponse === 'object' && !Array.isArray(parentResponse)) {
-              // Parent response is already an object, add conditional response to it
-              mergedResponses[parentQuestion.id][conditionalQuestionId] = value;
+            const parentSection = form.sections.find(s => s.questions?.some(q => q.id === parentQuestion.id));
+            const parentIsRepeatable = parentSection && (parentSection as any).conditional?.repeatable;
+
+            if (parentIsRepeatable) {
+              // Conditional under repeatable parent: merge into each instance that has this conditional
+              const existing = singleMergedData[parentQuestion.id];
+              if (typeof existing === 'object' && existing !== null && !Array.isArray(existing)) {
+                const maxInst = getSectionInstanceCount(parentSection!.id);
+                for (let i = 0; i < maxInst; i++) {
+                  const scopedCondId = getInstanceScopedQuestionId(conditionalQuestionId, i);
+                  const condValue = conditionalResponses[scopedCondId] ?? conditionalResponses[conditionalQuestionId] ?? value;
+                  const instVal = existing[String(i)];
+                  if (instVal === undefined || instVal === null) {
+                    existing[String(i)] = { [conditionalQuestionId]: condValue };
+                  } else if (typeof instVal === 'object' && !Array.isArray(instVal)) {
+                    existing[String(i)] = { ...instVal, [conditionalQuestionId]: condValue };
+                  } else {
+                    existing[String(i)] = { _parentValue: instVal, [conditionalQuestionId]: condValue };
+                  }
+                }
+              }
             } else {
-              // Parent response is a simple value, convert to object with both parent and conditional responses
-              mergedResponses[parentQuestion.id] = {
-                _parentValue: parentResponse,
-                [conditionalQuestionId]: value
-              };
+              const parentResponse = singleMergedData[parentQuestion.id];
+              if (parentResponse === undefined || parentResponse === null) {
+                singleMergedData[parentQuestion.id] = { [conditionalQuestionId]: value };
+              } else if (typeof parentResponse === 'object' && !Array.isArray(parentResponse)) {
+                singleMergedData[parentQuestion.id] = { ...parentResponse, [conditionalQuestionId]: value };
+              } else {
+                singleMergedData[parentQuestion.id] = {
+                  _parentValue: parentResponse,
+                  [conditionalQuestionId]: value
+                };
+              }
             }
           }
         });
+      }
 
-        // Create source with metadata for repeatable sections
-        let sourceData = isEmbedded ? 'embed' : 'direct';
-        if (responseData.repeatableSectionId) {
-          sourceData = JSON.stringify({
-            type: 'repeatable',
-            repeatableSectionId: responseData.repeatableSectionId,
-            instanceIndex: responseData.instanceIndex,
-            originalSource: isEmbedded ? 'embed' : 'direct'
-          });
-        }
+      const submissionStartedAt = new Date();
+      const submissionSubmittedAt = new Date();
+      const singleResponseId = `response-${Date.now()}`;
 
-        const responseObj = {
-          id: `response-${Date.now()}-${index}`,
-          formId: form.id,
-          formVersion: form.version || 1,
-          startedAt: submissionStartedAt, // Use consistent timestamp
-          submittedAt: submissionSubmittedAt, // Use consistent timestamp
-          isComplete: true,
-          data: mergedResponses,
-          ipAddress: 'Unknown',
-          userAgent: navigator.userAgent,
-          source: sourceData
-        };
+      const responseObj = {
+        id: singleResponseId,
+        formId: form.id,
+        formVersion: form.version || 1,
+        startedAt: submissionStartedAt,
+        submittedAt: submissionSubmittedAt,
+        isComplete: true,
+        data: singleMergedData,
+        ipAddress: 'Unknown',
+        userAgent: navigator.userAgent,
+        source: isEmbedded ? 'embed' : 'direct'
+      };
 
-        console.log(`📊 Response ${index + 1} data:`, {
-          responseId: responseObj.id,
-          repeatableSectionId: responseData.repeatableSectionId,
-          instanceIndex: responseData.instanceIndex,
-          dataKeys: Object.keys(mergedResponses)
-        });
-        
-        return addFormResponseToStorage(responseObj);
+      console.log('📤 Submitting single response:', {
+        responseId: responseObj.id,
+        dataKeys: Object.keys(singleMergedData),
+        repeatableKeys: Object.keys(singleMergedData).filter(k => {
+          const v = singleMergedData[k];
+          return typeof v === 'object' && v !== null && !Array.isArray(v) && Object.keys(v).every(kk => /^\d+$/.test(kk));
+        })
       });
 
-      // Submit all responses
-      const submissionResults = await Promise.all(submissionPromises);
-      const submitted = submissionResults.every(result => result);
-      
-      // Only clear locally stored data if submission was successful on the server
+      const submitted = await addFormResponseToStorage(responseObj);
+
       if (submitted) {
         clearFormPreviewData(form.id);
-        // Clear form responses state
         setResponses({});
         setConditionalResponses({});
         setSectionInstanceCounts({});
       }
-      
+
       setIsComplete(true);
-      
-      // Success toast with multiple responses info
-      const responseCount = responsesToSubmit.length;
-      if (responseCount > 1) {
+
+      if (form.settings?.thankYouMessage && form.settings.thankYouMessage !== "Thank you for your response.") {
         toast({
-          title: submitted ? "Multiple Responses Submitted!" : "Saved Offline",
-          description: submitted 
-            ? `Successfully submitted ${responseCount} responses. ${form.settings?.thankYouMessage || "Thank you for your responses."}`
-            : `Saved ${responseCount} responses offline. They will auto-submit when connection is restored.`,
+          title: submitted ? "Form Submitted Successfully!" : "Saved Offline",
+          description: submitted ? form.settings.thankYouMessage : `${form.settings.thankYouMessage} (Will auto-submit when online)`,
+        });
+      } else if (!submitted) {
+        toast({
+          title: "Saved Offline",
+          description: "We'll auto-submit your response once connection is restored.",
         });
       } else {
-        // Single response - use existing logic
-        if (form.settings?.thankYouMessage && form.settings.thankYouMessage !== "Thank you for your response.") {
-          toast({
-            title: submitted ? "Form Submitted Successfully!" : "Saved Offline",
-            description: submitted ? form.settings.thankYouMessage : `${form.settings.thankYouMessage} (Will auto-submit when online)`,
-          });
-        } else if (!submitted) {
-          toast({
-            title: "Saved Offline",
-            description: "We'll auto-submit your response once connection is restored.",
-          });
-        }
+        toast({
+          title: "Form Submitted Successfully!",
+          description: form.settings?.thankYouMessage || "Thank you for your response. Your submission has been received.",
+        });
       }
     } catch (err: any) {
       console.error('Form submission failed:', err);
