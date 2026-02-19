@@ -615,15 +615,22 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           });
         });
 
-        // Merge conditional responses into parent question values (non-repeatable)
-        Object.entries(conditionalResponses).forEach(([conditionalQuestionId, value]) => {
+        // Merge conditional responses into parent question values
+        // Conditional keys for repeatable sections are scoped: "condQId__i0", "condQId__i1", etc.
+        // Non-repeatable keys are just "condQId".
+        Object.entries(conditionalResponses).forEach(([rawKey, value]) => {
+          // Extract base conditional question ID and optional instance index
+          const scopeMatch = rawKey.match(/^(.+)__i(\d+)$/);
+          const baseCondId = scopeMatch ? scopeMatch[1] : rawKey;
+          const instanceIdx = scopeMatch ? parseInt(scopeMatch[2], 10) : null;
+
           const parentQuestion = form.sections
             .flatMap(section => section.questions)
             .find(question => {
               if ((question as any).options && Array.isArray((question as any).options)) {
                 return (question as any).options.some((option: any) =>
                   option.conditionalQuestions &&
-                  option.conditionalQuestions.some((condQ: any) => condQ.id === conditionalQuestionId)
+                  option.conditionalQuestions.some((condQ: any) => condQ.id === baseCondId)
                 );
               }
               return false;
@@ -633,37 +640,34 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
             const parentSection = form.sections.find(s => s.questions?.some(q => q.id === parentQuestion.id));
             const parentIsRepeatable = parentSection && (parentSection as any).conditional?.repeatable;
 
-            if (parentIsRepeatable) {
-              // Conditional under repeatable parent: merge into each instance that has this conditional
+            if (parentIsRepeatable && instanceIdx !== null) {
+              // Scoped conditional for a specific repeatable instance
               const existing = singleMergedData[parentQuestion.id];
               if (typeof existing === 'object' && existing !== null && !Array.isArray(existing)) {
-                const maxInst = getSectionInstanceCount(parentSection!.id);
-                for (let i = 0; i < maxInst; i++) {
-                  const scopedCondId = getInstanceScopedQuestionId(conditionalQuestionId, i);
-                  const condValue = conditionalResponses[scopedCondId] ?? conditionalResponses[conditionalQuestionId] ?? value;
-                  const instVal = existing[String(i)];
-                  if (instVal === undefined || instVal === null) {
-                    existing[String(i)] = { [conditionalQuestionId]: condValue };
-                  } else if (typeof instVal === 'object' && !Array.isArray(instVal)) {
-                    existing[String(i)] = { ...instVal, [conditionalQuestionId]: condValue };
-                  } else {
-                    existing[String(i)] = { _parentValue: instVal, [conditionalQuestionId]: condValue };
-                  }
+                const instVal = existing[String(instanceIdx)];
+                if (instVal === undefined || instVal === null) {
+                  existing[String(instanceIdx)] = { [baseCondId]: value };
+                } else if (typeof instVal === 'object' && !Array.isArray(instVal)) {
+                  existing[String(instanceIdx)] = { ...instVal, [baseCondId]: value };
+                } else {
+                  existing[String(instanceIdx)] = { _parentValue: instVal, [baseCondId]: value };
                 }
               }
-            } else {
+            } else if (!parentIsRepeatable && instanceIdx === null) {
+              // Non-repeatable conditional
               const parentResponse = singleMergedData[parentQuestion.id];
               if (parentResponse === undefined || parentResponse === null) {
-                singleMergedData[parentQuestion.id] = { [conditionalQuestionId]: value };
+                singleMergedData[parentQuestion.id] = { [baseCondId]: value };
               } else if (typeof parentResponse === 'object' && !Array.isArray(parentResponse)) {
-                singleMergedData[parentQuestion.id] = { ...parentResponse, [conditionalQuestionId]: value };
+                singleMergedData[parentQuestion.id] = { ...parentResponse, [baseCondId]: value };
               } else {
                 singleMergedData[parentQuestion.id] = {
                   _parentValue: parentResponse,
-                  [conditionalQuestionId]: value
+                  [baseCondId]: value
                 };
               }
             }
+            // Skip scoped keys for non-repeatable parents and unscoped keys for repeatable parents
           }
         });
       }
@@ -1065,6 +1069,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                     )}
                   </div>
                   {filterMainQuestions(currentSection.questions).map((question: FormQuestion) => {
+                    const currentSectionIsRepeatable = (currentSection as any).conditional?.repeatable === true;
                     const scopedId = getInstanceScopedQuestionId(question.id, instanceIndex);
                 // Debug logging to check if conditional questions are being filtered correctly
                 console.log('🔍 PublicFormFiller rendering main question:', {
@@ -1099,8 +1104,20 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                         onChange={(value) => handleResponseChange(scopedId, value)}
                         error={undefined}
                         isPreviewMode={false}
-                        conditionalValues={conditionalResponses}
-                        onConditionalChange={handleConditionalChange}
+                        conditionalValues={
+                          currentSectionIsRepeatable
+                            ? Object.fromEntries(
+                                Object.entries(conditionalResponses)
+                                  .filter(([k]) => k.endsWith(`__i${instanceIndex}`) || !k.includes('__i'))
+                                  .map(([k, v]) => [k.replace(`__i${instanceIndex}`, ''), v])
+                              )
+                            : conditionalResponses
+                        }
+                        onConditionalChange={
+                          currentSectionIsRepeatable
+                            ? (condQId, value) => handleConditionalChange(getInstanceScopedQuestionId(condQId, instanceIndex), value)
+                            : handleConditionalChange
+                        }
                       />
                     </ErrorBoundary>
 
@@ -1139,8 +1156,20 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                                     onChange={(value) => handleResponseChange(inlineScopedId, value)}
                                   error={undefined}
                                   isPreviewMode={false}
-                                  conditionalValues={conditionalResponses}
-                                  onConditionalChange={handleConditionalChange}
+                                  conditionalValues={
+                                    currentSectionIsRepeatable
+                                      ? Object.fromEntries(
+                                          Object.entries(conditionalResponses)
+                                            .filter(([k]) => k.endsWith(`__i${instanceIndex}`) || !k.includes('__i'))
+                                            .map(([k, v]) => [k.replace(`__i${instanceIndex}`, ''), v])
+                                        )
+                                      : conditionalResponses
+                                  }
+                                  onConditionalChange={
+                                    currentSectionIsRepeatable
+                                      ? (condQId, value) => handleConditionalChange(getInstanceScopedQuestionId(condQId, instanceIndex), value)
+                                      : handleConditionalChange
+                                  }
                                 />
                                   );
                                 })()}

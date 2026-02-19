@@ -223,7 +223,6 @@ const groupResponsesBySubmission = (responses: FormResponse[], form?: Form): Map
     
     if (metadata.isRepeatable && metadata.originalSource) {
       // Group by originalSource + respondentEmail + startedAt (rounded to nearest second)
-      // This identifies responses from the same submission
       const startedAtRounded = response.startedAt 
         ? new Date(response.startedAt).setMilliseconds(0) 
         : 0;
@@ -234,45 +233,6 @@ const groupResponsesBySubmission = (responses: FormResponse[], form?: Form): Map
       }
       groups.get(groupKey)!.push(response);
       console.log('✅ Grouped response with metadata:', { responseId: response.id, groupKey, metadata });
-    } else if (hasRepeatableSections) {
-      // Fallback: For forms with repeatable sections, try to group responses by email + time proximity
-      // This handles cases where responses don't have proper source metadata
-      const respondentKey = response.respondentEmail || 'anonymous';
-      const startedAt = response.startedAt ? new Date(response.startedAt) : new Date(0);
-      
-      // Look for existing groups within 30 seconds
-      let foundGroup: string | null = null;
-      const timeWindow = 30000; // 30 seconds
-      
-      groups.forEach((groupResponses, groupKey) => {
-        if (foundGroup) return; // Already found a group
-        
-        // Skip single_ groups for this check
-        if (groupKey.startsWith('single_')) return;
-        
-        const firstResponse = groupResponses[0];
-        const firstStartedAt = firstResponse.startedAt ? new Date(firstResponse.startedAt) : new Date(0);
-        const timeDiff = Math.abs(startedAt.getTime() - firstStartedAt.getTime());
-        
-        if (firstResponse.respondentEmail === response.respondentEmail && timeDiff <= timeWindow) {
-          foundGroup = groupKey;
-          console.log('📍 Found existing group by proximity:', { 
-            responseId: response.id, 
-            groupKey, 
-            timeDiff,
-            email: response.respondentEmail 
-          });
-        }
-      });
-      
-      if (foundGroup) {
-        groups.get(foundGroup)!.push(response);
-      } else {
-        // Create new group for this potential submission
-        const groupKey = `proximity_${respondentKey}_${startedAt.getTime()}`;
-        groups.set(groupKey, [response]);
-        console.log('🆕 Created new proximity group:', { responseId: response.id, groupKey });
-      }
     } else {
       // Non-repeatable form or no metadata - each response is its own group
       const groupKey = `single_${response.id}`;
@@ -354,16 +314,37 @@ const flattenGroupedResponses = (
   
   // Get repeatable sections
   const repeatableSections = getRepeatableSections(form);
-  
-  // If single response and not repeatable, return as-is
+  const repeatableQuestionIds = new Set(
+    repeatableSections.flatMap(s => s.questions.map(q => q.id))
+  );
+
+  // Helper: expand repeatable object values { "0": v0, "1": v1 } into instance keys so viewer/export see one value per column
+  const expandRepeatableData = (data: Record<string, any>): Record<string, any> => {
+    const out = { ...data };
+    for (const [questionId, value] of Object.entries(data)) {
+      if (!repeatableQuestionIds.has(questionId)) continue;
+      if (value === null || value === undefined) continue;
+      if (typeof value !== 'object' || Array.isArray(value)) continue;
+      const keys = Object.keys(value);
+      const numericKeys = keys.filter(k => /^\d+$/.test(k));
+      if (numericKeys.length === 0) continue;
+      numericKeys.forEach(indexStr => {
+        out[`${questionId}_instance_${indexStr}`] = value[indexStr];
+      });
+    }
+    return out;
+  };
+
+  // If single response and not repeatable metadata, return data with repeatable values expanded into instance keys
   if (groupedResponses.length === 1 && !metadata.isRepeatable) {
+    const data = expandRepeatableData(firstResponse.data);
     return {
       id: firstResponse.id,
       respondentEmail: firstResponse.respondentEmail,
       isComplete: firstResponse.isComplete,
       submittedAt: firstResponse.submittedAt || null,
       startedAt: firstResponse.startedAt || null,
-      data: firstResponse.data,
+      data,
       attachments: firstResponse.attachments || [],
       originalResponses: [firstResponse]
     };
@@ -928,9 +909,15 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
       return <div className="text-xs text-gray-400 leading-tight">No files or links</div>;
 
     default:
+      // Avoid "[object Object]" when value is an object (e.g. nested or unknown type from backend)
+      const displayValue = value !== undefined && value !== null
+        ? (typeof value === 'object' && value !== null && !Array.isArray(value)
+            ? JSON.stringify(value)
+            : String(value))
+        : '-';
       return (
-        <div className="text-xs max-w-[200px] truncate leading-tight" title={String(value)}>
-          {value !== undefined && value !== null ? String(value) : '-'}
+        <div className="text-xs max-w-[200px] truncate leading-tight" title={displayValue}>
+          {displayValue}
         </div>
       );
   }
@@ -1108,30 +1095,35 @@ export function FormResponseViewer() {
         responses.forEach((response) => {
           if (response.originalResponses && response.originalResponses.length > 1) {
             // Multiple original responses = multiple instances
-            // Check if any have explicit metadata for this section
             const hasExplicitMetadata = response.originalResponses.some(orig => {
               const metadata = parseRepeatableMetadata(orig.source);
               return metadata.isRepeatable && metadata.repeatableSectionId === section.id;
             });
             
             if (hasExplicitMetadata) {
-              // Has explicit metadata for this section
               maxInstances = Math.max(maxInstances, response.originalResponses.length);
             } else if (repeatableSections.length === 1) {
-              // Only one repeatable section - assume all multi-response groups are instances
               maxInstances = Math.max(maxInstances, response.originalResponses.length);
             } else {
-              // Multiple repeatable sections - check if data matches this section's questions
-              const sectionQuestionIds = new Set(section.questions.map(q => q.id));
               const hasDataForThisSection = response.originalResponses.some(orig => {
                 return section.questions.some(q => orig.data[q.id] !== undefined);
               });
-              
               if (hasDataForThisSection) {
                 maxInstances = Math.max(maxInstances, response.originalResponses.length);
               }
             }
           }
+
+          // Also detect instance count from single-response object values (new format: { "0": v, "1": v, ... })
+          section.questions.forEach(q => {
+            const val = response.data[q.id];
+            if (val && typeof val === 'object' && !Array.isArray(val)) {
+              const numericKeys = Object.keys(val).filter(k => /^\d+$/.test(k));
+              if (numericKeys.length > 1) {
+                maxInstances = Math.max(maxInstances, numericKeys.length);
+              }
+            }
+          });
         });
         maxInstancesBySectionMap.set(section.id, maxInstances || 1);
   });
@@ -1401,30 +1393,35 @@ export function FormResponseViewer() {
         flattenedResponses.forEach((flattenedResponse) => {
           if (flattenedResponse.originalResponses && flattenedResponse.originalResponses.length > 1) {
             // Multiple original responses = multiple instances
-            // Check if any have explicit metadata for this section
             const hasExplicitMetadata = flattenedResponse.originalResponses.some(orig => {
               const metadata = parseRepeatableMetadata(orig.source);
               return metadata.isRepeatable && metadata.repeatableSectionId === section.id;
             });
             
             if (hasExplicitMetadata) {
-              // Has explicit metadata for this section
               maxInstances = Math.max(maxInstances, flattenedResponse.originalResponses.length);
             } else if (repeatableSections.length === 1) {
-              // Only one repeatable section - assume all multi-response groups are instances
               maxInstances = Math.max(maxInstances, flattenedResponse.originalResponses.length);
             } else {
-              // Multiple repeatable sections - check if data matches this section's questions
-              const sectionQuestionIds = new Set(section.questions.map(q => q.id));
               const hasDataForThisSection = flattenedResponse.originalResponses.some(orig => {
                 return section.questions.some(q => orig.data[q.id] !== undefined);
               });
-              
               if (hasDataForThisSection) {
                 maxInstances = Math.max(maxInstances, flattenedResponse.originalResponses.length);
               }
             }
           }
+
+          // Also detect instance count from single-response object values (new format: { "0": v, "1": v, ... })
+          section.questions.forEach(q => {
+            const val = flattenedResponse.data[q.id];
+            if (val && typeof val === 'object' && !Array.isArray(val)) {
+              const numericKeys = Object.keys(val).filter(k => /^\d+$/.test(k));
+              if (numericKeys.length > 1) {
+                maxInstances = Math.max(maxInstances, numericKeys.length);
+              }
+            }
+          });
         });
         maxInstancesBySection.set(section.id, maxInstances || 1);
       });
@@ -1488,33 +1485,30 @@ export function FormResponseViewer() {
           }
           return String(value);
         }
-      
+        // Avoid "[object Object]" for unexpected object values from backend
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          return JSON.stringify(value);
+        }
         return String(value);
     };
 
-    // Create CSV content
+    // Create CSV content - metadata columns first, then question columns in same order as viewer (including repeatable instance columns)
+    const allQuestions = getAllQuestionsInOrder(form, overallMaxInstances);
     const headers = [
       'Response ID',
-      'Email', 
-      'Status', 
-      'Submitted At', 
+      'Email',
+      'Status',
+      'Submitted At',
       'Completion Time (minutes)'
     ];
-    
-      // Add question headers with instance columns for repeatable sections
-      const allQuestions = getAllQuestionsInOrder(form, overallMaxInstances);
-      allQuestions.forEach(({question, isConditional, parentQuestion, parentOption, isRepeatable, instanceIndex, instanceKey}) => {
+    allQuestions.forEach(({question, isConditional, parentQuestion, parentOption, isRepeatable, instanceIndex, instanceKey}) => {
       let headerTitle = question.title;
-        
-        // Add instance suffix for repeatable sections
-        if (isRepeatable && instanceIndex !== undefined) {
-          headerTitle = `${question.title} (Instance ${instanceIndex + 1})`;
-        }
-        
-      if (isConditional) {
-          headerTitle = `${question.title} (Conditional: ${parentQuestion?.title || 'Unknown'} → ${parentOption?.label || parentOption})${isRepeatable && instanceIndex !== undefined ? ` - Instance ${instanceIndex + 1}` : ''}`;
+      if (isRepeatable && instanceIndex !== undefined) {
+        headerTitle = `${question.title} (Instance ${instanceIndex + 1})`;
       }
-        
+      if (isConditional) {
+        headerTitle = `${question.title} (Conditional: ${parentQuestion?.title || 'Unknown'} → ${parentOption?.label || parentOption})${isRepeatable && instanceIndex !== undefined ? ` - Instance ${instanceIndex + 1}` : ''}`;
+      }
       if (question.type === 'LOCATION') {
         headers.push(`${headerTitle} - Latitude`);
         headers.push(`${headerTitle} - Longitude`);
@@ -1532,16 +1526,15 @@ export function FormResponseViewer() {
             ? Math.round(((new Date(flattenedResponse.submittedAt)).getTime() - (new Date(flattenedResponse.startedAt)).getTime()) / (1000 * 60))
           : '';
 
-        const row = [
-            flattenedResponse.id,
-            flattenedResponse.respondentEmail || 'Anonymous',
-            flattenedResponse.isComplete ? 'Complete' : 'Incomplete',
-            flattenedResponse.submittedAt ? formatDate(flattenedResponse.submittedAt) : 'Not submitted',
+        const row: (string | number)[] = [
+          flattenedResponse.id,
+          flattenedResponse.respondentEmail || 'Anonymous',
+          flattenedResponse.isComplete ? 'Complete' : 'Incomplete',
+          flattenedResponse.submittedAt ? formatDate(flattenedResponse.submittedAt) : 'Not submitted',
           completionTime
         ];
-        
-          // Add question responses using flattened data
-          allQuestions.forEach(({question, isConditional, parentQuestion, instanceKey}) => {
+        // Add question values in same order as viewer (including repeatable instance columns)
+        allQuestions.forEach(({question, isConditional, parentQuestion, instanceKey}) => {
           let value;
             let attachments: MediaAttachment[] = [];
             
@@ -1552,15 +1545,21 @@ export function FormResponseViewer() {
           if (isConditional && parentQuestionId) {
               // For conditional questions in repeatable sections
               if (instanceKey) {
-                // Repeatable conditional question
-                const parentInstanceKey = `${parentQuestionId}_instance_${instanceKey.split('_instance_')[1]}`;
-                const parentResponseValue = flattenedResponse.data[parentInstanceKey];
-            if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
-              value = parentResponseValue[question.id];
-            } else {
-              value = null;
-            }
-          } else {
+                // Repeatable conditional - parent may be data[parentId_instance_N] or data[parentId]["N"]
+                const instanceIndexStr = instanceKey.split('_instance_')[1];
+                let parentResponseValue = flattenedResponse.data[`${parentQuestionId}_instance_${instanceIndexStr}`];
+                if (parentResponseValue === undefined && instanceIndexStr != null) {
+                  const byParent = flattenedResponse.data[parentQuestionId];
+                  if (typeof byParent === 'object' && byParent !== null && !Array.isArray(byParent)) {
+                    parentResponseValue = byParent[instanceIndexStr] ?? byParent[Number(instanceIndexStr)];
+                  }
+                }
+                if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
+                  value = parentResponseValue[question.id];
+                } else {
+                  value = null;
+                }
+              } else {
                 // Non-repeatable conditional question
                 const parentResponseValue = flattenedResponse.data[parentQuestionId];
                 if (typeof parentResponseValue === 'object' && parentResponseValue !== null) {
@@ -1572,12 +1571,26 @@ export function FormResponseViewer() {
             } else {
               // For main questions, use flattened data with instance key if applicable
               value = flattenedResponse.data[dataKey];
-            
-            // Handle nested structure for parent questions that have conditional children
-            if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
-              value = value._parentValue;
+              // Single response with repeatable data stored as object { "0": v0, "1": v1 } (or unexpanded legacy data)
+              if (value === undefined && instanceKey) {
+                const instanceIndexStr = instanceKey.split('_instance_')[1];
+                const byQuestion = flattenedResponse.data[question.id];
+                if (instanceIndexStr != null && typeof byQuestion === 'object' && byQuestion !== null && !Array.isArray(byQuestion)) {
+                  value = byQuestion[instanceIndexStr] ?? byQuestion[Number(instanceIndexStr)];
+                }
+              }
+              // Safety: if value is still the whole repeatable object (e.g. unexpanded), extract this instance
+              if (instanceKey && typeof value === 'object' && value !== null && !Array.isArray(value) && !('_parentValue' in value)) {
+                const instanceIndexStr = instanceKey.split('_instance_')[1];
+                if (instanceIndexStr != null && (instanceIndexStr in value || Number(instanceIndexStr) in value)) {
+                  value = value[instanceIndexStr] ?? value[Number(instanceIndexStr)];
+                }
+              }
+              // Handle nested structure for parent questions that have conditional children
+              if (typeof value === 'object' && value !== null && !Array.isArray(value) && value._parentValue !== undefined) {
+                value = value._parentValue;
+              }
             }
-          }
           
             // Get attachments for this question (check all original responses)
             flattenedResponse.originalResponses.forEach(originalResponse => {
@@ -1630,7 +1643,6 @@ export function FormResponseViewer() {
             row.push(displayValue);
           }
         });
-        
         return row.map(escapeCsvValue).join(',');
       })
     ].join('\n');
@@ -2046,6 +2058,13 @@ export function FormResponseViewer() {
                                   const byQuestion = row.data[question.id];
                                   if (instanceIndexFromKey != null && typeof byQuestion === 'object' && byQuestion !== null && !Array.isArray(byQuestion)) {
                                     responseValue = byQuestion[instanceIndexFromKey] ?? byQuestion[Number(instanceIndexFromKey)];
+                                  }
+                                }
+                                // Safety: if value is still the whole repeatable object (unexpanded), extract this instance
+                                if (instanceKey && typeof responseValue === 'object' && responseValue !== null && !Array.isArray(responseValue) && !('_parentValue' in responseValue)) {
+                                  const instanceIndexFromKey = instanceKey.split('_instance_')[1];
+                                  if (instanceIndexFromKey != null && (instanceIndexFromKey in responseValue || Number(instanceIndexFromKey) in responseValue)) {
+                                    responseValue = responseValue[instanceIndexFromKey] ?? responseValue[Number(instanceIndexFromKey)];
                                   }
                                 }
                                 
