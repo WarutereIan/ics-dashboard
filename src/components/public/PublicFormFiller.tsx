@@ -254,18 +254,37 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     }));
   };
 
+  // Helper: get response value for a question (handles non-repeatable and first instance of repeatable)
+  const getResponseForQuestion = (questionId: string, resp: Record<string, any>) => {
+    if (resp[questionId] !== undefined) return resp[questionId];
+    const firstInstanceKey = `${questionId}__i0`;
+    if (resp[firstInstanceKey] !== undefined) return resp[firstInstanceKey];
+    return undefined;
+  };
+
   // Helper function to evaluate section conditionals
   const shouldShowSection = (section: any, responses: Record<string, any>) => {
+    const allResponses = { ...responses, ...conditionalResponses };
     // If section is not marked as conditional, show it
     if (!section.conditional) {
       return true;
     }
 
-    // For conditional sections, check if they are assigned to question options
-    // If assigned to question options, they should only show when the option is selected
-    // If not assigned to question options, they should show by default
-    
-    // Check if this section is assigned to any question option
+    // Section visibility: show only when a controlling question's response matches showWhen
+    if (section.conditional.dependsOn != null && section.conditional.showWhen != null) {
+      const controllingValue = getResponseForQuestion(section.conditional.dependsOn, allResponses);
+      const showWhen = section.conditional.showWhen;
+      const allowedValues = Array.isArray(showWhen) ? showWhen : [showWhen];
+      const matches = allowedValues.some(
+        (v: string | number | boolean) =>
+          controllingValue === v ||
+          (typeof controllingValue === 'string' && String(v) === controllingValue) ||
+          (typeof v === 'string' && String(controllingValue) === v)
+      );
+      return matches;
+    }
+
+    // Legacy: section assigned to a question option (inline section) - only show when that option is selected
     const isAssignedToQuestion = form?.sections
       ?.flatMap(s => s.questions)
       ?.some(question => {
@@ -277,39 +296,23 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       });
 
     if (isAssignedToQuestion) {
-      // This section is assigned to a question option, only show if that option is selected
-      for (const [questionId, response] of Object.entries(responses)) {
-        const question = form?.sections
-          ?.flatMap(s => s.questions)
-          ?.find(q => q.id === questionId);
-        
-        if (question && (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE')) {
-          const options = question.options || [];
-          
-          if (question.type === 'SINGLE_CHOICE') {
-            // Single choice: check if selected option has this section assigned
-            const selectedOption = options.find((opt: any) => opt.value === response);
-            if (selectedOption?.assignedSectionId === section.id) {
-              return true;
-            }
-          } else if (question.type === 'MULTIPLE_CHOICE') {
-            // Multiple choice: check if any selected option has this section assigned
-            const selectedValues = Array.isArray(response) ? response : [response];
-            const hasAssignedSection = selectedValues.some(selectedValue => {
-              const selectedOption = options.find((opt: any) => opt.value === selectedValue);
-              return selectedOption?.assignedSectionId === section.id;
-            });
-            if (hasAssignedSection) {
-              return true;
-            }
-          }
+      const allQuestions = form?.sections?.flatMap(s => s.questions) ?? [];
+      for (const question of allQuestions) {
+        if (question.type !== 'SINGLE_CHOICE' && question.type !== 'MULTIPLE_CHOICE') continue;
+        const response = getResponseForQuestion(question.id, allResponses);
+        const options = (question as any).options || [];
+        if (question.type === 'SINGLE_CHOICE') {
+          const selectedOption = options.find((opt: any) => opt.value === response);
+          if (selectedOption?.assignedSectionId === section.id) return true;
+        } else {
+          const selectedValues = Array.isArray(response) ? response : [response];
+          if (selectedValues.some((v: any) => options.find((opt: any) => opt.value === v)?.assignedSectionId === section.id)) return true;
         }
       }
-      return false; // Don't show if assigned to question but option not selected
-    } else {
-      // This conditional section is not assigned to any question option, show it by default
-      return true;
+      return false;
     }
+
+    return true;
   };
 
   // Get visible sections based on conditional logic (excluding assigned sections)
@@ -615,15 +618,22 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
           });
         });
 
-        // Merge conditional responses into parent question values (non-repeatable)
-        Object.entries(conditionalResponses).forEach(([conditionalQuestionId, value]) => {
+        // Merge conditional responses into parent question values
+        // Conditional keys for repeatable sections are scoped: "condQId__i0", "condQId__i1", etc.
+        // Non-repeatable keys are just "condQId".
+        Object.entries(conditionalResponses).forEach(([rawKey, value]) => {
+          // Extract base conditional question ID and optional instance index
+          const scopeMatch = rawKey.match(/^(.+)__i(\d+)$/);
+          const baseCondId = scopeMatch ? scopeMatch[1] : rawKey;
+          const instanceIdx = scopeMatch ? parseInt(scopeMatch[2], 10) : null;
+
           const parentQuestion = form.sections
             .flatMap(section => section.questions)
             .find(question => {
               if ((question as any).options && Array.isArray((question as any).options)) {
                 return (question as any).options.some((option: any) =>
                   option.conditionalQuestions &&
-                  option.conditionalQuestions.some((condQ: any) => condQ.id === conditionalQuestionId)
+                  option.conditionalQuestions.some((condQ: any) => condQ.id === baseCondId)
                 );
               }
               return false;
@@ -633,37 +643,34 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
             const parentSection = form.sections.find(s => s.questions?.some(q => q.id === parentQuestion.id));
             const parentIsRepeatable = parentSection && (parentSection as any).conditional?.repeatable;
 
-            if (parentIsRepeatable) {
-              // Conditional under repeatable parent: merge into each instance that has this conditional
+            if (parentIsRepeatable && instanceIdx !== null) {
+              // Scoped conditional for a specific repeatable instance
               const existing = singleMergedData[parentQuestion.id];
               if (typeof existing === 'object' && existing !== null && !Array.isArray(existing)) {
-                const maxInst = getSectionInstanceCount(parentSection!.id);
-                for (let i = 0; i < maxInst; i++) {
-                  const scopedCondId = getInstanceScopedQuestionId(conditionalQuestionId, i);
-                  const condValue = conditionalResponses[scopedCondId] ?? conditionalResponses[conditionalQuestionId] ?? value;
-                  const instVal = existing[String(i)];
-                  if (instVal === undefined || instVal === null) {
-                    existing[String(i)] = { [conditionalQuestionId]: condValue };
-                  } else if (typeof instVal === 'object' && !Array.isArray(instVal)) {
-                    existing[String(i)] = { ...instVal, [conditionalQuestionId]: condValue };
-                  } else {
-                    existing[String(i)] = { _parentValue: instVal, [conditionalQuestionId]: condValue };
-                  }
+                const instVal = existing[String(instanceIdx)];
+                if (instVal === undefined || instVal === null) {
+                  existing[String(instanceIdx)] = { [baseCondId]: value };
+                } else if (typeof instVal === 'object' && !Array.isArray(instVal)) {
+                  existing[String(instanceIdx)] = { ...instVal, [baseCondId]: value };
+                } else {
+                  existing[String(instanceIdx)] = { _parentValue: instVal, [baseCondId]: value };
                 }
               }
-            } else {
+            } else if (!parentIsRepeatable && instanceIdx === null) {
+              // Non-repeatable conditional
               const parentResponse = singleMergedData[parentQuestion.id];
               if (parentResponse === undefined || parentResponse === null) {
-                singleMergedData[parentQuestion.id] = { [conditionalQuestionId]: value };
+                singleMergedData[parentQuestion.id] = { [baseCondId]: value };
               } else if (typeof parentResponse === 'object' && !Array.isArray(parentResponse)) {
-                singleMergedData[parentQuestion.id] = { ...parentResponse, [conditionalQuestionId]: value };
+                singleMergedData[parentQuestion.id] = { ...parentResponse, [baseCondId]: value };
               } else {
                 singleMergedData[parentQuestion.id] = {
                   _parentValue: parentResponse,
-                  [conditionalQuestionId]: value
+                  [baseCondId]: value
                 };
               }
             }
+            // Skip scoped keys for non-repeatable parents and unscoped keys for repeatable parents
           }
         });
       }
@@ -1065,6 +1072,7 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                     )}
                   </div>
                   {filterMainQuestions(currentSection.questions).map((question: FormQuestion) => {
+                    const currentSectionIsRepeatable = (currentSection as any).conditional?.repeatable === true;
                     const scopedId = getInstanceScopedQuestionId(question.id, instanceIndex);
                 // Debug logging to check if conditional questions are being filtered correctly
                 console.log('🔍 PublicFormFiller rendering main question:', {
@@ -1099,8 +1107,20 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                         onChange={(value) => handleResponseChange(scopedId, value)}
                         error={undefined}
                         isPreviewMode={false}
-                        conditionalValues={conditionalResponses}
-                        onConditionalChange={handleConditionalChange}
+                        conditionalValues={
+                          currentSectionIsRepeatable
+                            ? Object.fromEntries(
+                                Object.entries(conditionalResponses)
+                                  .filter(([k]) => k.endsWith(`__i${instanceIndex}`) || !k.includes('__i'))
+                                  .map(([k, v]) => [k.replace(`__i${instanceIndex}`, ''), v])
+                              )
+                            : conditionalResponses
+                        }
+                        onConditionalChange={
+                          currentSectionIsRepeatable
+                            ? (condQId, value) => handleConditionalChange(getInstanceScopedQuestionId(condQId, instanceIndex), value)
+                            : handleConditionalChange
+                        }
                       />
                     </ErrorBoundary>
 
@@ -1139,8 +1159,20 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
                                     onChange={(value) => handleResponseChange(inlineScopedId, value)}
                                   error={undefined}
                                   isPreviewMode={false}
-                                  conditionalValues={conditionalResponses}
-                                  onConditionalChange={handleConditionalChange}
+                                  conditionalValues={
+                                    currentSectionIsRepeatable
+                                      ? Object.fromEntries(
+                                          Object.entries(conditionalResponses)
+                                            .filter(([k]) => k.endsWith(`__i${instanceIndex}`) || !k.includes('__i'))
+                                            .map(([k, v]) => [k.replace(`__i${instanceIndex}`, ''), v])
+                                        )
+                                      : conditionalResponses
+                                  }
+                                  onConditionalChange={
+                                    currentSectionIsRepeatable
+                                      ? (condQId, value) => handleConditionalChange(getInstanceScopedQuestionId(condQId, instanceIndex), value)
+                                      : handleConditionalChange
+                                  }
                                 />
                                   );
                                 })()}

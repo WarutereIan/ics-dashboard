@@ -288,8 +288,9 @@ export interface FormSection {
     repeatable?: boolean;
   };
   conditional?: {
-    dependsOn?: string; // Question ID
-    showWhen?: string | number | boolean;
+    dependsOnSectionId?: string; // Builder UX: which earlier section the controlling question is in
+    dependsOn?: string; // Question ID - section is shown when this question's response matches showWhen
+    showWhen?: string | number | boolean | (string | number | boolean)[]; // Value(s) to match (array = show when response is any of these)
     operator?: 'EQUALS' | 'NOT_EQUALS' | 'GREATER_THAN' | 'LESS_THAN' | 'CONTAINS';
     repeatable?: boolean; // For repeatable sections
   };
