@@ -119,11 +119,14 @@ export function ProSidebar() {
         backgroundColor="#f8fafc"
         rootStyles={{
           borderRight: '1px solid #e2e8f0',
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full min-h-0">
           {/* Header */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="flex-shrink-0 p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-800">ICS Dashboard</h2>
               <Button
@@ -137,8 +140,8 @@ export function ProSidebar() {
             </div>
           </div>
 
-          {/* Navigation Menu */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Navigation Menu - scrollable when content overflows */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <Menu>
               {/* Global Overview */}
              <SubMenu 
@@ -494,7 +497,7 @@ export function ProSidebar() {
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="flex-shrink-0 p-4 border-t border-gray-200">
             <div className="text-xs text-gray-500">
               <p>Logged in as: {user.firstName} {user.lastName}</p>
               <p>Role: {user.roles?.[0]?.roleName || 'No role assigned'}</p>

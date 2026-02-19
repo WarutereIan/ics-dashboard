@@ -254,18 +254,37 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
     }));
   };
 
+  // Helper: get response value for a question (handles non-repeatable and first instance of repeatable)
+  const getResponseForQuestion = (questionId: string, resp: Record<string, any>) => {
+    if (resp[questionId] !== undefined) return resp[questionId];
+    const firstInstanceKey = `${questionId}__i0`;
+    if (resp[firstInstanceKey] !== undefined) return resp[firstInstanceKey];
+    return undefined;
+  };
+
   // Helper function to evaluate section conditionals
   const shouldShowSection = (section: any, responses: Record<string, any>) => {
+    const allResponses = { ...responses, ...conditionalResponses };
     // If section is not marked as conditional, show it
     if (!section.conditional) {
       return true;
     }
 
-    // For conditional sections, check if they are assigned to question options
-    // If assigned to question options, they should only show when the option is selected
-    // If not assigned to question options, they should show by default
-    
-    // Check if this section is assigned to any question option
+    // Section visibility: show only when a controlling question's response matches showWhen
+    if (section.conditional.dependsOn != null && section.conditional.showWhen != null) {
+      const controllingValue = getResponseForQuestion(section.conditional.dependsOn, allResponses);
+      const showWhen = section.conditional.showWhen;
+      const allowedValues = Array.isArray(showWhen) ? showWhen : [showWhen];
+      const matches = allowedValues.some(
+        (v: string | number | boolean) =>
+          controllingValue === v ||
+          (typeof controllingValue === 'string' && String(v) === controllingValue) ||
+          (typeof v === 'string' && String(controllingValue) === v)
+      );
+      return matches;
+    }
+
+    // Legacy: section assigned to a question option (inline section) - only show when that option is selected
     const isAssignedToQuestion = form?.sections
       ?.flatMap(s => s.questions)
       ?.some(question => {
@@ -277,39 +296,23 @@ export function PublicFormFiller({ isEmbedded = false }: PublicFormFillerProps) 
       });
 
     if (isAssignedToQuestion) {
-      // This section is assigned to a question option, only show if that option is selected
-      for (const [questionId, response] of Object.entries(responses)) {
-        const question = form?.sections
-          ?.flatMap(s => s.questions)
-          ?.find(q => q.id === questionId);
-        
-        if (question && (question.type === 'SINGLE_CHOICE' || question.type === 'MULTIPLE_CHOICE')) {
-          const options = question.options || [];
-          
-          if (question.type === 'SINGLE_CHOICE') {
-            // Single choice: check if selected option has this section assigned
-            const selectedOption = options.find((opt: any) => opt.value === response);
-            if (selectedOption?.assignedSectionId === section.id) {
-              return true;
-            }
-          } else if (question.type === 'MULTIPLE_CHOICE') {
-            // Multiple choice: check if any selected option has this section assigned
-            const selectedValues = Array.isArray(response) ? response : [response];
-            const hasAssignedSection = selectedValues.some(selectedValue => {
-              const selectedOption = options.find((opt: any) => opt.value === selectedValue);
-              return selectedOption?.assignedSectionId === section.id;
-            });
-            if (hasAssignedSection) {
-              return true;
-            }
-          }
+      const allQuestions = form?.sections?.flatMap(s => s.questions) ?? [];
+      for (const question of allQuestions) {
+        if (question.type !== 'SINGLE_CHOICE' && question.type !== 'MULTIPLE_CHOICE') continue;
+        const response = getResponseForQuestion(question.id, allResponses);
+        const options = (question as any).options || [];
+        if (question.type === 'SINGLE_CHOICE') {
+          const selectedOption = options.find((opt: any) => opt.value === response);
+          if (selectedOption?.assignedSectionId === section.id) return true;
+        } else {
+          const selectedValues = Array.isArray(response) ? response : [response];
+          if (selectedValues.some((v: any) => options.find((opt: any) => opt.value === v)?.assignedSectionId === section.id)) return true;
         }
       }
-      return false; // Don't show if assigned to question but option not selected
-    } else {
-      // This conditional section is not assigned to any question option, show it by default
-      return true;
+      return false;
     }
+
+    return true;
   };
 
   // Get visible sections based on conditional logic (excluding assigned sections)

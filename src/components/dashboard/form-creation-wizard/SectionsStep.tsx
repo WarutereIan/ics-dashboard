@@ -6,7 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { AlertCircle, Plus, Trash2, GripVertical, Layers, Repeat } from 'lucide-react';
+import { AlertCircle, Eye, Plus, Trash2, GripVertical, Layers, Repeat } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   DndContext,
   closestCenter,
@@ -43,6 +50,7 @@ import { FormSection } from './types';
 interface SortableSectionItemProps {
   section: FormSection;
   index: number;
+  allSections: FormSection[];
   onUpdateSection: (sectionId: string, updates: Partial<FormSection>) => void;
   onRemoveSection: (sectionId: string) => void;
   sectionsLength: number;
@@ -51,10 +59,24 @@ interface SortableSectionItemProps {
 function SortableSectionItem({ 
   section, 
   index, 
+  allSections,
   onUpdateSection, 
   onRemoveSection, 
   sectionsLength 
 }: SortableSectionItemProps) {
+  const previousSections = allSections.slice(0, index);
+  const previousQuestions = previousSections.flatMap(s => (s.questions || []).map(q => ({ ...q, sectionId: s.id, sectionTitle: s.title })));
+  // Resolve selected source section: explicit or derived from dependsOn (for backward compatibility)
+  const selectedSectionId = section.conditional?.dependsOnSectionId
+    ?? (section.conditional?.dependsOn
+      ? previousSections.find(s => s.questions?.some((q: any) => q.id === section.conditional?.dependsOn))?.id
+      : undefined);
+  const questionsInSelectedSection = selectedSectionId
+    ? (previousSections.find(s => s.id === selectedSectionId)?.questions ?? [])
+    : [];
+  const dependsOnQuestion = section.conditional?.dependsOn
+    ? previousQuestions.find(q => q.id === section.conditional!.dependsOn)
+    : null;
   const {
     attributes,
     listeners,
@@ -131,12 +153,6 @@ function SortableSectionItem({
                   id={`section-repeatable-${section.id}`}
                   checked={section.conditional?.repeatable || false}
                   onCheckedChange={(checked) => {
-                    console.log('🔄 Section repeatable toggle changed:', {
-                      sectionId: section.id,
-                      sectionTitle: section.title,
-                      repeatable: checked,
-                      previousConditional: section.conditional
-                    });
                     onUpdateSection(section.id, { 
                       conditional: { 
                         ...section.conditional, 
@@ -145,6 +161,148 @@ function SortableSectionItem({
                     });
                   }}
                 />
+              </div>
+
+              {/* Show section only when a previous question has a specific value (e.g. Gender = M) */}
+              <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-amber-700" />
+                  <div>
+                    <Label className="text-sm font-medium text-amber-900">Show section only when</Label>
+                    <p className="text-xs text-amber-700">
+                      Only show this section when a previous question has a specific answer (e.g. Gender = Female)
+                    </p>
+                  </div>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div>
+                    <Label className="text-xs">Source section</Label>
+                    <Select
+                      value={selectedSectionId ?? '__none__'}
+                      onValueChange={(value) => {
+                        if (value === '__none__') {
+                          onUpdateSection(section.id, {
+                            conditional: {
+                              ...section.conditional,
+                              dependsOnSectionId: undefined,
+                              dependsOn: undefined,
+                              showWhen: undefined,
+                            },
+                          });
+                          return;
+                        }
+                        onUpdateSection(section.id, {
+                          conditional: {
+                            ...section.conditional,
+                            dependsOnSectionId: value,
+                            dependsOn: undefined,
+                            showWhen: undefined,
+                          },
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Always show" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Always show this section</SelectItem>
+                        {previousSections.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Question</Label>
+                    <Select
+                      value={section.conditional?.dependsOn ?? '__none__'}
+                      onValueChange={(value) => {
+                        const next = value === '__none__'
+                          ? { ...section.conditional, dependsOn: undefined, showWhen: undefined }
+                          : { ...section.conditional, dependsOn: value, showWhen: undefined };
+                        onUpdateSection(section.id, { conditional: next });
+                      }}
+                      disabled={!selectedSectionId || questionsInSelectedSection.length === 0}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select question" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">—</SelectItem>
+                        {questionsInSelectedSection.map((q: any) => (
+                          <SelectItem key={q.id} value={q.id}>
+                            {q.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Answer</Label>
+                    {!section.conditional?.dependsOn || !dependsOnQuestion ? (
+                      <div className="mt-1 h-9 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500">
+                        Select a question first
+                      </div>
+                    ) : (dependsOnQuestion as any).options?.length > 0 ? (
+                      <Select
+                        value={Array.isArray(section.conditional?.showWhen)
+                          ? String((section.conditional.showWhen as any[])[0])
+                          : section.conditional?.showWhen != null
+                            ? String(section.conditional.showWhen)
+                            : '__none__'}
+                        onValueChange={(value) => {
+                          if (value === '__none__') {
+                            onUpdateSection(section.id, {
+                              conditional: { ...section.conditional, showWhen: undefined },
+                            });
+                            return;
+                          }
+                          onUpdateSection(section.id, {
+                            conditional: { ...section.conditional, showWhen: value },
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select value" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(dependsOnQuestion as any).options.map((opt: any) => (
+                            <SelectItem key={opt.id} value={String(opt.value)}>
+                              {opt.label ?? String(opt.value)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        className="mt-1"
+                        placeholder="Value to match"
+                        value={Array.isArray(section.conditional?.showWhen)
+                          ? (section.conditional.showWhen as any[]).join(', ')
+                          : section.conditional?.showWhen != null
+                            ? String(section.conditional.showWhen)
+                            : ''}
+                        onChange={(e) => {
+                          const v = e.target.value.trim();
+                          onUpdateSection(section.id, {
+                            conditional: { ...section.conditional, showWhen: v || undefined },
+                          });
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+                {previousSections.length === 0 && (
+                  <p className="text-xs text-amber-600">Add sections above this one to limit visibility by answer.</p>
+                )}
+                {selectedSectionId && questionsInSelectedSection.length === 0 && (
+                  <p className="text-xs text-amber-600">Selected section has no questions yet.</p>
+                )}
+                {section.conditional?.dependsOn && previousQuestions.length > 0 && !dependsOnQuestion && (
+                  <p className="text-xs text-amber-600">Selected question not found (section or question may have changed).</p>
+                )}
               </div>
             </div>
           </div>
@@ -279,6 +437,7 @@ export function SectionsStep({
                   key={section.id}
                   section={section}
                   index={index}
+                  allSections={sections}
                   onUpdateSection={onUpdateSection}
                   onRemoveSection={onRemoveSection}
                   sectionsLength={sections.length}
