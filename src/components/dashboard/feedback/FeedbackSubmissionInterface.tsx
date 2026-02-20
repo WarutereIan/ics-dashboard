@@ -101,6 +101,7 @@ export function FeedbackSubmissionInterface({
           date: formData.date,
           time: formData.time,
           isAnonymous: formData.isAnonymous,
+          isCommunityFacilitator: formData.isCommunityFacilitator === true,
           name: formData.name,
           sex: formData.sex,
           age: formData.age,
@@ -116,7 +117,7 @@ export function FeedbackSubmissionInterface({
         isAnonymous: formData.isAnonymous === true,
         submitterName: (formData.name as string)?.trim() || undefined,
         submitterEmail: undefined,
-        stakeholderType: undefined,
+        stakeholderType: formData.isCommunityFacilitator === true ? 'community_facilitator' : undefined,
       };
 
       await createSubmission(submissionData);

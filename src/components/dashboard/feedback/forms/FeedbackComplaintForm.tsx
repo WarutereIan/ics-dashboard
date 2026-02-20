@@ -32,6 +32,7 @@ export function FeedbackComplaintForm({
 }: FeedbackComplaintFormProps) {
   const [formData, setFormData] = useState({
     isAnonymous: false,
+    isCommunityFacilitator: false,
     name: '',
     sex: '' as '' | 'male' | 'female',
     age: '' as '' | 'child' | 'adult',
@@ -84,7 +85,7 @@ export function FeedbackComplaintForm({
       time: now.toTimeString().slice(0, 5),
       submitterName: formData.name.trim() || undefined,
       submitterEmail: undefined,
-      stakeholderType: undefined,
+      stakeholderType: formData.isCommunityFacilitator ? 'community_facilitator' : undefined,
     });
   };
 
@@ -107,6 +108,17 @@ export function FeedbackComplaintForm({
             />
             <Label htmlFor="anonymous">Submit anonymously</Label>
           </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="communityFacilitator"
+              checked={formData.isCommunityFacilitator}
+              onCheckedChange={(c) => handleChange('isCommunityFacilitator', c === true)}
+            />
+            <Label htmlFor="communityFacilitator">I am submitting as a community facilitator</Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Check this if you are a community facilitator providing dedicated feedback on behalf of or from your role.
+          </p>
           <div className="space-y-2">
             <Label htmlFor="name">Name {formData.isAnonymous ? '(optional – leave blank to remain anonymous)' : ''}</Label>
             <Input
