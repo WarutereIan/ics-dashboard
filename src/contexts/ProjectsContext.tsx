@@ -397,3 +397,8 @@ export function useProjects() {
   }
   return context;
 }
+
+/** Use when component may render outside ProjectsProvider (e.g. public feedback form). Returns undefined when outside provider. */
+export function useOptionalProjects(): ProjectsContextType | undefined {
+  return useContext(ProjectsContext);
+}

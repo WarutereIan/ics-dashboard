@@ -1,5 +1,84 @@
 // Feedback system types and classifications
 
+/** ICS SOP feedback categories 1–8; 3–5 = programmatic (30d), 6–7 = sensitive (72h) */
+export type SopCategory = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
+export const SOP_CATEGORY_LABELS: Record<SopCategory, string> = {
+  1: 'Appreciation for services or support',
+  2: 'Request for information',
+  3: 'Request for assistance',
+  4: 'Minor dissatisfaction or suggestion for improvement',
+  5: 'Major dissatisfaction or suggestion for improvement',
+  6: 'Safeguarding / child protection / PSEA',
+  7: 'Breach of code of conduct and HR policies',
+  8: 'Allegations out of ICS SP scope',
+};
+
+/** Full descriptions from Feedback Complaint Recording Form (SOP) for category selection. */
+export const SOP_CATEGORY_DESCRIPTIONS: Record<SopCategory, string> = {
+  1: 'Appreciation for services or support',
+  2: 'Request for information',
+  3: 'Request for assistance',
+  4: 'Minor dissatisfaction with activities (e.g., missing items from kits, lack of follow-up, etc.)',
+  5: 'Major dissatisfaction with activities (e.g., poor quality items, beneficiary selection issues, safety of children/adults being put at risk, e.g. unsafe construction site, etc.)',
+  6: 'Breaches Safeguarding, child protection and prevention of sexual abuse and exploitation (PSEA) (verbal, physical or sexual abuse, sexual exploitation of beneficiaries, etc.)',
+  7: 'Breach of code of conduct and HR Policies (e.g. allegations of inappropriate behaviour or misconduct by ICS or partner staff or representatives including fraud, theft, corruption (e.g., misappropriation of goods, requests for payment))',
+  8: 'Allegations out of ICS SP scope',
+};
+
+/** Map SOP category (1–8) to backend category ID from seed. */
+export const SOP_CATEGORY_TO_CATEGORY_ID: Record<SopCategory, string> = {
+  1: 'general_feedback',
+  2: 'request_information',
+  3: 'request_assistance',
+  4: 'minor_dissatisfaction',
+  5: 'major_dissatisfaction',
+  6: 'safety_incident',
+  7: 'staff_feedback',
+  8: 'out_of_scope',
+};
+
+/** Programmatic (3–5): close within 30 days. Sensitive (6–7): close within 72 hours. */
+export const SOP_CLOSURE_30_DAYS_HOURS = 30 * 24;
+export const SOP_CLOSURE_72_HOURS = 72;
+
+export function isSensitiveSopCategory(sopCategory: number | null | undefined): boolean {
+  return sopCategory === 6 || sopCategory === 7;
+}
+
+export function isProgrammaticSopCategory(sopCategory: number | null | undefined): boolean {
+  return sopCategory === 3 || sopCategory === 4 || sopCategory === 5;
+}
+
+/** True if submission is not closed/resolved and past its closure due date. */
+export function isOverdueForClosure(
+  status: string,
+  closureDueDate: Date | string | null
+): boolean {
+  if (status === 'CLOSED' || status === 'RESOLVED' || closureDueDate == null) return false;
+  return new Date(closureDueDate) < new Date();
+}
+
+export function getSopClosureDeadlineHours(sopCategory: number | null | undefined): number | null {
+  if (sopCategory == null) return null;
+  if (sopCategory === 6 || sopCategory === 7) return SOP_CLOSURE_72_HOURS;
+  if (sopCategory >= 1 && sopCategory <= 5) return SOP_CLOSURE_30_DAYS_HOURS;
+  return null; // e.g. 8 = out of scope
+}
+
+/** Due date for closure from submission receipt (submittedAt). */
+export function getClosureDueDate(
+  submittedAt: Date | string,
+  sopCategory: number | null | undefined,
+  closureDeadlineHours?: number | null
+): Date | null {
+  const hours = closureDeadlineHours ?? getSopClosureDeadlineHours(sopCategory);
+  if (hours == null) return null;
+  const t = typeof submittedAt === 'string' ? new Date(submittedAt) : submittedAt;
+  const due = new Date(t.getTime() + hours * 60 * 60 * 1000);
+  return due;
+}
+
 export type FeedbackType = 
   | 'GENERAL'           // General feedback about the program
   | 'ISSUE'             // Reporting an issue or problem
@@ -49,6 +128,10 @@ export interface FeedbackCategory {
   escalationLevel: EscalationLevel;
   requiresImmediateNotification: boolean;
   allowedStakeholders: string[]; // Types of stakeholders who can submit this feedback
+  /** ICS SOP category 1–8 */
+  sopCategory?: number | null;
+  /** Closure deadline in hours from receipt (72 for sensitive 6–7, 720 for 1–5) */
+  closureDeadlineHours?: number | null;
 }
 
 export interface FeedbackForm {
@@ -259,72 +342,17 @@ export const DEFAULT_STAKEHOLDER_TYPES: StakeholderType[] = [
   }
 ];
 
-// Default feedback categories
+// Default feedback categories (aligned with ICS SOP; backend seed may add more)
 export const DEFAULT_FEEDBACK_CATEGORIES: FeedbackCategory[] = [
-  {
-    id: 'general_feedback',
-    name: 'General Feedback',
-    description: 'General comments, suggestions, or observations about the program',
-    type: 'GENERAL',
-    defaultPriority: 'LOW',
-    defaultSensitivity: 'PUBLIC',
-    escalationLevel: 'NONE',
-    requiresImmediateNotification: false,
-    allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization']
-  },
-  {
-    id: 'safety_incident',
-    name: 'Safety Incident',
-    description: 'Report safety concerns or incidents',
-    type: 'SAFETY_INCIDENT',
-    defaultPriority: 'HIGH',
-    defaultSensitivity: 'CONFIDENTIAL',
-    escalationLevel: 'PROJECT',
-    requiresImmediateNotification: true,
-    allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization']
-  },
-  {
-    id: 'staff_feedback',
-    name: 'Staff Feedback',
-    description: 'Feedback about program staff performance or behavior',
-    type: 'STAFF_FEEDBACK',
-    defaultPriority: 'MEDIUM',
-    defaultSensitivity: 'CONFIDENTIAL',
-    escalationLevel: 'PROJECT',
-    requiresImmediateNotification: false,
-    allowedStakeholders: ['community_member', 'program_beneficiary', 'observer']
-  },
-  {
-    id: 'emergency_report',
-    name: 'Emergency Report',
-    description: 'Report emergency situations requiring immediate attention',
-    type: 'EMERGENCY',
-    defaultPriority: 'CRITICAL',
-    defaultSensitivity: 'SENSITIVE',
-    escalationLevel: 'EMERGENCY',
-    requiresImmediateNotification: true,
-    allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization', 'government_official']
-  },
-  {
-    id: 'resource_issue',
-    name: 'Resource Issue',
-    description: 'Report issues with program resources, materials, or facilities',
-    type: 'RESOURCE_ISSUE',
-    defaultPriority: 'MEDIUM',
-    defaultSensitivity: 'INTERNAL',
-    escalationLevel: 'PROJECT',
-    requiresImmediateNotification: false,
-    allowedStakeholders: ['program_beneficiary', 'partner_organization']
-  },
-  {
-    id: 'process_feedback',
-    name: 'Process Feedback',
-    description: 'Feedback about program processes, procedures, or implementation',
-    type: 'PROCESS_FEEDBACK',
-    defaultPriority: 'LOW',
-    defaultSensitivity: 'INTERNAL',
-    escalationLevel: 'NONE',
-    requiresImmediateNotification: false,
-    allowedStakeholders: ['observer', 'partner_organization', 'government_official']
-  }
+  { id: 'general_feedback', name: 'General Feedback', description: 'General comments, suggestions, or observations', type: 'GENERAL', defaultPriority: 'LOW', defaultSensitivity: 'PUBLIC', escalationLevel: 'NONE', requiresImmediateNotification: false, allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization'], sopCategory: 1, closureDeadlineHours: SOP_CLOSURE_30_DAYS_HOURS },
+  { id: 'request_information', name: 'Request for Information', description: 'Request for information', type: 'GENERAL', defaultPriority: 'LOW', defaultSensitivity: 'PUBLIC', escalationLevel: 'NONE', requiresImmediateNotification: false, allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization', 'government_official'], sopCategory: 2, closureDeadlineHours: SOP_CLOSURE_30_DAYS_HOURS },
+  { id: 'request_assistance', name: 'Request for Assistance', description: 'Request for assistance', type: 'ISSUE', defaultPriority: 'MEDIUM', defaultSensitivity: 'INTERNAL', escalationLevel: 'NONE', requiresImmediateNotification: false, allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization'], sopCategory: 3, closureDeadlineHours: SOP_CLOSURE_30_DAYS_HOURS },
+  { id: 'minor_dissatisfaction', name: 'Minor Dissatisfaction or Suggestion', description: 'Minor dissatisfaction or suggestions for improvement', type: 'SUGGESTION', defaultPriority: 'LOW', defaultSensitivity: 'INTERNAL', escalationLevel: 'NONE', requiresImmediateNotification: false, allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization'], sopCategory: 4, closureDeadlineHours: SOP_CLOSURE_30_DAYS_HOURS },
+  { id: 'major_dissatisfaction', name: 'Major Dissatisfaction or Suggestion', description: 'Major dissatisfaction or suggestions for improvement', type: 'COMPLAINT', defaultPriority: 'HIGH', defaultSensitivity: 'INTERNAL', escalationLevel: 'PROJECT', requiresImmediateNotification: false, allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization', 'government_official'], sopCategory: 5, closureDeadlineHours: SOP_CLOSURE_30_DAYS_HOURS },
+  { id: 'safety_incident', name: 'Safeguarding / Child Protection / PSEA', description: 'Safeguarding, child protection, PSEA', type: 'SAFETY_INCIDENT', defaultPriority: 'HIGH', defaultSensitivity: 'CONFIDENTIAL', escalationLevel: 'PROJECT', requiresImmediateNotification: true, allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization'], sopCategory: 6, closureDeadlineHours: SOP_CLOSURE_72_HOURS },
+  { id: 'staff_feedback', name: 'Breach of Code of Conduct and HR Policies', description: 'Breach of code of conduct and HR policies', type: 'STAFF_FEEDBACK', defaultPriority: 'MEDIUM', defaultSensitivity: 'CONFIDENTIAL', escalationLevel: 'PROJECT', requiresImmediateNotification: false, allowedStakeholders: ['community_member', 'program_beneficiary', 'observer'], sopCategory: 7, closureDeadlineHours: SOP_CLOSURE_72_HOURS },
+  { id: 'out_of_scope', name: 'Allegations Out of ICS SP Scope', description: 'Allegations out of ICS SP scope', type: 'GENERAL', defaultPriority: 'LOW', defaultSensitivity: 'CONFIDENTIAL', escalationLevel: 'NONE', requiresImmediateNotification: false, allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization', 'government_official'], sopCategory: 8, closureDeadlineHours: undefined },
+  { id: 'emergency_report', name: 'Emergency Report', description: 'Emergency situations', type: 'EMERGENCY', defaultPriority: 'CRITICAL', defaultSensitivity: 'SENSITIVE', escalationLevel: 'EMERGENCY', requiresImmediateNotification: true, allowedStakeholders: ['community_member', 'program_beneficiary', 'observer', 'partner_organization', 'government_official'], sopCategory: 6, closureDeadlineHours: SOP_CLOSURE_72_HOURS },
+  { id: 'resource_issue', name: 'Resource Issue', description: 'Issues with resources, materials, or facilities', type: 'RESOURCE_ISSUE', defaultPriority: 'MEDIUM', defaultSensitivity: 'INTERNAL', escalationLevel: 'PROJECT', requiresImmediateNotification: false, allowedStakeholders: ['program_beneficiary', 'partner_organization'], sopCategory: 4, closureDeadlineHours: SOP_CLOSURE_30_DAYS_HOURS },
+  { id: 'process_feedback', name: 'Process Feedback', description: 'Feedback about program processes', type: 'PROCESS_FEEDBACK', defaultPriority: 'LOW', defaultSensitivity: 'INTERNAL', escalationLevel: 'NONE', requiresImmediateNotification: false, allowedStakeholders: ['observer', 'partner_organization', 'government_official'], sopCategory: 4, closureDeadlineHours: SOP_CLOSURE_30_DAYS_HOURS },
 ];

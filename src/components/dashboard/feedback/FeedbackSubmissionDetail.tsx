@@ -25,6 +25,7 @@ import { FeedbackResolutionWorkflow } from './FeedbackResolutionWorkflow';
 import { FeedbackStatusTracker } from './FeedbackStatusTracker';
 import { useFeedback } from '@/contexts/FeedbackContext';
 import { FeedbackSubmission } from '@/types/feedback';
+import { getClosureDueDate, isSensitiveSopCategory, SOP_CATEGORY_LABELS } from '@/types/feedback';
 
 interface FeedbackSubmissionDetailProps {
   submissionId: string;
@@ -74,6 +75,13 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
     );
   }
 
+  const sopCat = submission.category?.sopCategory;
+  const closureDue = getClosureDueDate(
+    submission.submittedAt,
+    sopCat,
+    submission.category?.closureDeadlineHours
+  );
+
   // Transform submission data for display
   const displayData = {
     id: submission.id,
@@ -92,7 +100,11 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
     attachments: submission.attachments || [],
     data: submission.data,
     communications: submission.communications || [],
-    internalNotes: submission.internalNotes || []
+    internalNotes: submission.internalNotes || [],
+    sopCategory: sopCat,
+    sopCategoryLabel: sopCat != null && sopCat >= 1 && sopCat <= 8 ? SOP_CATEGORY_LABELS[sopCat as keyof typeof SOP_CATEGORY_LABELS] : null,
+    closureDueDate: closureDue,
+    isSensitive: isSensitiveSopCategory(sopCat),
   };
 
 
@@ -186,10 +198,21 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
           </Button>
           <div>
             <h1 className="text-2xl font-bold">{displayData.title}</h1>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
               <Badge variant={getPriorityColor(displayData.priority)}>
                 {displayData.priority} Priority
               </Badge>
+              {displayData.sopCategory != null && (
+                <Badge variant={displayData.isSensitive ? 'destructive' : 'secondary'}>
+                  SOP {displayData.sopCategory}: {displayData.sopCategoryLabel ?? 'Category ' + displayData.sopCategory}
+                </Badge>
+              )}
+              {displayData.closureDueDate != null && displayData.status !== 'CLOSED' && displayData.status !== 'RESOLVED' && (
+                <span className="text-sm text-gray-600">
+                  Close by: {new Date(displayData.closureDueDate).toLocaleString()}
+                  {displayData.isSensitive && ' (72h)'}
+                </span>
+              )}
               <Badge variant={getStatusColor(displayData.status)} className="flex items-center gap-1">
                 {getStatusIcon(displayData.status)}
                 {displayData.status.replace('_', ' ')}
