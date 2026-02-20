@@ -351,7 +351,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
                 <SelectItem value="all">All SOP categories</SelectItem>
                 <SelectItem value="sensitive">Sensitive (72h closure)</SelectItem>
                 <SelectItem value="programmatic">Programmatic (30d closure)</SelectItem>
-                {(Object.keys(SOP_CATEGORY_LABELS) as SopCategory[]).map((key) => (
+                {(Object.keys(SOP_CATEGORY_LABELS) as unknown as SopCategory[]).map((key) => (
                   <SelectItem key={key} value={String(key)}>
                     SOP {key}: {SOP_CATEGORY_LABELS[key]}
                   </SelectItem>
