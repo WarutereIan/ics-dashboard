@@ -99,6 +99,7 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
     location: submission.data?.location || 'Not specified',
     attachments: submission.attachments || [],
     data: submission.data,
+    stakeholderType: submission.stakeholderType,
     communications: submission.communications || [],
     internalNotes: submission.internalNotes || [],
     sopCategory: sopCat,
@@ -274,8 +275,11 @@ export function FeedbackSubmissionDetail({ submissionId, onBack }: FeedbackSubmi
                   <label className="text-sm font-medium text-gray-600">Submitter</label>
                   <p className="mt-1 text-sm">
                     {displayData.isAnonymous ? 'Anonymous' : displayData.submitter}
-                    {!displayData.isAnonymous && (
+                    {!displayData.isAnonymous && displayData.submitterEmail && (
                       <span className="text-gray-500 ml-2">({displayData.submitterEmail})</span>
+                    )}
+                    {displayData.stakeholderType === 'community_facilitator' && (
+                      <span className="ml-2 text-xs font-medium text-blue-600">(Community facilitator)</span>
                     )}
                   </p>
                 </div>

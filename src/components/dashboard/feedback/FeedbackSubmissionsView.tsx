@@ -74,6 +74,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
         status: submission.status,
         submitter: submission.isAnonymous ? 'Anonymous' : (submission.submitterName || 'Unknown'),
         submitterEmail: submission.submitterEmail,
+        stakeholderType: submission.stakeholderType,
         isAnonymous: submission.isAnonymous,
         submittedAt: submission.submittedAt,
         assignedTo: submission.assignedTo,
@@ -439,7 +440,10 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {submission.isAnonymous ? 'Anonymous' : submission.submitter}
+                      <span>{submission.isAnonymous ? 'Anonymous' : submission.submitter}</span>
+                      {submission.stakeholderType === 'community_facilitator' && (
+                        <Badge variant="outline" className="ml-1.5 text-xs">Community facilitator</Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground whitespace-nowrap">
                       {new Date(submission.submittedAt).toLocaleDateString()}

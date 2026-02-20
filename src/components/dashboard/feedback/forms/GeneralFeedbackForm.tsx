@@ -56,6 +56,7 @@ export function GeneralFeedbackForm({ onSubmit, isSubmitting }: GeneralFeedbackF
 
   const stakeholderTypes = [
     { value: 'community_member', label: 'Community Member' },
+    { value: 'community_facilitator', label: 'Community Facilitator' },
     { value: 'program_beneficiary', label: 'Program Beneficiary' },
     { value: 'observer', label: 'External Observer' },
     { value: 'partner_organization', label: 'Partner Organization' },
