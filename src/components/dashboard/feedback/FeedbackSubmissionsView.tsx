@@ -4,14 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Eye, 
-  MessageSquare, 
+import {
+  Search,
+  Download,
+  Eye,
+  MessageSquare,
   AlertTriangle,
   Phone,
   Users,
@@ -20,9 +26,17 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { FeedbackSubmissionDetail } from './FeedbackSubmissionDetail';
+import {
+  getClosureDueDate,
+  isSensitiveSopCategory,
+  isProgrammaticSopCategory,
+  isOverdueForClosure,
+  SOP_CATEGORY_LABELS,
+  type SopCategory,
+} from '@/types/feedback';
 
 interface FeedbackSubmissionsViewProps {
   projectId: string;
@@ -33,7 +47,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('all');
+  const [sopFilter, setSopFilter] = useState<string>('all'); // 'all' | 'sensitive' | 'programmatic' | '1'..'8'
   const [selectedSubmission, setSelectedSubmission] = useState<string | null>(null);
   
   const { submissions, loading, updateSubmissionStatus, refreshSubmissions } = useFeedback();
@@ -45,19 +59,32 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
 
   // Memoized transformation of submissions to prevent recalculation on every render
   const transformedSubmissions = useMemo(() => {
-    return submissions.map(submission => ({
-      id: submission.id,
-      title: submission.data?.title || 'Feedback Submission',
-      type: submission.category?.name || 'General',
-      priority: submission.priority,
-      status: submission.status,
-      submitter: submission.isAnonymous ? 'Anonymous' : (submission.submitterName || 'Unknown'),
-      submitterEmail: submission.submitterEmail,
-      isAnonymous: submission.isAnonymous,
-      submittedAt: submission.submittedAt,
-      assignedTo: submission.assignedTo,
-      description: submission.data?.description || submission.data?.feedback || submission.data?.details || 'No description provided'
-    }));
+    return submissions.map(submission => {
+      const sopCat = submission.category?.sopCategory;
+      const due = getClosureDueDate(
+        submission.submittedAt,
+        sopCat,
+        submission.category?.closureDeadlineHours
+      );
+      return {
+        id: submission.id,
+        title: submission.data?.title || 'Feedback Submission',
+        type: submission.category?.name || 'General',
+        priority: submission.priority,
+        status: submission.status,
+        submitter: submission.isAnonymous ? 'Anonymous' : (submission.submitterName || 'Unknown'),
+        submitterEmail: submission.submitterEmail,
+        isAnonymous: submission.isAnonymous,
+        submittedAt: submission.submittedAt,
+        assignedTo: submission.assignedTo,
+        description: submission.data?.description || submission.data?.feedback || submission.data?.details || 'No description provided',
+        sopCategory: sopCat,
+        closureDueDate: due,
+        isSensitive: isSensitiveSopCategory(sopCat),
+        isProgrammatic: isProgrammaticSopCategory(sopCat),
+        isOverdue: isOverdueForClosure(submission.status, due),
+      };
+    });
   }, [submissions]);
 
 
@@ -133,17 +160,22 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
   // Use real submissions data
   const allSubmissions = transformedSubmissions;
   
-  // Memoized filtered submissions to prevent recalculation on every render
+  // Memoized filtered submissions (SOP-aligned filters)
   const filteredSubmissions = useMemo(() => {
     return allSubmissions.filter(submission => {
       const matchesSearch = submission.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            submission.description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || submission.status === statusFilter;
       const matchesPriority = priorityFilter === 'all' || submission.priority === priorityFilter;
-      
-      return matchesSearch && matchesStatus && matchesPriority;
+      const matchesSop =
+        sopFilter === 'all' ||
+        (sopFilter === 'sensitive' && submission.isSensitive) ||
+        (sopFilter === 'programmatic' && submission.isProgrammatic) ||
+        (sopFilter !== 'all' && submission.sopCategory != null && String(submission.sopCategory) === sopFilter);
+
+      return matchesSearch && matchesStatus && matchesPriority && matchesSop;
     });
-  }, [allSubmissions, searchTerm, statusFilter, priorityFilter]);
+  }, [allSubmissions, searchTerm, statusFilter, priorityFilter, sopFilter]);
 
   // Memoized event handlers
   const handleViewSubmission = useCallback((submissionId: string) => {
@@ -181,28 +213,6 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
     );
   }
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="max-w-6xl mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Feedback Submissions</h1>
-            <p className="text-gray-600 mt-2">
-              View and manage feedback submissions for {projectName}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading submissions...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Header */}
@@ -210,7 +220,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
         <div>
           <h1 className="text-3xl font-bold">Feedback Submissions</h1>
           <p className="text-gray-600 mt-2">
-            View and manage feedback submissions for {projectName}
+            View and manage feedback submissions for {projectName}. Categorized by ICS SOP: sensitive (6–7) close within 72 hours; categories 1–5 close within 30 days.
           </p>
         </div>
         <Button onClick={handleExportSubmissions} variant="outline" className="flex items-center gap-2">
@@ -219,7 +229,7 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
         </Button>
       </div>
 
-      {/* Stats Cards */}
+      {/* SOP-aligned Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -250,12 +260,27 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Sensitive (72h)</p>
+                <p className="text-2xl font-bold">
+                  {allSubmissions.filter(s => s.isSensitive && s.status !== 'CLOSED' && s.status !== 'RESOLVED').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
               <div className="p-2 bg-orange-100 rounded-lg">
                 <AlertCircle className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">In Progress</p>
-                <p className="text-2xl font-bold">{allSubmissions.filter(s => s.status === 'IN_PROGRESS').length}</p>
+                <p className="text-sm text-gray-600">Overdue</p>
+                <p className="text-2xl font-bold">{allSubmissions.filter(s => s.isOverdue).length}</p>
               </div>
             </div>
           </CardContent>
@@ -267,21 +292,10 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
                 <CheckCircle className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Resolved</p>
-                <p className="text-2xl font-bold">{allSubmissions.filter(s => s.status === 'RESOLVED').length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Critical</p>
-                <p className="text-2xl font-bold">{allSubmissions.filter(s => s.priority === 'CRITICAL').length}</p>
+                <p className="text-sm text-gray-600">Resolved / Closed</p>
+                <p className="text-2xl font-bold">
+                  {allSubmissions.filter(s => s.status === 'RESOLVED' || s.status === 'CLOSED').length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -329,11 +343,26 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
                 <SelectItem value="LOW">Low</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={sopFilter} onValueChange={setSopFilter}>
+              <SelectTrigger className="w-full md:w-56">
+                <SelectValue placeholder="SOP category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All SOP categories</SelectItem>
+                <SelectItem value="sensitive">Sensitive (72h closure)</SelectItem>
+                <SelectItem value="programmatic">Programmatic (30d closure)</SelectItem>
+                {(Object.keys(SOP_CATEGORY_LABELS) as SopCategory[]).map((key) => (
+                  <SelectItem key={key} value={String(key)}>
+                    SOP {key}: {SOP_CATEGORY_LABELS[key]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Submissions List */}
+      {/* Submissions Table */}
       <Card>
         <CardHeader>
           <CardTitle>Submissions ({filteredSubmissions.length})</CardTitle>
@@ -344,61 +373,115 @@ export function FeedbackSubmissionsView({ projectId, projectName = "ICS Organiza
               <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No submissions found</h3>
               <p className="text-gray-500">
-                {transformedSubmissions.length === 0 
-                  ? "No feedback submissions have been received yet." 
-                  : "No submissions match your current filters."}
+                {transformedSubmissions.length === 0
+                  ? 'No feedback submissions have been received yet.'
+                  : 'No submissions match your current filters.'}
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredSubmissions.map((submission) => (
-              <div key={submission.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="flex items-center gap-2">
-                        {getTypeIcon(submission.type)}
-                        <h3 className="text-lg font-semibold">{submission.title}</h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[180px]">Title / Description</TableHead>
+                  <TableHead className="min-w-[200px]">SOP category</TableHead>
+                  <TableHead className="whitespace-nowrap">Priority</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Submitter</TableHead>
+                  <TableHead className="whitespace-nowrap">Submitted</TableHead>
+                  <TableHead className="whitespace-nowrap">Due by</TableHead>
+                  <TableHead className="whitespace-nowrap">Assigned</TableHead>
+                  <TableHead className="w-[60px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSubmissions.map((submission) => (
+                  <TableRow
+                    key={submission.id}
+                    className={
+                      submission.isOverdue
+                        ? 'border-l-4 border-l-red-400 bg-red-50/50 hover:bg-red-50/70'
+                        : ''
+                    }
+                  >
+                    <TableCell>
+                      <div>
+                        <p className="font-medium line-clamp-1">{submission.title}</p>
+                        <p className="text-muted-foreground text-xs line-clamp-2 mt-0.5">
+                          {submission.description}
+                        </p>
                       </div>
-                      <Badge variant={getPriorityColor(submission.priority)}>
-                        {submission.priority}
-                      </Badge>
-                      <Badge variant={getStatusColor(submission.status)} className="flex items-center gap-1">
+                    </TableCell>
+                    <TableCell>
+                      {submission.sopCategory != null ? (
+                        <div className="space-y-1">
+                          <Badge
+                            variant={submission.isSensitive ? 'destructive' : 'secondary'}
+                            className="text-xs"
+                          >
+                            SOP {submission.sopCategory}
+                            {submission.isSensitive ? ' (Sensitive)' : ''}
+                          </Badge>
+                          <p className="text-muted-foreground text-xs max-w-[240px]">
+                            {SOP_CATEGORY_LABELS[submission.sopCategory as SopCategory]}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">{submission.type || '—'}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getPriorityColor(submission.priority)}>{submission.priority}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusColor(submission.status)} className="inline-flex items-center gap-1">
                         {getStatusIcon(submission.status)}
                         {submission.status.replace('_', ' ')}
                       </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-3 line-clamp-2">{submission.description}</p>
-                    <div className="flex items-center gap-6 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
-                        {submission.isAnonymous ? 'Anonymous' : submission.submitter}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(submission.submittedAt).toLocaleDateString()}
-                      </div>
-                      {submission.assignedTo && (
-                        <div className="flex items-center gap-1">
-                          <User className="w-4 h-4" />
-                          Assigned to: {submission.assignedTo}
-                        </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {submission.isAnonymous ? 'Anonymous' : submission.submitter}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                      {new Date(submission.submittedAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {submission.closureDueDate != null &&
+                      submission.status !== 'CLOSED' &&
+                      submission.status !== 'RESOLVED' ? (
+                        <span
+                          className={
+                            submission.isOverdue ? 'text-red-600 font-medium' : 'text-muted-foreground'
+                          }
+                        >
+                          {new Date(submission.closureDueDate).toLocaleString()}
+                          {submission.isSensitive && ' (72h)'}
+                        </span>
+                      ) : (
+                        '—'
                       )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewSubmission(submission.id)}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              ))}
-            </div>
+                      {submission.isOverdue && (
+                        <Badge variant="destructive" className="ml-1 text-xs">
+                          Overdue
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {submission.assignedTo || '—'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewSubmission(submission.id)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

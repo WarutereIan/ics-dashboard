@@ -1,7 +1,24 @@
 import { Project } from '@/types/dashboard';
 import { apiClient, APIResponse } from './client';
+import { config } from '@/config/env';
+
+export interface PublicProjectOption {
+  id: string;
+  name: string;
+}
 
 export const projectsApi = {
+  /** Public endpoint: project id/name list for feedback form dropdown (no auth required). */
+  async getPublicProjectList(): Promise<PublicProjectOption[]> {
+    const url = `${config.API_BASE_URL}/projects/public`;
+    const res = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!res.ok) throw new Error(`Failed to fetch projects: ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+    if (data?.data && Array.isArray(data.data)) return data.data;
+    return [];
+  },
+
   // Get all projects
   async getAllProjects(): Promise<Project[]> {
     const response = await apiClient.get<Project[]>('/projects');
