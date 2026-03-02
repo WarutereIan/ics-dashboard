@@ -369,7 +369,7 @@ export function GoalDetails({ goal: propGoal, goals, subGoal: propSubGoal }: Goa
                 {/* KPI Visualization */}
                 <div className="flex flex-col justify-center items-center gap-2">
                   {(subGoal.strategicKpi || subGoal.kpi)?.name && (
-                    <p className="text-sm font-medium text-muted-foreground">Organisation-level KPI: {(subGoal.strategicKpi || subGoal.kpi).name}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Organisation-level KPI: {(subGoal.strategicKpi || subGoal.kpi)?.name}</p>
                   )}
                   {renderKPIVisualization(subGoal.strategicKpi || subGoal.kpi)}
                 </div>

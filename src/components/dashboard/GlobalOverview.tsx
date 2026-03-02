@@ -349,7 +349,7 @@ export function GlobalOverview() {
                           </span>
                         </div>
                         {(subgoal.strategicKpi || subgoal.kpi)?.name && (
-                          <p className="text-xs text-muted-foreground mt-1">Organisation KPI: {(subgoal.strategicKpi || subgoal.kpi).name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Organisation KPI: {(subgoal.strategicKpi || subgoal.kpi)?.name}</p>
                         )}
                       </CardHeader>
                       <CardContent className="pt-0">
