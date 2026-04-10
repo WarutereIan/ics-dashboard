@@ -665,7 +665,25 @@ interface ResponseCellProps {
   responseData?: Record<string, any>; // Full response data for conditional questions
 }
 
-function ResponseCell({ question, value, attachments, isEditable = false, onValueChange, responseData }: ResponseCellProps) {
+function ResponseCell({ question, value: rawValue, attachments, isEditable = false, onValueChange, responseData }: ResponseCellProps) {
+  // Normalize unexpected object values to prevent React "Objects are not valid
+  // as a React child" crashes — e.g. empty {} from skipped repeatable fields,
+  // or un-expanded repeatable instance objects like {"0": "val", "1": "val"}.
+  let value = rawValue;
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      value = null;
+    } else if ('_parentValue' in value) {
+      value = value._parentValue;
+    } else if (keys.every(k => /^\d+$/.test(k))) {
+      // Un-expanded repeatable instance object — show instance 0
+      value = value['0'] ?? value[keys[0]];
+    } else {
+      value = JSON.stringify(value);
+    }
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -694,11 +712,14 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
           />
         );
       }
-      return (
-        <div className="text-xs max-w-[200px] truncate leading-tight" title={value}>
-          {value || '-'}
-        </div>
-      );
+      {
+        const textDisplay = value != null && value !== '' ? (typeof value === 'object' ? JSON.stringify(value) : String(value)) : '-';
+        return (
+          <div className="text-xs max-w-[200px] truncate leading-tight" title={textDisplay}>
+            {textDisplay}
+          </div>
+        );
+      }
 
     case 'EMAIL':
       if (isEditable) {
@@ -771,9 +792,12 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
           />
         );
       }
+      const numDisplay = value !== undefined && value !== null
+        ? (typeof value === 'object' ? JSON.stringify(value) : String(value))
+        : '-';
       return (
         <div className="text-xs font-mono leading-tight">
-          {value !== undefined && value !== null ? value : '-'}
+          {numDisplay}
         </div>
       );
     }
@@ -866,20 +890,20 @@ function ResponseCell({ question, value, attachments, isEditable = false, onValu
           </div>
         );
       }
-      return <div className="text-xs leading-tight">{Array.isArray(value) ? value.join(', ') : value || '-'}</div>;
+      return <div className="text-xs leading-tight">{Array.isArray(value) ? value.join(', ') : (value != null && typeof value !== 'object' ? String(value) : '-')}</div>;
 
     case 'DATE':
     case 'DATETIME':
       return (
         <div className="text-xs leading-tight">
-          {value ? new Date(value).toLocaleDateString() : '-'}
+          {value && typeof value !== 'object' ? new Date(value).toLocaleDateString() : '-'}
         </div>
       );
 
     case 'SLIDER':
       return (
         <div className="text-xs font-mono leading-tight">
-          {value !== undefined && value !== null ? value : '-'}
+          {value !== undefined && value !== null ? (typeof value === 'object' ? JSON.stringify(value) : String(value)) : '-'}
         </div>
       );
 
