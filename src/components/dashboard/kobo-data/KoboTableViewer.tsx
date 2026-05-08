@@ -77,16 +77,24 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
     try {
       setExporting(true);
 
-      // Helper function to escape CSV values
+      // Helper function to escape CSV values for Excel compatibility
       const escapeCsvValue = (value: any): string => {
         if (value === null || value === undefined) return '';
         
-        const stringValue = String(value);
-        // If value contains comma, newline, or quote, wrap in quotes and escape quotes
-        if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
+        let s = String(value);
+
+        // Normalize smart/curly quotes and apostrophes to ASCII equivalents
+        s = s.replace(/[\u2018\u2019\u201A\u2032]/g, "'");
+        s = s.replace(/[\u201C\u201D\u201E\u2033]/g, '"');
+        s = s.replace(/[\u2013]/g, '-');
+        s = s.replace(/[\u2014]/g, '--');
+        s = s.replace(/[\u2026]/g, '...');
+
+        if (/^[=+\-@]/.test(s)) {
+          s = '\t' + s;
         }
-        return stringValue;
+
+        return `"${s.replace(/"/g, '""')}"`;
       };
 
       // Fetch all data pages
@@ -134,7 +142,7 @@ export function KoboTableViewer({ projectId, tableId, tableName, displayName }: 
       ].join('\n');
 
       // Download CSV
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

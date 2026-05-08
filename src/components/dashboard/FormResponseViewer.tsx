@@ -1700,16 +1700,26 @@ export function FormResponseViewer() {
         flattenedResponseCount: flattenedResponses.length
       });
     
-    // Helper function to escape CSV values
+    // Helper function to escape CSV values for Excel compatibility
     const escapeCsvValue = (value: any): string => {
       if (value === null || value === undefined) return '';
       
-      const stringValue = String(value);
-      // If value contains comma, newline, or quote, wrap in quotes and escape quotes
-      if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
+      let s = String(value);
+
+      // Normalize smart/curly quotes and apostrophes to ASCII equivalents
+      s = s.replace(/[\u2018\u2019\u201A\u2032]/g, "'");   // ' ' ‚ ′ → '
+      s = s.replace(/[\u201C\u201D\u201E\u2033]/g, '"');    // " " „ ″ → "
+      s = s.replace(/[\u2013]/g, '-');                       // en-dash → -
+      s = s.replace(/[\u2014]/g, '--');                      // em-dash → --
+      s = s.replace(/[\u2026]/g, '...');                     // … → ...
+
+      // Guard against formula injection: prefix with a tab so Excel treats as text
+      if (/^[=+\-@]/.test(s)) {
+        s = '\t' + s;
       }
-      return stringValue;
+
+      // Always quote: safest for Excel to handle commas, newlines, quotes, semicolons
+      return `"${s.replace(/"/g, '""')}"`;
     };
 
     // Helper function to format dates as mm-dd-yyyy
@@ -1940,8 +1950,8 @@ export function FormResponseViewer() {
       })
     ].join('\n');
 
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Download CSV — prepend UTF-8 BOM so Excel recognizes encoding
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
